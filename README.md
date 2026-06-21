@@ -34,7 +34,7 @@ A Dalamud plugin for discovering and exploring FFXIV venues with interactive 2D 
 1. **Add Repository to Dalamud**
    - Open Dalamud Settings
    - Go to: Experimental → Custom Plugin Repositories
-   - Add: `https://github.com/SunnysTTV/VenueMapperXIV/raw/main/`
+   - Add: `https://raw.githubusercontent.com/SunnysTTV/sunnysrepo/main/pluginmaster.json`
 
 2. **Install Plugin**
    - Open Plugin Installer
