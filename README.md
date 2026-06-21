@@ -1,5 +1,5 @@
 # VenueMapper
-VenueMapper — FFXIV Dalamud Plugin for discovering housing venues, mapping services, and managing favorite locations with live Partake.gg event integration.
+VenueMapper - FFXIV Dalamud Plugin for discovering housing venues, mapping services, and managing favorite locations with live Partake.gg event integration.
 
 FFXIV Dalamud Plugin for discovering housing venues and mapping services.
 
@@ -17,7 +17,7 @@ FFXIV Dalamud Plugin for discovering housing venues and mapping services.
 - Install
 
 ## Owner Setup
-- `/vmapper owner` — Configure your venue
+- `/vmapper owner` - Configure your venue
 - Export to Google Form or JSON
 - Submit for inclusion
 
