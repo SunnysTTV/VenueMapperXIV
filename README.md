@@ -23,6 +23,8 @@ A Dalamud plugin for discovering and exploring FFXIV venues with interactive 2D 
 🌍 **Multi-Language Support**
 - English (EN)
 - Deutsch (DE)
+**Want to help translate?**
+[Join our Crowdin project](https://crowdin.com/project/venuemapper/invite?h=025340303bb4127cbda1a808692fb3e22804757)
 
 ⚙️ **Owner Tools**
 - Submit venue information via integrated Google Form
