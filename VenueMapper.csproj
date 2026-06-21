@@ -63,8 +63,9 @@
     <None Include="VenueMapper.json">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
-    <None Include="icon.png" Condition="Exists('icon.png')">
+    <None Include="Resources\icon.png" Condition="Exists('Resources\icon.png')">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      <Link>icon.png</Link>
     </None>
   </ItemGroup>
 

@@ -4,11 +4,11 @@
   "Punchline": "Housing venue management & discovery plugin for FFXIV.",
   "Description": "Interactive housing maps, live event tracking, venue directory, 3D Pictomancy markers, owner submission tools, and multi-language support (EN/DE).",
   "InternalName": "VenueMapper",
-  "AssemblyVersion": "0.5.0",
+  "AssemblyVersion": "0.5.0.0",
   "RepoUrl": "https://github.com/SunnysTTV/VenueMapperXIV",
   "ApplicableVersion": "any",
   "DalamudApiLevel": 15,
-  "Tags": ["venue", "map", "overlay", "neonnights"],
+  "Tags": ["venue", "map", "overlay", "housing"],
   "LoadRequiredState": 0,
   "LoadSync": false,
   "CanUnloadAsync": true

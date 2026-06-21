@@ -45,6 +45,11 @@ public sealed class VenueMapperPlugin : IDalamudPlugin
     public VenueMapperPlugin()
     {
         Configuration = PluginInterface.GetPluginConfig() as Configuration ?? new Configuration();
+        if (string.IsNullOrWhiteSpace(Configuration.GitHubConfigUrl))
+        {
+            Configuration.GitHubConfigUrl = "https://raw.githubusercontent.com/SunnysTTV/VenueMapperXIV/main/Resources/venues.json";
+            Configuration.Save();
+        }
         UI.Lang.Set(Configuration.Language);
 
         ConfigManager = new ConfigManager(Log, PluginInterface.ConfigDirectory.FullName);
