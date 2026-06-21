@@ -1,12 +1,11 @@
-[
-  {
-    "Author": "SunnysOfficial",
-    "Name": "Venue Mapper",
-    "InternalName": "VenueMapper",
-    "Description": "A Dalamud plugin for discovering FFXIV venues with 2D/3D interactive markers, live events, and built-in owner tools. Your complete FFXIV venue guide.",
-    "ApplicableVersion": "any",
-    "DalamudApiLevel": 15,
-    "TestingDalamudApiLevel": 15,
+{
+  "Author": "SunnysOfficial",
+  "Name": "Venue Mapper",
+  "InternalName": "VenueMapper",
+  "Description": "A Dalamud plugin for discovering FFXIV venues with 2D/3D interactive markers, live events, and built-in owner tools. Your complete FFXIV venue guide.",
+  "ApplicableVersion": "any",
+  "DalamudApiLevel": 15,
+  "TestingDalamudApiLevel": 15,
     "Tags": [
       "housing",
       "venues",
@@ -17,20 +16,15 @@
     "CategoryTags": [
       "Social"
     ],
-    "LoadRequiredState": 0,
-    "LoadSync": false,
-    "CanUnloadAsync": false,
-    "LoadPriority": 0,
-    "IsTestingExclusive": false,
-    "IconUrl": "https://raw.githubusercontent.com/SunnysTTV/VenueMapperXIV/main/images/icon.png",
-    "Punchline": "Your complete FFXIV venue guide.",
-    "RepoUrl": "https://github.com/SunnysTTV/VenueMapperXIV",
-    "AcceptsFeedback": true,
-    "DownloadLinkInstall": "https://github.com/SunnysTTV/VenueMapperXIV/releases/download/v0.5.0/VenueMapper.zip",
-    "AssemblyVersion": "0.5.0",
-    "DownloadLinkUpdate": "https://github.com/SunnysTTV/VenueMapperXIV/releases/download/v0.5.0/VenueMapper.zip",
-    "DownloadLinkTesting": "https://github.com/SunnysTTV/VenueMapperXIV/releases/download/v0.5.0/VenueMapper.zip",
-    "TestingAssemblyVersion": "0.5.0",
-    "Changelog": "## What's Changed in v0.5.0\r\n\r\nComplete rewrite with RESX-based localization (Crowdin-ready)\r\nEasy Setup Screen on first plugin launch\r\nDatacenter & Server cascading dropdown system\r\nLive event tracking with full venue information from Partake API\r\nETag polling for automatic GitHub config updates (hourly, non-blocking)\r\nGoogle Form integration with auto-fill for venue submissions\r\nComplete UI polish and refinements\r\nFull EN/DE localization support (ready for FR/JP via Crowdin)\r\nPerformance optimizations\r\nMultiple bug fixes and stability improvements\r\n\r\nFull Changelog: https://github.com/SunnysTTV/VenueMapperXIV/releases/tag/v0.5.0"
-  }
-]
+  "LoadRequiredState": 0,
+  "LoadSync": false,
+  "CanUnloadAsync": false,
+  "LoadPriority": 0,
+  "IsTestingExclusive": false,
+  "IconUrl": "https://raw.githubusercontent.com/SunnysTTV/VenueMapperXIV/main/images/icon.png",
+  "Punchline": "Your complete FFXIV venue guide.",
+  "RepoUrl": "https://github.com/SunnysTTV/VenueMapperXIV",
+  "AcceptsFeedback": true,
+  "AssemblyVersion": "0.5.0",
+  "TestingAssemblyVersion": "0.5.0"
+}
