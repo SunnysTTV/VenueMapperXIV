@@ -68,7 +68,7 @@
         "website": ""
       },
       "floors": [
-                {
+        {
           "floor": "ground",
           "yMin": -3.5,
           "yMax": 4.0,
