@@ -1,0 +1,9 @@
+[plugin]
+repository = "https://github.com/sunnysofficial/VenueMapper"
+changelog = ""
+name = "VenueMapper"
+punchVersion = 1
+assemblies = ["VenueMapper.dll"]
+testingAssemblies = []
+isTestingExclusive = false
+approved = false

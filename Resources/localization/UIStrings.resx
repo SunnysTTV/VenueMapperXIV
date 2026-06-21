@@ -1,0 +1,198 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <xsd:schema id="root" xmlns="" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:msdata="urn:schemas-microsoft-com:xml-msdata">
+    <xsd:import namespace="http://www.w3.org/XML/1998/namespace" />
+    <xsd:element name="root" msdata:IsDataSet="true">
+      <xsd:complexType>
+        <xsd:choice maxOccurs="unbounded">
+          <xsd:element name="metadata">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" />
+              </xsd:sequence>
+              <xsd:attribute name="name" use="required" type="xsd:string" />
+              <xsd:attribute name="type" type="xsd:string" />
+              <xsd:attribute name="mimetype" type="xsd:string" />
+              <xsd:attribute ref="xml:space" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="assembly">
+            <xsd:complexType>
+              <xsd:attribute name="alias" type="xsd:string" />
+              <xsd:attribute name="name" type="xsd:string" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="data">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" msdata:Ordinal="1" />
+                <xsd:element name="comment" type="xsd:string" minOccurs="0" msdata:Ordinal="2" />
+              </xsd:sequence>
+              <xsd:attribute name="name" type="xsd:string" use="required" msdata:Ordinal="1" />
+              <xsd:attribute name="type" type="xsd:string" msdata:Ordinal="3" />
+              <xsd:attribute name="mimetype" type="xsd:string" msdata:Ordinal="4" />
+              <xsd:attribute ref="xml:space" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="resheader">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" msdata:Ordinal="1" />
+              </xsd:sequence>
+              <xsd:attribute name="name" type="xsd:string" use="required" />
+            </xsd:complexType>
+          </xsd:element>
+        </xsd:choice>
+      </xsd:complexType>
+    </xsd:element>
+  </xsd:schema>
+  <resheader name="resmimetype"><value>text/microsoft-resx</value></resheader>
+  <resheader name="version"><value>2.0</value></resheader>
+  <resheader name="reader"><value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value></resheader>
+  <resheader name="writer"><value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value></resheader>
+
+  <!-- Tabs -->
+  <data name="Map" xml:space="preserve"><value>Map</value></data>
+  <data name="Directory" xml:space="preserve"><value>Directory</value></data>
+  <data name="Events" xml:space="preserve"><value>Events</value></data>
+
+  <!-- Directory -->
+  <data name="VenueDirectory" xml:space="preserve"><value>VENUE DIRECTORY</value></data>
+  <data name="UpcomingEvents" xml:space="preserve"><value>UPCOMING EVENTS</value></data>
+  <data name="Search" xml:space="preserve"><value>Search venues...</value></data>
+  <data name="AllDc" xml:space="preserve"><value>All Datacenters</value></data>
+  <data name="Visit" xml:space="preserve"><value>Visit</value></data>
+  <data name="Teleporting" xml:space="preserve"><value>Teleporting...</value></data>
+  <data name="Copied" xml:space="preserve"><value>COPIED!</value></data>
+  <data name="AddFavorite" xml:space="preserve"><value>Add Favorite</value></data>
+  <data name="RemoveFavorite" xml:space="preserve"><value>Remove Favorite</value></data>
+  <data name="CopyAddress" xml:space="preserve"><value>Copy Address</value></data>
+  <data name="RightClickHint" xml:space="preserve"><value>Right-click for options</value></data>
+
+  <!-- Status -->
+  <data name="Active" xml:space="preserve"><value>ACTIVE</value></data>
+  <data name="NotInstalled" xml:space="preserve"><value>NOT INSTALLED</value></data>
+  <data name="Here" xml:space="preserve"><value> HERE </value></data>
+  <data name="Here2" xml:space="preserve"><value> HERE </value></data>
+  <data name="NoVenues" xml:space="preserve"><value>No venue config. Use /vmapper settings.</value></data>
+  <data name="NoEvents" xml:space="preserve"><value>No upcoming events</value></data>
+  <data name="EnterVenue" xml:space="preserve"><value>Enter a venue to see the interactive map</value></data>
+
+  <!-- Settings -->
+  <data name="Settings" xml:space="preserve"><value>Settings</value></data>
+  <data name="Language" xml:space="preserve"><value>Language:</value></data>
+  <data name="About" xml:space="preserve"><value>About</value></data>
+  <data name="GithubConfig" xml:space="preserve"><value>GitHub Config Repo:</value></data>
+  <data name="AutoPull" xml:space="preserve"><value>Auto-Pull on Startup</value></data>
+  <data name="LastUpdated" xml:space="preserve"><value>Last Updated:</value></data>
+  <data name="PullNow" xml:space="preserve"><value>PULL NOW</value></data>
+  <data name="ResetCache" xml:space="preserve"><value>RESET CACHE</value></data>
+
+  <!-- Debug -->
+  <data name="DebugInfo" xml:space="preserve"><value>DEBUG INFO</value></data>
+  <data name="TerritoryId" xml:space="preserve"><value>Territory ID:</value></data>
+  <data name="MapId" xml:space="preserve"><value>Map ID:</value></data>
+  <data name="PlayerPos" xml:space="preserve"><value>Player Position:</value></data>
+  <data name="CurrentFloor" xml:space="preserve"><value>Current Floor:</value></data>
+
+  <!-- Markers -->
+  <data name="MarkersOn" xml:space="preserve"><value>Markers enabled</value></data>
+  <data name="MarkersOff" xml:space="preserve"><value>Markers disabled</value></data>
+  <data name="Markers3D" xml:space="preserve"><value>3D World Markers (Pictomancy)</value></data>
+
+  <!-- Map -->
+  <data name="MapUnavailable" xml:space="preserve"><value>MAP UNAVAILABLE</value></data>
+  <data name="MapNotInVenue" xml:space="preserve"><value>Visit the housing venue to view the map and access services.</value></data>
+  <data name="ScrollZoom" xml:space="preserve"><value>scroll to zoom</value></data>
+  <data name="TeleportVia" xml:space="preserve"><value>Teleport via Lifestream</value></data>
+
+  <!-- Links -->
+  <data name="Links" xml:space="preserve"><value>LINKS</value></data>
+  <data name="NoLinks" xml:space="preserve"><value>No links configured</value></data>
+  <data name="SubmitVenue" xml:space="preserve"><value>Submit your Venue</value></data>
+
+  <!-- Events -->
+  <data name="Retry" xml:space="preserve"><value>Retry</value></data>
+  <data name="ViewPartake" xml:space="preserve"><value>View on Partake</value></data>
+  <data name="Loading" xml:space="preserve"><value>loading...</value></data>
+
+  <!-- About -->
+  <data name="AutoPullCfg" xml:space="preserve"><value>Auto-Pull Config on Startup</value></data>
+  <data name="JoinSupport" xml:space="preserve"><value>JOIN &amp; SUPPORT</value></data>
+  <data name="CurRelease" xml:space="preserve"><value>Current Release</value></data>
+  <data name="OlderVer" xml:space="preserve"><value>View Older Versions</value></data>
+  <data name="WantVenue" xml:space="preserve"><value>Want your venue in VenueMapper?</value></data>
+  <data name="PluginDesc" xml:space="preserve"><value>Housing venue management &amp; discovery plugin for FFXIV.</value></data>
+
+  <!-- Owner Setup -->
+  <data name="OwnerTitle" xml:space="preserve"><value>VENUE OWNER SETUP</value></data>
+  <data name="OwnerDesc" xml:space="preserve"><value>Fill in your venue details, add services, then export.</value></data>
+  <data name="VenueInfo" xml:space="preserve"><value>Venue Info</value></data>
+  <data name="VenueName" xml:space="preserve"><value>Venue Name *</value></data>
+  <data name="YourDiscord" xml:space="preserve"><value>Your Discord *</value></data>
+  <data name="Datacenter" xml:space="preserve"><value>Datacenter *</value></data>
+  <data name="Server" xml:space="preserve"><value>Server *</value></data>
+  <data name="HousingDist" xml:space="preserve"><value>Housing District *</value></data>
+  <data name="Ward" xml:space="preserve"><value>Ward *</value></data>
+  <data name="Plot" xml:space="preserve"><value>Plot *</value></data>
+  <data name="Description" xml:space="preserve"><value>Description</value></data>
+  <data name="VenueColors" xml:space="preserve"><value>Venue Colors</value></data>
+  <data name="SelectHint" xml:space="preserve"><value>Select...</value></data>
+  <data name="AddService" xml:space="preserve"><value>+ Add Service</value></data>
+  <data name="UseMyPos" xml:space="preserve"><value>Use my pos</value></data>
+  <data name="Delete" xml:space="preserve"><value>Delete</value></data>
+  <data name="CoordsTip" xml:space="preserve"><value>Tip: Stand at each service and click 'Use my pos'</value></data>
+  <data name="Export" xml:space="preserve"><value>Export</value></data>
+  <data name="OptForm" xml:space="preserve"><value>OPTION 1: GOOGLE FORM</value></data>
+  <data name="OptFormDesc" xml:space="preserve"><value>Opens a Google Form with your venue data pre-filled. Just review and submit!</value></data>
+  <data name="OpenForm" xml:space="preserve"><value>Open Google Form (Auto-Fill)</value></data>
+  <data name="OptDiscord" xml:space="preserve"><value>OPTION 2: DISCORD DM</value></data>
+  <data name="OptDiscordDesc" xml:space="preserve"><value>Copies your venue data as JSON. Paste it in a Discord DM to sunnysofficial.</value></data>
+  <data name="CopyJsonDm" xml:space="preserve"><value>Copy JSON &amp; Open Discord DM</value></data>
+  <data name="Preview" xml:space="preserve"><value>PREVIEW</value></data>
+  <data name="FillRequired" xml:space="preserve"><value>Fill required fields in Venue Info tab first.</value></data>
+  <data name="Floor" xml:space="preserve"><value>Floor</value></data>
+  <data name="Coordinates" xml:space="preserve"><value>Coordinates</value></data>
+  <data name="ServiceType" xml:space="preserve"><value>Type</value></data>
+  <data name="ServiceName" xml:space="preserve"><value>Name</value></data>
+
+  <!-- Location plurals -->
+  <data name="LocationOne" xml:space="preserve"><value>  —  {0} location</value></data>
+  <data name="LocationMany" xml:space="preserve"><value>  —  {0} locations</value></data>
+
+  <!-- Setup Screen -->
+  <data name="SetupWelcomeTitle" xml:space="preserve"><value>Welcome! VenueMapper is your guide to FFXIV housing venues.</value></data>
+  <data name="SetupWelcomeDesc" xml:space="preserve"><value>In a few quick steps we'll set up your preferences. You can change everything later in Settings.</value></data>
+  <data name="SetupWhatYouGet" xml:space="preserve"><value>What you get:</value></data>
+  <data name="SetupFeature1" xml:space="preserve"><value>Interactive housing maps with service markers</value></data>
+  <data name="SetupFeature2" xml:space="preserve"><value>Live events from Partake.gg</value></data>
+  <data name="SetupFeature3" xml:space="preserve"><value>3D world markers (Pictomancy)</value></data>
+  <data name="SetupFeature4" xml:space="preserve"><value>Venue directory with social links</value></data>
+  <data name="SetupFeature5" xml:space="preserve"><value>Owner tools for venue submission</value></data>
+  <data name="SetupFeature6" xml:space="preserve"><value>Automatic config updates</value></data>
+  <data name="SetupChooseLang" xml:space="preserve"><value>Choose your language</value></data>
+  <data name="SetupLangHintEn" xml:space="preserve"><value>You can change the language anytime in Settings.</value></data>
+  <data name="SetupLangHintDe" xml:space="preserve"><value>Du kannst die Sprache jederzeit in den Einstellungen ändern.</value></data>
+  <data name="SetupKeyFeatures" xml:space="preserve"><value>Key Features</value></data>
+  <data name="SetupFeatMap" xml:space="preserve"><value>Map</value></data>
+  <data name="SetupFeatMapDesc" xml:space="preserve"><value>Interactive housing maps with floor tabs and zoom</value></data>
+  <data name="SetupFeatDir" xml:space="preserve"><value>Directory</value></data>
+  <data name="SetupFeatDirDesc" xml:space="preserve"><value>Browse venues with social links and teleport</value></data>
+  <data name="SetupFeatEvents" xml:space="preserve"><value>Events</value></data>
+  <data name="SetupFeatEventsDesc" xml:space="preserve"><value>Live events from Partake.gg with server time</value></data>
+  <data name="SetupFeat3D" xml:space="preserve"><value>3D Markers</value></data>
+  <data name="SetupFeat3DDesc" xml:space="preserve"><value>Pictomancy world-space markers at service locations</value></data>
+  <data name="SetupFeatOwner" xml:space="preserve"><value>Owner Tools</value></data>
+  <data name="SetupFeatOwnerDesc" xml:space="preserve"><value>Submit your venue via Google Form or Discord</value></data>
+  <data name="SetupFeatUpdate" xml:space="preserve"><value>Auto-Update</value></data>
+  <data name="SetupFeatUpdateDesc" xml:space="preserve"><value>Config syncs from GitHub every hour via ETag</value></data>
+  <data name="SetupQuickSettings" xml:space="preserve"><value>Quick Settings</value></data>
+  <data name="SetupEnable3D" xml:space="preserve"><value>Enable 3D Pictomancy Markers</value></data>
+  <data name="SetupEnable3DDesc" xml:space="preserve"><value>Shows service locations as 3D markers in the game world.</value></data>
+  <data name="SetupAllSet" xml:space="preserve"><value>All set! Click 'Got it!' to start using VenueMapper.</value></data>
+  <data name="SetupCommand" xml:space="preserve"><value>Use /vmapper to open the plugin anytime.</value></data>
+  <data name="SetupSkip" xml:space="preserve"><value>Skip</value></data>
+  <data name="SetupBack" xml:space="preserve"><value>Back</value></data>
+  <data name="SetupNext" xml:space="preserve"><value>Next</value></data>
+  <data name="SetupDone" xml:space="preserve"><value>Got it!</value></data>
+</root>

@@ -1,0 +1,15 @@
+{
+  "Author": "SunnysOfficial",
+  "Name": "VenueMapper",
+  "Punchline": "Interactive venue service map with NeonNights styling.",
+  "Description": "Displays venue services (Bar, Gambling, DJ Booth, etc.) on an interactive overlay, auto-detecting your current floor.",
+  "InternalName": "VenueMapper",
+  "AssemblyVersion": "0.0.41.0",
+  "RepoUrl": "",
+  "ApplicableVersion": "any",
+  "DalamudApiLevel": 15,
+  "Tags": ["venue", "map", "overlay", "neonnights"],
+  "LoadRequiredState": 0,
+  "LoadSync": false,
+  "CanUnloadAsync": true
+}
