@@ -68,6 +68,13 @@
         "website": ""
       },
       "floors": [
+                {
+          "floor": "ground",
+          "yMin": -3.5,
+          "yMax": 4.0,
+          "mapId": 0,
+          "services": []
+        },
         {
           "floor": "cellar",
           "yMin": -10.0,
