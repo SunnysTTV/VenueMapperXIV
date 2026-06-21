@@ -1,6 +1,6 @@
 # VenueMapper for FFXIV
 
-A Dalamud plugin for discovering and exploring FFXIV housing venues with interactive maps, venue details, and event information.
+A Dalamud plugin for discovering and exploring FFXIV venues with interactive 2D map markers and 3D service indicators, live event tracking and integrated venue owner tools. Your all-in-one FFXIV venue companion.
 
 ## Features
 
