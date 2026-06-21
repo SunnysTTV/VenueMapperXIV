@@ -100,6 +100,6 @@ Venue data is managed via `venues.json` hosted on GitHub and auto-updated in the
 MIT License — See LICENSE file for details
 
 ```
-**VenueMapper v0.0.40**
+**VenueMapper v0.5.0**
 Last Updated: June 2026
 ```
