@@ -10,18 +10,25 @@ public static class ChangelogData
         get
         {
             var v = Assembly.GetExecutingAssembly().GetName().Version;
-            return v != null ? $"v{v.Major}.{v.Minor}.{v.Build}" : "v0.5.0";
+            return v != null ? $"v{v.Major}.{v.Minor}.{v.Build}" : "v0.5.1";
         }
     }
 
     public static readonly (string Ver, string Date)[] Versions =
     [
+        ("v0.5.1",  "Jun 21, 2026"),
         ("v0.5.0",  "Jun 21, 2026"),
         ("v0.4.5",  "Jun 21, 2026"),
     ];
 
     public static readonly Dictionary<string, string[]> Changelogs = new()
     {
+        ["v0.5.1"] = [
+            "Removed placeholder text from Owner Setup fields",
+            "Copy JSON button with visual confirmation",
+            "Fixed icon.png path for Dalamud API compatibility",
+            "Fixed manifest and project file cleanup",
+        ],
         ["v0.5.0"] = ["Initial Release"],
         ["v0.4.5"] = [
             "Interactive housing maps with 2D zoom/pan and floor switching",

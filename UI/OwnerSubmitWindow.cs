@@ -38,6 +38,7 @@ public class OwnerSubmitWindow : Window, IDisposable
     private bool copied;
     private double copiedTime;
     private string copiedWhat = "";
+    private double copyJsonStart;
 
     private static readonly string[] Districts =
         ["Mist", "Lavender Beds", "The Goblet", "Shirogane", "Empyreum"];
@@ -114,8 +115,8 @@ public class OwnerSubmitWindow : Window, IDisposable
         ImGui.Spacing();
         PushFieldStyle();
 
-        Field(Lang.VenueName, ref clubName, "e.g. NeonNights");
-        Field(Lang.YourDiscord, ref discordName, "e.g. sunnysofficial");
+        Field(Lang.VenueName, ref clubName, "");
+        Field(Lang.YourDiscord, ref discordName, "");
         ImGui.Spacing();
 
         ImGui.TextColored(UIConstants.TextSecondary, Lang.Datacenter);
@@ -329,17 +330,27 @@ public class OwnerSubmitWindow : Window, IDisposable
 
         if (!valid) ImGui.BeginDisabled();
 
-        ImGui.PushStyleColor(ImGuiCol.Button, UIConstants.WithAlpha(UIConstants.Primary, 0.25f));
-        ImGui.PushStyleColor(ImGuiCol.ButtonHovered, UIConstants.WithAlpha(UIConstants.Primary, 0.45f));
-        ImGui.PushStyleColor(ImGuiCol.Text, UIConstants.Primary);
-        if (ImGui.Button(Lang.CopyJsonDm, new Vector2(-1, 28)))
+        var jsonCopied = copyJsonStart > 0 && (ImGui.GetTime() - copyJsonStart) < 3.0;
+        if (jsonCopied)
         {
-            ImGui.SetClipboardText(FormatJson());
-            copied = true; copiedTime = ImGui.GetTime(); copiedWhat = "JSON copied";
-            try { System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo
-                { FileName = "https://discord.com/users/sunnysofficial", UseShellExecute = true }); } catch { }
+            ImGui.PushStyleColor(ImGuiCol.Button, UIConstants.WithAlpha(new Vector4(0.2f, 1f, 0.5f, 1f), 0.25f));
+            ImGui.PushStyleColor(ImGuiCol.ButtonHovered, UIConstants.WithAlpha(new Vector4(0.2f, 1f, 0.5f, 1f), 0.35f));
+            ImGui.PushStyleColor(ImGuiCol.Text, new Vector4(0.2f, 1f, 0.5f, 1f));
+            ImGui.Button($"{Lang.Copied}##copyJson", new Vector2(-1, 28));
+            ImGui.PopStyleColor(3);
         }
-        ImGui.PopStyleColor(3);
+        else
+        {
+            ImGui.PushStyleColor(ImGuiCol.Button, UIConstants.WithAlpha(UIConstants.Primary, 0.25f));
+            ImGui.PushStyleColor(ImGuiCol.ButtonHovered, UIConstants.WithAlpha(UIConstants.Primary, 0.45f));
+            ImGui.PushStyleColor(ImGuiCol.Text, UIConstants.Primary);
+            if (ImGui.Button("Copy JSON##copyJson", new Vector2(-1, 28)))
+            {
+                ImGui.SetClipboardText(FormatJson());
+                copyJsonStart = ImGui.GetTime();
+            }
+            ImGui.PopStyleColor(3);
+        }
 
         if (!valid) ImGui.EndDisabled();
 
