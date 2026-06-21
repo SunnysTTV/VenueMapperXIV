@@ -6,6 +6,8 @@
       "address": "Light - Raiden - The Goblet - Ward 29 - Plot 35",
       "datacenter": "Light",
       "territoryIds": [1376],
+      "ward": 29,
+      "plot": 35,
       "teamId": 708,
       "availableFloors": ["ground", "cellar"],
       "colors": {
@@ -40,6 +42,40 @@
             { "type": "bar", "label": "Main Bar", "icon": "", "x": -2.65, "y": -7.53, "z": -6.59, "description": "" },
             { "type": "gambling", "label": "Gambler", "icon": "", "x": 8.46, "y": -7.07, "z": -6.59, "description": "" },
             { "type": "dj_booth", "label": "DJ Stage", "icon": "", "x": 3.23, "y": -8.62, "z": -3.59, "description": "" }
+          ]
+        }
+      ]
+    },
+    {
+      "venueId": "thevibe",
+      "name": "The VIBE",
+      "address": "Light - Raiden - Lavender Beds - Ward 8 - Plot 3",
+      "datacenter": "Light",
+      "territoryIds": [1376],
+      "ward": 8,
+      "plot": 3,
+      "teamId": 769,
+      "availableFloors": ["ground", "cellar"],
+      "colors": {
+        "primary": "#ff0000",
+        "accent": "#000000",
+        "secondary": "#838383"
+      },
+      "links": {
+        "discord": "https://discord.gg/clubvibe",
+        "partake": "https://www.partake.gg/teams/769",
+        "ffxivvenues": "https://ffxivvenues.com/venue/vb6CWKx3zDnM",
+        "website": ""
+      },
+      "floors": [
+        {
+          "floor": "cellar",
+          "yMin": -10.0,
+          "yMax": -3.5,
+          "mapId": 0,
+          "services": [
+            { "type": "bar", "label": "Bar", "icon": "", "x": -8.2, "y": -4.3, "z": -7.0, "description": "" },
+            { "type": "dj_booth", "label": "DJ Booth", "icon": "", "x": 14.6, "y": 0.1, "z": -7.0, "description": "" }
           ]
         }
       ]

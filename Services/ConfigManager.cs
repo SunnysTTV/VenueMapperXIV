@@ -64,7 +64,9 @@ public class ConfigManager
     {
         try
         {
-            File.WriteAllText(cacheFilePath, json);
+            var tmpPath = cacheFilePath + ".tmp";
+            File.WriteAllText(tmpPath, json);
+            File.Move(tmpPath, cacheFilePath, true);
             var parsed = JsonConvert.DeserializeObject<VenueConfig>(json);
             if (parsed != null)
             {

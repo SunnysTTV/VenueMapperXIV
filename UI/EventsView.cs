@@ -52,18 +52,16 @@ public class EventsView
             return;
         }
 
+        var anyLoading = false;
+        var allEvents = new List<(VenueEvent Evt, Venue Venue)>();
+
         foreach (var venue in teamedVenues)
         {
             _ = api.FetchTeamAsync(venue.TeamId);
 
-            var accent = venue.Colors?.PrimaryVec ?? UIConstants.Primary;
-            ImGui.TextColored(accent, venue.Name.ToUpperInvariant());
-
             if (api.IsLoading(venue.TeamId))
             {
-                ImGui.SameLine();
-                ImGui.TextColored(UIConstants.WithAlpha(UIConstants.Glow, 0.5f), $" {Lang.Loading}");
-                ImGui.Spacing();
+                anyLoading = true;
                 continue;
             }
 
@@ -78,30 +76,30 @@ public class EventsView
                 continue;
             }
 
-            var events = api.GetEvents(venue.TeamId);
-            if (events.Count == 0)
-            {
-                ImGui.TextColored(UIConstants.WithAlpha(UIConstants.TextSecondary, 0.4f), Lang.NoEvents);
-                if (!string.IsNullOrEmpty(venue.Links?.Partake))
-                {
-                    ImGui.SameLine();
-                    ImGui.PushStyleColor(ImGuiCol.Text, new Vector4(0.95f, 0.55f, 0.15f, 1f));
-                    if (ImGui.SmallButton($"{Lang.ViewPartake}##{venue.VenueId}"))
-                        OpenUrl(venue.Links.Partake);
-                    ImGui.PopStyleColor();
-                }
-            }
-            else
-            {
-                foreach (var evt in events)
-                    DrawEventCard(dl, evt, venue.Colors, venue.Address);
-            }
+            foreach (var evt in api.GetEvents(venue.TeamId))
+                allEvents.Add((evt, venue));
+        }
 
+        if (anyLoading)
+        {
+            ImGui.TextColored(UIConstants.WithAlpha(UIConstants.Glow, 0.5f), Lang.Loading);
             ImGui.Spacing();
         }
+
+        if (allEvents.Count == 0 && !anyLoading)
+        {
+            ImGui.TextColored(UIConstants.WithAlpha(UIConstants.TextSecondary, 0.4f), Lang.NoEvents);
+        }
+        else
+        {
+            foreach (var (evt, venue) in allEvents.OrderBy(e => e.Evt.StartTime))
+                DrawEventCard(dl, evt, venue.Colors, venue.Address, venue.Name);
+        }
+
+        ImGui.Spacing();
     }
 
-    private static void DrawEventCard(ImDrawListPtr dl, VenueEvent evt, VenueColors? colors = null, string? venueAddress = null)
+    private static void DrawEventCard(ImDrawListPtr dl, VenueEvent evt, VenueColors? colors = null, string? venueAddress = null, string? venueName = null)
     {
         var avW = ImGui.GetContentRegionAvail().X;
         var cardMin = ImGui.GetCursorScreenPos();
@@ -183,9 +181,16 @@ public class EventsView
         dl.AddText(new Vector2(dateCX - timeSz.X * 0.5f, dateY + dayRenderedH + gap + lineH + gap),
             ImGui.ColorConvertFloat4ToU32(UIConstants.WithAlpha(accent, 0.7f)), timeStr);
 
+        var isNow = evt.StartTime <= DateTime.UtcNow && evt.EndTime >= DateTime.UtcNow;
+        var nowCol = new Vector4(1f, 0.4f, 0f, 1f);
+
         var badge = $" {evt.EventType} ";
         var badgeSz = ImGui.CalcTextSize(badge);
-        var badgeX = cardMax.X - badgeSz.X - 8;
+        var nowBadge = " NOW ";
+        var nowSz = ImGui.CalcTextSize(nowBadge);
+        var totalBadgeW = badgeSz.X + 4 + (isNow ? nowSz.X + 8 : 0);
+
+        var badgeX = cardMax.X - totalBadgeW - 4;
         dl.AddRectFilled(
             new Vector2(badgeX - 2, cardMin.Y + 4),
             new Vector2(badgeX + badgeSz.X + 2, cardMin.Y + 4 + badgeSz.Y + 2),
@@ -197,8 +202,25 @@ public class EventsView
         dl.AddText(new Vector2(badgeX, cardMin.Y + 5),
             ImGui.ColorConvertFloat4ToU32(gold), badge);
 
+        if (isNow)
+        {
+            var nowX = badgeX + badgeSz.X + 6;
+            var nowPulse = (MathF.Sin((float)ImGui.GetTime() * 3f) + 1f) / 2f;
+            var nowAlpha = 0.7f + 0.3f * nowPulse;
+            dl.AddRectFilled(
+                new Vector2(nowX - 2, cardMin.Y + 4),
+                new Vector2(nowX + nowSz.X + 2, cardMin.Y + 4 + nowSz.Y + 2),
+                ImGui.ColorConvertFloat4ToU32(UIConstants.WithAlpha(nowCol, 0.25f)));
+            dl.AddRect(
+                new Vector2(nowX - 2, cardMin.Y + 4),
+                new Vector2(nowX + nowSz.X + 2, cardMin.Y + 4 + nowSz.Y + 2),
+                ImGui.ColorConvertFloat4ToU32(UIConstants.WithAlpha(nowCol, 0.6f * nowAlpha)), 0f, ImDrawFlags.None, 1f);
+            dl.AddText(new Vector2(nowX, cardMin.Y + 5),
+                ImGui.ColorConvertFloat4ToU32(UIConstants.WithAlpha(nowCol, nowAlpha)), nowBadge);
+        }
+
         var contentX = cardMin.X + dateW + 14;
-        var maxTitleW = avW - dateW - badgeSz.X - 32;
+        var maxTitleW = avW - dateW - totalBadgeW - 20;
         var titleFontSz = lineH * 1.2f;
         var linkFontSz  = lineH * 1.05f;
 
@@ -222,6 +244,15 @@ public class EventsView
         dl.AddText(font, linkFontSz, new Vector2(contentX, contentY + titleFontSz + 3 + lineH + 3),
             ImGui.ColorConvertFloat4ToU32(UIConstants.WithAlpha(accent, hovered ? 1f : 0.65f)),
             Lang.ViewPartake);
+
+        if (!string.IsNullOrEmpty(venueName))
+        {
+            var vnSz = ImGui.CalcTextSize(venueName);
+            dl.AddText(font, lineH * 0.85f,
+                new Vector2(cardMax.X - vnSz.X * 0.85f - 6, cardMax.Y - lineH * 0.85f - 4),
+                ImGui.ColorConvertFloat4ToU32(UIConstants.WithAlpha(UIConstants.TextPrimary, 0.6f)),
+                venueName);
+        }
     }
 
     private static string StripEmoji(string text)

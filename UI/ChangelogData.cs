@@ -10,12 +10,14 @@ public static class ChangelogData
         get
         {
             var v = Assembly.GetExecutingAssembly().GetName().Version;
-            return v != null ? $"v{v.Major}.{v.Minor}.{v.Build}" : "v0.5.1";
+            return v != null ? $"v{v.Major}.{v.Minor}.{v.Build}" : "v0.5.3";
         }
     }
 
     public static readonly (string Ver, string Date)[] Versions =
     [
+        ("v0.5.3",  "Jun 22, 2026"),
+        ("v0.5.2",  "Jun 21, 2026"),
         ("v0.5.1",  "Jun 21, 2026"),
         ("v0.5.0",  "Jun 21, 2026"),
         ("v0.4.5",  "Jun 21, 2026"),
@@ -23,6 +25,21 @@ public static class ChangelogData
 
     public static readonly Dictionary<string, string[]> Changelogs = new()
     {
+        ["v0.5.3"] = [
+            "Active events from Partake API (activeEvents query)",
+            "Pulsing NOW badge for currently running events",
+            "Venue name shown on event cards",
+            "Events merged across all venues into single list",
+            "HERE badge now respects ward/plot matching",
+            "Fixed config cache file lock issue",
+        ],
+        ["v0.5.2"] = [
+            "Auto-detection of housing ward/plot via HousingManager",
+            "Multiple venues can share the same territory ID",
+            "Ward/Plot display in debug window",
+            "Fixed corrupted Unicode characters in UI",
+            "Fixed texture debug display encoding",
+        ],
         ["v0.5.1"] = [
             "Removed placeholder text from Owner Setup fields",
             "Copy JSON button with visual confirmation",

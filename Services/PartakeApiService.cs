@@ -56,6 +56,10 @@ public class PartakeApiService : IDisposable
                             id title location description startsAt endsAt attendeeCount tags
                             team { id name }
                         }
+                        activeEvents(game: ""final-fantasy-xiv"", teamId: $teamId) {
+                            id title location description startsAt endsAt attendeeCount tags
+                            team { id name }
+                        }
                     }",
                 ["variables"] = new JObject
                 {
@@ -85,14 +89,21 @@ public class PartakeApiService : IDisposable
             }
 
             var events = root["data"]?["events"];
-            log.Information($"[Partake] Team {teamId}: {events?.Count() ?? 0} raw events");
+            var active = root["data"]?["activeEvents"];
+            log.Information($"[Partake] Team {teamId}: {events?.Count() ?? 0} upcoming, {active?.Count() ?? 0} active");
 
             var result = new List<VenueEvent>();
+            var seenIds = new HashSet<string>();
             var teams = new HashSet<string>();
 
-            if (events != null)
-            foreach (var e in events)
+            var allRaw = new List<JToken>();
+            if (active != null) foreach (var a in active) allRaw.Add(a);
+            if (events != null) foreach (var e in events) allRaw.Add(e);
+
+            foreach (var e in allRaw)
                 {
+                    var eventId = e["id"]?.Value<string>() ?? "";
+                    if (!seenIds.Add(eventId)) continue;
                     var startsRaw = e["startsAt"]?.ToString() ?? "";
                     var endsRaw   = e["endsAt"]?.ToString() ?? "";
                     log.Debug($"[Partake] Event raw: title='{e["title"]}' startsAt='{startsRaw}' type={e["startsAt"]?.Type}");
@@ -127,7 +138,7 @@ public class PartakeApiService : IDisposable
 
             log.Information($"[Partake] Fetched {result.Count} events. Teams: {string.Join(", ", teams.Take(10))}");
 
-            eventsByTeam[teamId] = result.OrderBy(e => e.StartTime).Take(3).ToList();
+            eventsByTeam[teamId] = result.OrderBy(e => e.StartTime).Take(5).ToList();
             fetchTimes[teamId] = DateTime.Now;
         }
         catch (Exception ex)

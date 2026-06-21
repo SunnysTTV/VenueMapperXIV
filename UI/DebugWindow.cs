@@ -33,6 +33,12 @@ public class DebugWindow : Window, IDisposable
         ImGui.SameLine();
         ImGui.TextColored(UIConstants.TextPrimary, tracker.CurrentMapId.ToString());
 
+        ImGui.TextColored(UIConstants.TextSecondary, "Ward/Plot:");
+        ImGui.SameLine();
+        ImGui.TextColored(UIConstants.TextPrimary, tracker.CurrentWard >= 0
+            ? $"W{tracker.CurrentWard + 1} P{tracker.CurrentPlot + 1}"
+            : "N/A");
+
         ImGui.Spacing();
         ImGui.TextColored(UIConstants.TextSecondary, Lang.PlayerPos);
         ImGui.TextColored(UIConstants.TextPrimary, $"  X: {tracker.PlayerX:F2}");
@@ -66,7 +72,7 @@ public class DebugWindow : Window, IDisposable
             ImGui.TextColored(UIConstants.TextSecondary, "Texture:");
             ImGui.SameLine();
             ImGui.TextColored(loaded ? UIConstants.Glow : UIConstants.Primary,
-                loaded ? "Loaded âœ“" : "Loading / not found");
+                loaded ? "Loaded" : "Loading / not found");
         }
 
         ImGui.Spacing();

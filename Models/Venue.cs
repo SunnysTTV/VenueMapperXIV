@@ -23,6 +23,12 @@ public class Venue
     [JsonProperty("territoryIds")]
     public List<uint> TerritoryIds { get; set; } = new();
 
+    [JsonProperty("ward")]
+    public int Ward { get; set; }
+
+    [JsonProperty("plot")]
+    public int Plot { get; set; }
+
     [JsonProperty("teamId")]
     public int TeamId { get; set; }
 

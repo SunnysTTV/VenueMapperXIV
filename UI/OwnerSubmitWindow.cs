@@ -115,8 +115,8 @@ public class OwnerSubmitWindow : Window, IDisposable
         ImGui.Spacing();
         PushFieldStyle();
 
-        Field(Lang.VenueName, ref clubName, "");
-        Field(Lang.YourDiscord, ref discordName, "");
+        Field(Lang.VenueName, ref clubName, "Your Venue Name");
+        Field(Lang.YourDiscord, ref discordName, "username");
         ImGui.Spacing();
 
         ImGui.TextColored(UIConstants.TextSecondary, Lang.Datacenter);

@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Numerics;
@@ -441,7 +441,10 @@ public class VenueMapWindow : Window, IDisposable
                     0f, ImDrawFlags.None, 1f);
             }
 
-            var isHere = v.TerritoryIds.Contains(plugin.PositionTracker.CurrentTerritoryId);
+            var tracker = plugin.PositionTracker;
+            var isHere = v.TerritoryIds.Contains(tracker.CurrentTerritoryId)
+                && (v.Ward <= 0 || v.Plot <= 0 || tracker.CurrentWard < 0
+                    || (v.Ward == tracker.CurrentWard + 1 && v.Plot == tracker.CurrentPlot + 1));
             var textX  = cardMin.X + padX + 6;
             var maxTextW = cardW - padX * 2 - 12;
 
@@ -464,7 +467,7 @@ public class VenueMapWindow : Window, IDisposable
             var favAnimActive = favAnimStart.ContainsKey(v.VenueId);
             if (isFav)
             {
-                var starGlyph = favAnimActive ? "â˜†" : "â˜…";
+                var starGlyph = favAnimActive ? "*" : "*";
                 var starCol = ImGui.ColorConvertFloat4ToU32(favAnimActive
                     ? new Vector4(1f, 0.84f, 0f, 0.4f)
                     : new Vector4(1f, 0.84f, 0f, 1f));
@@ -520,7 +523,7 @@ public class VenueMapWindow : Window, IDisposable
                         dl.AddText(ImGui.GetFont(), ImGui.GetFontSize() * starScale,
                             new Vector2(starC.X - ImGui.GetFontSize() * (starScale - 1f) * 0.3f,
                                         starC.Y - ImGui.GetFontSize() * (starScale - 1f) * 0.3f),
-                            ImGui.ColorConvertFloat4ToU32(new Vector4(1f, 0.84f, 0f, starAlpha)), "â˜…");
+                            ImGui.ColorConvertFloat4ToU32(new Vector4(1f, 0.84f, 0f, starAlpha)), "*");
 
                         for (var p = 0; p < 10; p++)
                         {
@@ -540,7 +543,7 @@ public class VenueMapWindow : Window, IDisposable
                             ImGui.ColorConvertFloat4ToU32(new Vector4(1f, 0.84f, 0f, 0.12f * (1f - fadeP))));
 
                         dl.AddText(new Vector2(textX, cardMin.Y + padY),
-                            ImGui.ColorConvertFloat4ToU32(new Vector4(1f, 0.84f, 0f, 1f)), "â˜…");
+                            ImGui.ColorConvertFloat4ToU32(new Vector4(1f, 0.84f, 0f, 1f)), "*");
                     }
 
                     dl.PopClipRect();
@@ -629,7 +632,7 @@ public class VenueMapWindow : Window, IDisposable
             if (clicked)
             {
                 selectedVenueId = v.VenueId;
-                if (v.TerritoryIds.Contains(plugin.PositionTracker.CurrentTerritoryId))
+                if (isHere)
                     selectMapTab = true;
             }
 
@@ -742,7 +745,7 @@ public class VenueMapWindow : Window, IDisposable
 
                 if (linkCount > 0)
                 {
-                    ImGui.TextColored(UIConstants.WithAlpha(UIConstants.Glow, 0.5f), " â””â”€");
+                    ImGui.TextColored(UIConstants.WithAlpha(UIConstants.Glow, 0.5f), " └─");
                     ImGui.SameLine(0, 4);
 
                     var curX = ImGui.GetCursorPosX();

@@ -84,7 +84,7 @@ public class LifestreamService : IDisposable
             return false;
         }
 
-        log.Information($"[VenueMapper/LS] Parsed â†’ world='{worldName}', city='{cityName}', ward={ward}, plot={plot}");
+        log.Information($"[VenueMapper/LS] Parsed -> world='{worldName}', city='{cityName}', ward={ward}, plot={plot}");
 
         try
         {

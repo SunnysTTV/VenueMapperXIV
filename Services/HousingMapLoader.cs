@@ -124,7 +124,7 @@ public class HousingMapLoader : IDisposable
 
             var path = MapIdToPath(rawId);
 
-            log.Information($"[MapLoader] MapId {mapId} â†’ '{rawId}' â†’ {path}");
+            log.Information($"[MapLoader] MapId {mapId} -> '{rawId}' -> {path}");
             var info = new MapInfo(path, map.Value.OffsetX, map.Value.OffsetY, map.Value.SizeFactor);
             infoCache[cacheKey] = info;
             return info;
@@ -146,7 +146,7 @@ public class HousingMapLoader : IDisposable
             if (territoryId >= min && territoryId <= max)
             {
                 var houPath = $"bgcommon/hou/{folder}/s0_0_0.tex";
-                log.Debug($"[MapLoader] Territory {territoryId} â†’ bgcommon/hou path: {houPath}");
+                log.Debug($"[MapLoader] Territory {territoryId} -> bgcommon/hou path: {houPath}");
                 var result = new MapInfo(houPath, 0, 0, 100);
                 infoCache[territoryId] = result;
                 return result;
@@ -207,7 +207,7 @@ public class HousingMapLoader : IDisposable
 
             var path = MapIdToPath(rawId);
 
-            log.Debug($"[MapLoader] Territory {territoryId} â†’ {path}");
+            log.Debug($"[MapLoader] Territory {territoryId} -> {path}");
             var info = new MapInfo(path, map.OffsetX, map.OffsetY, map.SizeFactor);
             infoCache[territoryId] = info;
             return info;
