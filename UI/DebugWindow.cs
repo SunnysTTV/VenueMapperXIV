@@ -42,8 +42,8 @@ public class DebugWindow : Window, IDisposable
         ImGui.Spacing();
         ImGui.TextColored(UIConstants.TextSecondary, Lang.PlayerPos);
         ImGui.TextColored(UIConstants.TextPrimary, $"  X: {tracker.PlayerX:F2}");
-        ImGui.TextColored(UIConstants.TextPrimary, $"  Y: {tracker.PlayerY:F2}");
-        ImGui.TextColored(UIConstants.TextPrimary, $"  Z: {tracker.PlayerZ:F2}");
+        ImGui.TextColored(UIConstants.TextPrimary, $"  Y: {tracker.PlayerZ:F2}");
+        ImGui.TextColored(UIConstants.TextPrimary, $"  Z: {tracker.PlayerY:F2}");
 
         ImGui.Spacing();
         ImGui.Separator();
@@ -53,7 +53,7 @@ public class DebugWindow : Window, IDisposable
         ImGui.SameLine();
         ImGui.TextColored(UIConstants.Glow, tracker.CurrentFloorName.ToUpperInvariant());
 
-        ImGui.TextColored(UIConstants.TextSecondary, $"Y Range: {tracker.CurrentFloorYMin:F1} - {tracker.CurrentFloorYMax:F1}");
+        ImGui.TextColored(UIConstants.TextSecondary, $"Z Range: {tracker.CurrentFloorYMin:F1} - {tracker.CurrentFloorYMax:F1}");
 
         ImGui.Spacing();
         ImGui.Separator();
@@ -81,7 +81,7 @@ public class DebugWindow : Window, IDisposable
 
         DrawAccentButton("COPY COORDS", () =>
         {
-            ImGui.SetClipboardText($"X: {tracker.PlayerX:F2}, Y: {tracker.PlayerY:F2}, Z: {tracker.PlayerZ:F2}");
+            ImGui.SetClipboardText($"X: {tracker.PlayerX:F2}, Y: {tracker.PlayerZ:F2}, Z: {tracker.PlayerY:F2}");
         });
 
         ImGui.SameLine();

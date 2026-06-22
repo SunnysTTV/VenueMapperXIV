@@ -10,12 +10,13 @@ public static class ChangelogData
         get
         {
             var v = Assembly.GetExecutingAssembly().GetName().Version;
-            return v != null ? $"v{v.Major}.{v.Minor}.{v.Build}" : "v0.5.4";
+            return v != null ? $"v{v.Major}.{v.Minor}.{v.Build}" : "v0.5.4.5";
         }
     }
 
     public static readonly (string Ver, string Date)[] Versions =
     [
+        ("v0.5.4.5", "Jun 22, 2026"),
         ("v0.5.4",  "Jun 22, 2026"),
         ("v0.5.3",  "Jun 22, 2026"),
         ("v0.5.2",  "Jun 21, 2026"),
@@ -26,6 +27,17 @@ public static class ChangelogData
 
     public static readonly Dictionary<string, string[]> Changelogs = new()
     {
+        ["v0.5.4.5"] = [
+            "Scrollable venue directory and events tab",
+            "Server filter dropdown (appears when DC selected)",
+            "Compact venue cards with shortened addresses",
+            "Favorite star icon (FontAwesome) right-aligned in card",
+            "Animated Visit button with shimmer and color shift",
+            "New service types: vip, bath/spa, event",
+            "Debug coords now match venues.json format",
+            "Auto floor detection in Owner Setup on Use my pos",
+            "Fixed Services tab jumping on add/delete",
+        ],
         ["v0.5.4"] = [
             "Multi-select datacenter filter in directory",
             "Events limited to 1 per venue",

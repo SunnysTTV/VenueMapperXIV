@@ -98,7 +98,7 @@
   <!-- Markers -->
   <data name="MarkersOn" xml:space="preserve"><value>Markers enabled</value></data>
   <data name="MarkersOff" xml:space="preserve"><value>Markers disabled</value></data>
-  <data name="Markers3D" xml:space="preserve"><value>3D World Markers (Pictomancy)</value></data>
+  <data name="Markers3D" xml:space="preserve"><value>3D World Markers</value></data>
 
   <!-- Map -->
   <data name="MapUnavailable" xml:space="preserve"><value>MAP UNAVAILABLE</value></data>

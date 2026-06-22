@@ -79,6 +79,11 @@ public class PlayerPositionTracker
         var venue = GetCurrentVenue(config);
         if (venue == null)
         {
+            if (CurrentWard >= 0 && _lastFloor != "none")
+            {
+                log.Warning($"[VenueMapper] No venue match: Territory={CurrentTerritoryId} Ward={CurrentWard}({CurrentWard+1}) Plot={CurrentPlot}({CurrentPlot+1})");
+                _lastFloor = "none";
+            }
             CurrentFloorName = "Unknown";
             return;
         }

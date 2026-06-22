@@ -43,7 +43,7 @@ public class OwnerSubmitWindow : Window, IDisposable
     private static readonly string[] Districts =
         ["Mist", "Lavender Beds", "The Goblet", "Shirogane", "Empyreum"];
     private static readonly string[] ServiceTypes =
-        ["bar", "dj_booth", "gambling", "entrance", "upstairs", "downstairs"];
+        ["bar", "dj_booth", "gambling", "entrance", "upstairs", "downstairs", "vip", "bath", "spa", "event"];
     private static readonly string[] FloorNames =
         ["ground", "second", "cellar"];
 
@@ -90,7 +90,7 @@ public class OwnerSubmitWindow : Window, IDisposable
                 DrawLinks();
                 ImGui.EndTabItem();
             }
-            if (ImGui.BeginTabItem($"Services ({services.Count})"))
+            if (ImGui.BeginTabItem("Services##tab_svc"))
             {
                 DrawServices();
                 ImGui.EndTabItem();
@@ -253,6 +253,12 @@ public class OwnerSubmitWindow : Window, IDisposable
                 {
                     var pos = plugin.PositionTracker.LastPosition;
                     svc.Coords = new Vector3(pos.X, pos.Z, pos.Y);
+                    svc.FloorIndex = pos.Y switch
+                    {
+                        < -3.5f => 2,
+                        > 6.5f  => 1,
+                        _       => 0,
+                    };
                 }
                 ImGui.PopStyleColor(2);
 
