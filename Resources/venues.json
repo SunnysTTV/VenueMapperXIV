@@ -179,6 +179,84 @@
           ]
         }
       ]
+    },
+    {
+      "venueId": "gardenofmadness",
+      "name": "Garden of Madness",
+      "address": "Light - Raiden - The Goblet - Ward 11 - Plot 30",
+      "datacenter": "Light",
+      "territoryIds": [1376],
+      "ward": 11,
+      "plot": 30,
+      "teamId": 413,
+      "availableFloors": ["ground", "second"],
+      "colors": {
+        "primary": "#8118e7",
+        "accent": "#0d0e0f",
+        "secondary": "#0b0a0b"
+      },
+      "links": {
+        "discord": "https://discord.gg/fvvpJwT5Hn",
+        "partake": "https://www.partake.gg/teams/413",
+        "ffxivvenues": "",
+        "website": ""
+      },
+      "floors": [
+        {
+          "floor": "ground",
+          "yMin": -3.5,
+          "yMax": 6.5,
+          "mapId": 0,
+          "services": [
+            { "type": "bar", "label": "Madness Bar", "icon": "", "x": -16.1, "y": 4.3, "z": -7.0, "description": "" }
+          ]
+        },
+        {
+          "floor": "second",
+          "yMin": 6.5,
+          "yMax": 14.0,
+          "mapId": 0,
+          "services": [
+            { "type": "entrance", "label": "Entrance", "icon": "", "x": -11.3, "y": -9.8, "z": 1.6, "description": "" }
+          ]
+        }
+      ]
+    },
+    {
+      "venueId": "churchofmetal",
+      "name": "CHURCH OF METAL",
+      "address": "Light - Raiden - Lavender Beds - Ward 8 - Plot 58",
+      "datacenter": "Light",
+      "territoryIds": [1376],
+      "ward": 8,
+      "plot": 58,
+      "teamId": 699,
+      "availableFloors": ["ground"],
+      "colors": {
+        "primary": "#000000",
+        "accent": "#c9cb16",
+        "secondary": "#ec0000"
+      },
+      "links": {
+        "discord": "https://discord.gg/NjxqBpku7w",
+        "partake": "https://www.partake.gg/teams/699",
+        "ffxivvenues": "https://ffxivvenues.com/venue/RsmV9XlYChtt",
+        "website": ""
+      },
+      "floors": [
+        {
+          "floor": "ground",
+          "yMin": -3.5,
+          "yMax": 6.5,
+          "mapId": 0,
+          "services": [
+            { "type": "entrance", "label": "Entrance", "icon": "", "x": 0.14, "y": 11.08, "z": 0.0, "description": "" },
+            { "type": "bar", "label": "Bar", "icon": "", "x": 6.47, "y": 1.10, "z": 0.03, "description": "" },
+            { "type": "dj_booth", "label": "DJ Booth", "icon": "", "x": 0.08, "y": -3.26, "z": 2.50, "description": "" },
+            { "type": "upstairs", "label": "Jump on Pedestal", "icon": "", "x": 16.46, "y": 6.58, "z": 3.61, "description": "" }
+          ]
+        }
+      ]
     }
   ]
 }
