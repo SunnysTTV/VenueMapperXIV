@@ -135,6 +135,50 @@
           ]
         }
       ]
+    },
+    {
+      "venueId": "cryptonite",
+      "name": "Cryptonite",
+      "address": "Light - Zodiark - Lavender Beds - Ward 17 - Plot 58",
+      "datacenter": "Light",
+      "territoryIds": [1376],
+      "ward": 17,
+      "plot": 58,
+      "teamId": 1421,
+      "availableFloors": ["ground", "cellar"],
+      "colors": {
+        "primary": "#05f817",
+        "accent": "#000000",
+        "secondary": "#0f9400"
+      },
+      "links": {
+        "discord": "https://discord.gg/tKYXWu7hNC",
+        "partake": "https://www.partake.gg/teams/1421",
+        "ffxivvenues": "https://ffxivvenues.com/venue/j7wqQCtGKXXm",
+        "website": ""
+      },
+      "floors": [
+        {
+          "floor": "ground",
+          "yMin": -3.5,
+          "yMax": 6.5,
+          "mapId": 0,
+          "services": [
+            { "type": "entrance", "label": "Entrance & Reception", "icon": "", "x": 0.2, "y": 8.2, "z": 0.0, "description": "" }
+          ]
+        },
+        {
+          "floor": "cellar",
+          "yMin": -10.0,
+          "yMax": -3.5,
+          "mapId": 0,
+          "services": [
+            { "type": "bar", "label": "Bar", "icon": "", "x": 2.1, "y": 5.7, "z": -7.0, "description": "" },
+            { "type": "dj_booth", "label": "DJ Booth", "icon": "", "x": -1.6, "y": -8.4, "z": -4.9, "description": "" },
+            { "type": "gambling", "label": "Gamba", "icon": "", "x": -6.3, "y": 8.8, "z": -7.0, "description": "" }
+          ]
+        }
+      ]
     }
   ]
 }
