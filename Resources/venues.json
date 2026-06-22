@@ -86,6 +86,55 @@
           ]
         }
       ]
+    },
+    {
+      "venueId": "catchi",
+      "name": "CatChi",
+      "address": "Light - Raiden - Mist - Ward 11 - Plot 5",
+      "datacenter": "Light",
+      "territoryIds": [1376],
+      "ward": 11,
+      "plot": 5,
+      "teamId": 1412,
+      "availableFloors": ["ground", "second"],
+      "colors": {
+        "primary": "#2CFF05",
+        "accent": "#FF5C00",
+        "secondary": "#9d4edd"
+      },
+      "links": {
+        "discord": "https://discord.gg/VCcKStMcYE",
+        "partake": "https://www.partake.gg/teams/1412",
+        "ffxivvenues": "https://ffxivvenues.com/venue/CNLX5WH0LBXX",
+        "website": "https://catchi.club/"
+      },
+      "floors": [
+        {
+          "floor": "ground",
+          "yMin": -3.5,
+          "yMax": 6.5,
+          "mapId": 0,
+          "services": [
+            { "type": "entrance", "label": "Entrance", "icon": "", "x": 0.0, "y": 10.8, "z": 0.0, "description": "" },
+            { "type": "bar", "label": "Main Bar", "icon": "", "x": 12.9, "y": 4.2, "z": 0.0, "description": "" },
+            { "type": "dj_booth", "label": "DJ Booth", "icon": "", "x": 0.1, "y": -4.5, "z": 2.3, "description": "" },
+            { "type": "gambling", "label": "Blackjack", "icon": "", "x": -9.1, "y": 8.3, "z": 0.0, "description": "" },
+            { "type": "gambling", "label": "Roulette", "icon": "", "x": -11.8, "y": 2.5, "z": 0.0, "description": "" },
+            { "type": "upstairs", "label": "VIP Access", "icon": "", "x": -12.6, "y": -10.5, "z": 0.0, "description": "" },
+            { "type": "upstairs", "label": "Rooms", "icon": "", "x": -5.8, "y": -11.3, "z": 0.0, "description": "" }
+          ]
+        },
+        {
+          "floor": "second",
+          "yMin": 6.5,
+          "yMax": 14.0,
+          "mapId": 0,
+          "services": [
+            { "type": "bar", "label": "VIP Bar", "icon": "", "x": 11.2, "y": 0.2, "z": 7.0, "description": "" },
+            { "type": "gambling", "label": "VIP Gamba", "icon": "", "x": -10.8, "y": 0.1, "z": 7.0, "description": "" }
+          ]
+        }
+      ]
     }
   ]
 }

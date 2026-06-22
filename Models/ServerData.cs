@@ -25,8 +25,4 @@ public static class ServerData
 
     public static string[] GetServers(string dc)
         => DatacenterServers.TryGetValue(dc, out var s) ? s.OrderBy(x => x).ToArray() : [];
-
-    public static string? GetDatacenter(string server)
-        => DatacenterServers.FirstOrDefault(kvp =>
-            kvp.Value.Contains(server, StringComparer.OrdinalIgnoreCase)).Key;
 }

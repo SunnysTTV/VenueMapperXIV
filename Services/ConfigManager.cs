@@ -60,23 +60,26 @@ public class ConfigManager
         }
     }
 
+    private readonly object cacheLock = new();
+
     public void SaveToCache(string json)
     {
-        try
+        lock (cacheLock)
         {
-            var tmpPath = cacheFilePath + ".tmp";
-            File.WriteAllText(tmpPath, json);
-            File.Move(tmpPath, cacheFilePath, true);
-            var parsed = JsonConvert.DeserializeObject<VenueConfig>(json);
-            if (parsed != null)
+            try
             {
-                Config = parsed;
-                LastUpdated = DateTime.UtcNow;
+                File.WriteAllText(cacheFilePath, json);
+                var parsed = JsonConvert.DeserializeObject<VenueConfig>(json);
+                if (parsed != null)
+                {
+                    Config = parsed;
+                    LastUpdated = DateTime.UtcNow;
+                }
             }
-        }
-        catch (Exception ex)
-        {
-            log.Error(ex, "Failed to save venue config cache");
+            catch (Exception ex)
+            {
+                log.Error(ex, "Failed to save venue config cache");
+            }
         }
     }
 

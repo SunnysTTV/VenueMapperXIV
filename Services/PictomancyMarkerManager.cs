@@ -93,13 +93,16 @@ public class PictomancyMarkerManager : IDisposable
     {
         return type switch
         {
-            "entrance"   => new Vector4(0.2f, 1f, 0.5f, 1f),
-            "bar"        => colors?.PrimaryVec ?? new Vector4(1f, 0.6f, 0.2f, 1f),
-            "dj_booth"   => colors?.AccentVec ?? new Vector4(0f, 1f, 1f, 1f),
-            "gambling"   => new Vector4(1f, 0.84f, 0f, 1f),
-            "upstairs"   => new Vector4(0.6f, 0.8f, 1f, 1f),
-            "downstairs" => new Vector4(0.8f, 0.5f, 0.3f, 1f),
-            _            => colors?.SecondaryVec ?? new Vector4(0.7f, 0.7f, 0.7f, 1f),
+            "entrance"      => new Vector4(0.2f, 1f, 0.5f, 1f),
+            "bar"           => new Vector4(1f, 0.4f, 0.2f, 1f),
+            "dj_booth"      => new Vector4(0f, 0.9f, 1f, 1f),
+            "gambling"      => new Vector4(1f, 0.84f, 0f, 1f),
+            "upstairs"      => new Vector4(0.7f, 0.7f, 0.7f, 1f),
+            "downstairs"    => new Vector4(0.7f, 0.7f, 0.7f, 1f),
+            "vip"           => new Vector4(1f, 0.84f, 0f, 1f),
+            "bath" or "spa" => new Vector4(0.4f, 0.8f, 1f, 1f),
+            "event"         => new Vector4(1f, 0.5f, 0.8f, 1f),
+            _               => new Vector4(0.7f, 0.7f, 0.7f, 1f),
         };
     }
 

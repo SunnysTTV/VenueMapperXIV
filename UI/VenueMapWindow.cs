@@ -35,14 +35,12 @@ public class VenueMapWindow : Window, IDisposable
     private bool selectEvtTab;
     private bool selectMapTab;
     private bool selectSettingsTab;
-    private bool selectAboutTab;
     private string searchText = string.Empty;
-    private string selectedDc = "All Datacenters";
+    private readonly HashSet<string> selectedDcs = new();
     private readonly EventsView eventsView;
     private readonly Dictionary<string, double> favAnimStart = new();
     private readonly Dictionary<string, double> copyAnimStart = new();
     private readonly Dictionary<string, double> tpAnimStart = new();
-    private string? selectedVenueId;
 
     public VenueMapWindow(VenueMapperPlugin plugin)
         : base("Venue Map##VenueMapper",
@@ -104,7 +102,6 @@ public class VenueMapWindow : Window, IDisposable
     public void HideDirectory() { selectMapTab = true; }
     public void ShowEvents() { selectEvtTab = true; }
     public void ShowSettings() { selectSettingsTab = true; }
-    public void ShowAbout() { selectAboutTab = true; }
 
     public override void OnClose()
     {
@@ -134,8 +131,8 @@ public class VenueMapWindow : Window, IDisposable
         var dirF = selectDirTab ? ImGuiTabItemFlags.SetSelected : ImGuiTabItemFlags.None;
         var evtF = selectEvtTab ? ImGuiTabItemFlags.SetSelected : ImGuiTabItemFlags.None;
         var setF = selectSettingsTab ? ImGuiTabItemFlags.SetSelected : ImGuiTabItemFlags.None;
-        var abtF = selectAboutTab ? ImGuiTabItemFlags.SetSelected : ImGuiTabItemFlags.None;
-        selectMapTab = selectDirTab = selectEvtTab = selectSettingsTab = selectAboutTab = false;
+        var abtF = ImGuiTabItemFlags.None;
+        selectMapTab = selectDirTab = selectEvtTab = selectSettingsTab = false;
 
         if (ImGui.BeginTabBar("##mainTabs"))
         {
@@ -203,9 +200,8 @@ public class VenueMapWindow : Window, IDisposable
             filtered = filtered.Where(v =>
                 v.Name.Contains(searchText, StringComparison.OrdinalIgnoreCase) ||
                 v.Address.Contains(searchText, StringComparison.OrdinalIgnoreCase));
-        if (selectedDc != "All Datacenters")
-            filtered = filtered.Where(v =>
-                v.Datacenter.Equals(selectedDc, StringComparison.OrdinalIgnoreCase));
+        if (selectedDcs.Count > 0)
+            filtered = filtered.Where(v => selectedDcs.Contains(v.Datacenter));
 
         var venues = filtered.ToList();
 
@@ -367,12 +363,20 @@ public class VenueMapWindow : Window, IDisposable
 
         ImGui.SameLine(0, 6);
         ImGui.SetNextItemWidth(avW * 0.40f);
-        if (ImGui.BeginCombo("##dcFilter", selectedDc))
+        var dcLabel = selectedDcs.Count == 0 ? Lang.AllDc : string.Join(", ", selectedDcs);
+        if (ImGui.BeginCombo("##dcFilter", dcLabel))
         {
-            foreach (var dc in new[] { "All Datacenters", "Aether", "Primal", "Crystal", "Dynamis", "Light", "Chaos", "Materia", "Elemental", "Gaia", "Mana", "Meteor" })
+            if (ImGui.Selectable(Lang.AllDc, selectedDcs.Count == 0))
+                selectedDcs.Clear();
+            ImGui.Separator();
+            foreach (var dc in new[] { "Aether", "Primal", "Crystal", "Dynamis", "Light", "Chaos", "Materia", "Elemental", "Gaia", "Mana", "Meteor" })
             {
-                if (ImGui.Selectable(dc, dc == selectedDc))
-                    selectedDc = dc;
+                var on = selectedDcs.Contains(dc);
+                if (ImGui.Checkbox(dc, ref on))
+                {
+                    if (on) selectedDcs.Add(dc);
+                    else selectedDcs.Remove(dc);
+                }
             }
             ImGui.EndCombo();
         }
@@ -631,7 +635,6 @@ public class VenueMapWindow : Window, IDisposable
 
             if (clicked)
             {
-                selectedVenueId = v.VenueId;
                 if (isHere)
                     selectMapTab = true;
             }
@@ -1018,7 +1021,7 @@ public class VenueMapWindow : Window, IDisposable
 
         if (MathF.Abs(mapZoom - ZoomDefault) > 0.05f)
         {
-            var badge = $"{mapZoom:0.0}Ã—";
+            var badge = $"{mapZoom:0.0}x";
             var bSz   = ImGui.CalcTextSize(badge);
             var bMin  = new Vector2(mapMax.X - bSz.X - 6, mapMax.Y - bSz.Y - 4);
             dl.AddText(bMin,

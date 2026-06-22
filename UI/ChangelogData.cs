@@ -10,12 +10,13 @@ public static class ChangelogData
         get
         {
             var v = Assembly.GetExecutingAssembly().GetName().Version;
-            return v != null ? $"v{v.Major}.{v.Minor}.{v.Build}" : "v0.5.3";
+            return v != null ? $"v{v.Major}.{v.Minor}.{v.Build}" : "v0.5.4";
         }
     }
 
     public static readonly (string Ver, string Date)[] Versions =
     [
+        ("v0.5.4",  "Jun 22, 2026"),
         ("v0.5.3",  "Jun 22, 2026"),
         ("v0.5.2",  "Jun 21, 2026"),
         ("v0.5.1",  "Jun 21, 2026"),
@@ -25,6 +26,14 @@ public static class ChangelogData
 
     public static readonly Dictionary<string, string[]> Changelogs = new()
     {
+        ["v0.5.4"] = [
+            "Multi-select datacenter filter in directory",
+            "Events limited to 1 per venue",
+            "Fixed event leak on plugin reload",
+            "Fixed encoding issues in zoom badge",
+            "All service marker colors are now fixed per type",
+            "Dead code cleanup",
+        ],
         ["v0.5.3"] = [
             "Active events from Partake API (activeEvents query)",
             "Pulsing NOW badge for currently running events",

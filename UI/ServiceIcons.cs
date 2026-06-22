@@ -12,8 +12,9 @@ public static class ServiceIcons
         "dj_booth" => FontAwesomeIcon.Headphones,
         "upstairs" => FontAwesomeIcon.ArrowUp,
         "downstairs" => FontAwesomeIcon.ArrowDown,
-        "store" => FontAwesomeIcon.StoreAlt,
-        "crafting" => FontAwesomeIcon.Hammer,
+        "vip" => FontAwesomeIcon.Crown,
+        "bath" or "spa" => FontAwesomeIcon.Bath,
+        "event" => FontAwesomeIcon.Star,
         _ => FontAwesomeIcon.MapMarkerAlt,
     };
 }

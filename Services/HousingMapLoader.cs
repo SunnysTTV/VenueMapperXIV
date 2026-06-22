@@ -1,8 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Linq;
 using Dalamud.Interface.Textures;
-using Dalamud.Interface.Textures.TextureWraps;
 using Dalamud.Plugin.Services;
 using Lumina.Excel.Sheets;
 
@@ -49,38 +47,34 @@ public class HousingMapLoader : IDisposable
                 return cached;
         }
 
-        var paths = BuildCandidatePaths(info.Path);
-        foreach (var path in paths)
+        var path = info.Path;
+        if (textureCache.TryGetValue(path, out var tex))
         {
-            if (textureCache.TryGetValue(path, out var tex))
-            {
-                resolvedPathCache[cacheKey] = path;
-                return tex;
-            }
-
-            if (!dataManager.FileExists(path))
-            {
-                log.Debug($"[MapLoader] Not found: {path}");
-                continue;
-            }
-
-            log.Information($"[MapLoader] Found map file: {path}");
-            try
-            {
-                var loaded = textureProvider.GetFromGame(path);
-                textureCache[path] = loaded;
-                resolvedPathCache[cacheKey] = path;
-                return loaded;
-            }
-            catch (Exception ex)
-            {
-                log.Warning($"[MapLoader] Failed to load '{path}': {ex.Message}");
-            }
+            resolvedPathCache[cacheKey] = path;
+            return tex;
         }
 
-        log.Warning($"[MapLoader] No map file found. Tried: {string.Join(", ", paths)}");
-        resolvedPathCache[cacheKey] = null;
-        return null;
+        if (!dataManager.FileExists(path))
+        {
+            log.Debug($"[MapLoader] Not found: {path}");
+            resolvedPathCache[cacheKey] = null;
+            return null;
+        }
+
+        log.Information($"[MapLoader] Found map file: {path}");
+        try
+        {
+            var loaded = textureProvider.GetFromGame(path);
+            textureCache[path] = loaded;
+            resolvedPathCache[cacheKey] = path;
+            return loaded;
+        }
+        catch (Exception ex)
+        {
+            log.Warning($"[MapLoader] Failed to load '{path}': {ex.Message}");
+            resolvedPathCache[cacheKey] = null;
+            return null;
+        }
     }
 
     private readonly Dictionary<string, string?> resolvedPathCache = new();
@@ -96,11 +90,6 @@ public class HousingMapLoader : IDisposable
         }
 
         return $"ui/map/{rawId}/{rawId}_m.tex";
-    }
-
-    private static List<string> BuildCandidatePaths(string primaryPath)
-    {
-        return [primaryPath];
     }
 
     public MapInfo? GetMapInfoByMapId(uint mapId)
@@ -218,50 +207,6 @@ public class HousingMapLoader : IDisposable
             infoCache[territoryId] = new MapInfo(null, 0, 0, 100);
             return infoCache[territoryId];
         }
-    }
-
-    public List<(uint MapId, string Index)> DiscoverSiblingMaps(uint knownMapId)
-    {
-        var result = new List<(uint MapId, string Index)>();
-        try
-        {
-            var sheet = dataManager.GetExcelSheet<Map>();
-            if (sheet == null) return result;
-
-            var knownRow = sheet.GetRow(knownMapId);
-            var knownId = knownRow.Id.ToString();
-            if (string.IsNullOrEmpty(knownId)) return result;
-            var slash = knownId.IndexOf('/');
-            if (slash <= 0) return result;
-
-            var prefix = knownId[..slash]; // e.g. "h2i3"
-
-            var start = knownMapId > 20 ? knownMapId - 20 : 0u;
-            for (var rowId = start; rowId <= knownMapId + 20; rowId++)
-            {
-                try
-                {
-                    var row = sheet.GetRow(rowId);
-                    var id = row.Id.ToString();
-                    if (string.IsNullOrEmpty(id)) continue;
-                    if (id.StartsWith(prefix + "/", StringComparison.Ordinal))
-                    {
-                        var idx = id[(prefix.Length + 1)..];
-                        result.Add((MapId: rowId, Index: idx));
-                    }
-                }
-                catch { }
-            }
-
-            result.Sort((a, b) => string.Compare(a.Index, b.Index, StringComparison.Ordinal));
-            log.Information($"[MapLoader] Discovered {result.Count} sibling maps for prefix '{prefix}': {string.Join(", ", result.Select(r => $"{r.MapId}={prefix}/{r.Index}"))}");
-        }
-        catch (Exception ex)
-        {
-            log.Warning($"[MapLoader] DiscoverSiblingMaps failed: {ex.Message}");
-        }
-
-        return result;
     }
 
     public static float WorldToUV(float world, short offset, ushort sizeFactor)

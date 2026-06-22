@@ -14,7 +14,6 @@ public static class UIConstants
 
     public static readonly Vector4 GlowDim         = WithAlpha(Glow, 0.35f);
     public static readonly Vector4 GlowBright      = WithAlpha(Glow, 1.0f);
-    public static readonly Vector4 PrimaryDim      = WithAlpha(Primary, 0.6f);
     public static readonly Vector4 PrimaryHover    = Lighten(Primary, 0.15f);
 
     public static Vector4 HexToVec4(string hex)

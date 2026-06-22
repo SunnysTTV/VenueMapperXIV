@@ -86,8 +86,8 @@ public sealed class VenueMapperPlugin : IDalamudPlugin
         });
 
         PluginInterface.UiBuilder.Draw += DrawUI;
-        PluginInterface.UiBuilder.OpenMainUi += () => VenueMapWindow.IsOpen = true;
-        PluginInterface.UiBuilder.OpenConfigUi += () => SettingsWindow.IsOpen = true;
+        PluginInterface.UiBuilder.OpenMainUi += OnOpenMainUi;
+        PluginInterface.UiBuilder.OpenConfigUi += OnOpenConfigUi;
 
         Framework.Update += OnFrameworkUpdate;
 
@@ -100,6 +100,9 @@ public sealed class VenueMapperPlugin : IDalamudPlugin
     private bool wasInVenue;
     private bool setupShownThisSession;
     private DateTime lastAutoCheck = DateTime.MinValue;
+
+    private void OnOpenMainUi() => VenueMapWindow.IsOpen = true;
+    private void OnOpenConfigUi() => SettingsWindow.IsOpen = true;
 
     private void OnFrameworkUpdate(IFramework framework)
     {
@@ -257,6 +260,8 @@ public sealed class VenueMapperPlugin : IDalamudPlugin
     {
         Framework.Update -= OnFrameworkUpdate;
         PluginInterface.UiBuilder.Draw -= DrawUI;
+        PluginInterface.UiBuilder.OpenMainUi -= OnOpenMainUi;
+        PluginInterface.UiBuilder.OpenConfigUi -= OnOpenConfigUi;
 
         WindowSystem.RemoveAllWindows();
         VenueMapWindow.Dispose();

@@ -138,7 +138,7 @@ public class PartakeApiService : IDisposable
 
             log.Information($"[Partake] Fetched {result.Count} events. Teams: {string.Join(", ", teams.Take(10))}");
 
-            eventsByTeam[teamId] = result.OrderBy(e => e.StartTime).Take(5).ToList();
+            eventsByTeam[teamId] = result.OrderBy(e => e.StartTime).Take(1).ToList();
             fetchTimes[teamId] = DateTime.Now;
         }
         catch (Exception ex)
