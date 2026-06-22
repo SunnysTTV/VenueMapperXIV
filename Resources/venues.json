@@ -189,7 +189,7 @@
       "ward": 11,
       "plot": 30,
       "teamId": 413,
-      "availableFloors": ["ground", "second"],
+      "availableFloors": ["ground", "cellar"],
       "colors": {
         "primary": "#8118e7",
         "accent": "#0d0e0f",
@@ -208,16 +208,18 @@
           "yMax": 6.5,
           "mapId": 0,
           "services": [
-            { "type": "bar", "label": "Madness Bar", "icon": "", "x": -16.1, "y": 4.3, "z": -7.0, "description": "" }
+            { "type": "entrance", "label": "Entrance", "icon": "", "x": -11.13, "y": -9.20, "z": 1.61, "description": "" }
           ]
         },
         {
-          "floor": "second",
-          "yMin": 6.5,
-          "yMax": 14.0,
+          "floor": "cellar",
+          "yMin": -10.0,
+          "yMax": -3.5,
           "mapId": 0,
           "services": [
-            { "type": "entrance", "label": "Entrance", "icon": "", "x": -11.3, "y": -9.8, "z": 1.6, "description": "" }
+            { "type": "bar", "label": "Madness Bar", "icon": "", "x": -16.1, "y": 4.3, "z": -7.0, "description": "" },
+            { "type": "dj_booth", "label": "DJ Booth", "icon": "", "x": 12.85, "y": 0.03, "z": -6.02, "description": "" },
+            { "type": "gambling", "label": "Gambling", "icon": "", "x": -9.46, "y": -5.72, "z": -6.70, "description": "" }
           ]
         }
       ]
