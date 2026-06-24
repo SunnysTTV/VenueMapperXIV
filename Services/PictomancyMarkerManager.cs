@@ -102,6 +102,7 @@ public class PictomancyMarkerManager : IDisposable
             "vip"           => new Vector4(1f, 0.84f, 0f, 1f),
             "bath" or "spa" => new Vector4(0.4f, 0.8f, 1f, 1f),
             "event"         => new Vector4(1f, 0.5f, 0.8f, 1f),
+            "stage"         => new Vector4(0.9f, 0.3f, 1f, 1f),
             _               => new Vector4(0.7f, 0.7f, 0.7f, 1f),
         };
     }

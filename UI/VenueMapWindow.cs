@@ -453,7 +453,49 @@ public class VenueMapWindow : Window, IDisposable
             var cardW    = Math.Max(avW - btnW - btnGap, 60f);
             var addrRaw   = string.IsNullOrEmpty(v.Address) ? ""
                 : v.Address.Replace("Ward ", "W").Replace("Plot ", "P");
-            var rowH      = padY * 2 + lineH * 2 + 2;
+
+            var xivId = ExtractXivVenuesId(v.Links?.FfxivVenues);
+            string schedText = "";
+            var schedIsOpen = false;
+            if (xivId != null)
+            {
+                plugin.XivVenues.RequestSchedule(xivId);
+                var sched = plugin.XivVenues.GetSchedule(xivId);
+                if (sched != null)
+                {
+                    schedText = sched.GetStatusText(plugin.Configuration.Language == "DE");
+                    schedIsOpen = sched.IsOpenNow;
+                }
+            }
+
+            if (schedText.Length == 0 && v.TeamId > 0)
+            {
+                _ = plugin.PartakeApi.FetchTeamAsync(v.TeamId);
+                var events = plugin.PartakeApi.GetEvents(v.TeamId);
+                if (events.Count > 0)
+                {
+                    var evt = events[0];
+                    var now = DateTime.UtcNow;
+                    if (evt.StartTime <= now && evt.EndTime >= now)
+                    {
+                        schedText = plugin.Configuration.Language == "DE" ? "JETZT OFFEN" : "OPEN NOW";
+                        schedIsOpen = true;
+                    }
+                    else if (evt.StartTime > now)
+                    {
+                        var diff = evt.StartTime - now;
+                        var de = plugin.Configuration.Language == "DE";
+                        if (diff.TotalMinutes < 60)
+                            schedText = de ? $"Oeffnet in {(int)diff.TotalMinutes}min" : $"Opens in {(int)diff.TotalMinutes}min";
+                        else if (diff.TotalHours < 24)
+                            schedText = de ? $"Oeffnet in {(int)diff.TotalHours}h" : $"Opens in {(int)diff.TotalHours}h";
+                        else
+                            schedText = de ? $"Oeffnet in {(int)diff.TotalDays}d" : $"Opens in {(int)diff.TotalDays}d";
+                    }
+                }
+            }
+
+            var rowH = padY * 2 + lineH * 2 + 2;
 
             var cardMin = ImGui.GetCursorScreenPos();
             ImGui.InvisibleButton($"##venue_{v.VenueId}", new Vector2(cardW, rowH));
@@ -648,6 +690,33 @@ public class VenueMapWindow : Window, IDisposable
                 hovered ? UIConstants.Glow : UIConstants.WithAlpha(UIConstants.TextSecondary, 0.7f));
             if (addrRaw.Length > 0)
                 dl.AddText(new Vector2(textX, cardMin.Y + padY + lineH + 2), addrCol, addrRaw);
+
+            if (schedText.Length > 0)
+            {
+                var schedSz = ImGui.CalcTextSize(schedText);
+                var schedX = cardMax.X - schedSz.X - 6;
+                var schedY = cardMin.Y + 4;
+                var schedCol = schedIsOpen
+                    ? new Vector4(0.2f, 1f, 0.5f, 1f)
+                    : UIConstants.WithAlpha(UIConstants.TextSecondary, 0.6f);
+
+                if (schedIsOpen)
+                {
+                    var glowPulse = (MathF.Sin((float)ImGui.GetTime() * 2.5f) + 1f) / 2f;
+                    dl.AddRectFilled(
+                        new Vector2(schedX - 4, schedY - 1),
+                        new Vector2(schedX + schedSz.X + 4, schedY + schedSz.Y + 1),
+                        ImGui.ColorConvertFloat4ToU32(UIConstants.WithAlpha(schedCol, 0.12f + 0.08f * glowPulse)));
+                    dl.AddRect(
+                        new Vector2(schedX - 4, schedY - 1),
+                        new Vector2(schedX + schedSz.X + 4, schedY + schedSz.Y + 1),
+                        ImGui.ColorConvertFloat4ToU32(UIConstants.WithAlpha(schedCol, 0.4f + 0.3f * glowPulse)),
+                        0f, ImDrawFlags.None, 1f);
+                }
+
+                dl.AddText(new Vector2(schedX, schedY),
+                    ImGui.ColorConvertFloat4ToU32(schedCol), schedText);
+            }
 
 
             var hasAddr  = !string.IsNullOrEmpty(v.Address);
@@ -1322,6 +1391,13 @@ public class VenueMapWindow : Window, IDisposable
         ImGui.NewLine();
 
         if (changed) plugin.Configuration.Save();
+    }
+
+    private static string? ExtractXivVenuesId(string? url)
+    {
+        if (string.IsNullOrEmpty(url) || !url.Contains("ffxivvenues.com/venue/")) return null;
+        var idx = url.LastIndexOf('/');
+        return idx >= 0 && idx < url.Length - 1 ? url[(idx + 1)..] : null;
     }
 
     private static string ChipLabel(string type) => type switch

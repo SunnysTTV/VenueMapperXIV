@@ -81,6 +81,8 @@
   <!-- Settings -->
   <data name="Settings" xml:space="preserve"><value>Einstellungen</value></data>
   <data name="Language" xml:space="preserve"><value>Sprache:</value></data>
+  <data name="LangEnglish" xml:space="preserve"><value>Englisch</value></data>
+  <data name="LangGerman" xml:space="preserve"><value>Deutsch</value></data>
   <data name="About" xml:space="preserve"><value>Info</value></data>
   <data name="GithubConfig" xml:space="preserve"><value>GitHub Config Repo:</value></data>
   <data name="AutoPull" xml:space="preserve"><value>Auto-Pull beim Start</value></data>

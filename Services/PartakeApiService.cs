@@ -1,7 +1,9 @@
 ﻿using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
 using System.Net.Http;
+using System.Reflection;
 using System.Text;
 using System.Threading.Tasks;
 using Dalamud.Plugin.Services;
@@ -19,19 +21,20 @@ public class PartakeApiService : IDisposable
     private readonly HttpClient http;
     private readonly IPluginLog log;
 
-    private readonly Dictionary<int, List<VenueEvent>> eventsByTeam = new();
-    private readonly Dictionary<int, DateTime> fetchTimes = new();
-    private readonly Dictionary<int, string?> errorByTeam = new();
-    private readonly HashSet<int> fetching = new();
+    private readonly ConcurrentDictionary<int, List<VenueEvent>> eventsByTeam = new();
+    private readonly ConcurrentDictionary<int, DateTime> fetchTimes = new();
+    private readonly ConcurrentDictionary<int, string?> errorByTeam = new();
+    private readonly ConcurrentDictionary<int, bool> fetching = new();
 
-    public bool IsLoading(int teamId) => fetching.Contains(teamId);
+    public bool IsLoading(int teamId) => fetching.ContainsKey(teamId);
     public string? GetError(int teamId) => errorByTeam.GetValueOrDefault(teamId);
 
     public PartakeApiService(IPluginLog log)
     {
         this.log = log;
         http = new HttpClient();
-        http.DefaultRequestHeaders.Add("User-Agent", "VenueMapper-Dalamud/0.5.0");
+        var ver = Assembly.GetExecutingAssembly().GetName().Version;
+        http.DefaultRequestHeaders.Add("User-Agent", $"VenueMapper-Dalamud/{ver?.Major}.{ver?.Minor}.{ver?.Build}");
     }
 
     public List<VenueEvent> GetEvents(int teamId)
@@ -39,11 +42,11 @@ public class PartakeApiService : IDisposable
 
     public async Task FetchTeamAsync(int teamId)
     {
-        if (fetching.Contains(teamId)) return;
+        if (fetching.ContainsKey(teamId)) return;
         if (fetchTimes.TryGetValue(teamId, out var t) && (DateTime.Now - t).TotalMinutes < CacheTtlMinutes)
             return;
 
-        fetching.Add(teamId);
+        fetching[teamId] = true;
         errorByTeam[teamId] = null;
 
         try
@@ -52,7 +55,7 @@ public class PartakeApiService : IDisposable
             {
                 ["query"] = @"
                     query($teamId: Int!) {
-                        events(game: ""final-fantasy-xiv"", teamId: $teamId, limit: 10, sortBy: STARTS_AT) {
+                        events(game: ""final-fantasy-xiv"", teamId: $teamId, limit: 2, sortBy: STARTS_AT) {
                             id title location description startsAt endsAt attendeeCount tags
                             team { id name }
                         }
@@ -148,11 +151,11 @@ public class PartakeApiService : IDisposable
         }
         finally
         {
-            fetching.Remove(teamId);
+            fetching.TryRemove(teamId, out _);
         }
     }
 
-    public void Invalidate(int teamId) { fetchTimes.Remove(teamId); eventsByTeam.Remove(teamId); }
+    public void Invalidate(int teamId) { fetchTimes.TryRemove(teamId, out _); eventsByTeam.TryRemove(teamId, out _); }
 
     private static string ParseTags(JToken? tags) => "EVENT";
 

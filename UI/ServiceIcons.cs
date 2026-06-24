@@ -15,6 +15,7 @@ public static class ServiceIcons
         "vip" => FontAwesomeIcon.Crown,
         "bath" or "spa" => FontAwesomeIcon.Bath,
         "event" => FontAwesomeIcon.Star,
+        "stage" => FontAwesomeIcon.MicrophoneAlt,
         _ => FontAwesomeIcon.MapMarkerAlt,
     };
 }

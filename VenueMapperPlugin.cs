@@ -33,6 +33,7 @@ public sealed class VenueMapperPlugin : IDalamudPlugin
     public LifestreamService Lifestream { get; }
     public PictomancyMarkerManager PictomancyMarkers { get; }
     public PartakeApiService PartakeApi { get; }
+    public XivVenuesService XivVenues { get; }
 
     public VenueMapWindow VenueMapWindow { get; }
     public SettingsWindow SettingsWindow { get; }
@@ -59,6 +60,7 @@ public sealed class VenueMapperPlugin : IDalamudPlugin
         Lifestream  = new LifestreamService(PluginInterface, Log);
         PictomancyMarkers = new PictomancyMarkerManager(PluginInterface, Log);
         PartakeApi   = new PartakeApiService(Log);
+        XivVenues    = new XivVenuesService(Log);
 
         var bundledResourcePath = Path.Combine(
             Path.GetDirectoryName(PluginInterface.AssemblyLocation.FullName) ?? string.Empty,
@@ -104,39 +106,52 @@ public sealed class VenueMapperPlugin : IDalamudPlugin
     private void OnOpenMainUi() => VenueMapWindow.IsOpen = true;
     private void OnOpenConfigUi() => SettingsWindow.IsOpen = true;
 
+    private DateTime lastFrameworkError = DateTime.MinValue;
+
     private void OnFrameworkUpdate(IFramework framework)
     {
-        if (!ClientState.IsLoggedIn)
-            return;
-
-        if (!Configuration.HasSeenSetup && !setupShownThisSession)
+        try
         {
-            setupShownThisSession = true;
-            SetupWindow.IsOpen = true;
-        }
+            if (!ClientState.IsLoggedIn)
+                return;
 
-        if ((DateTime.Now - lastAutoCheck).TotalHours >= 1 && !string.IsNullOrWhiteSpace(Configuration.GitHubConfigUrl))
+            if (!Configuration.HasSeenSetup && !setupShownThisSession)
+            {
+                setupShownThisSession = true;
+                SetupWindow.IsOpen = true;
+            }
+
+            if ((DateTime.Now - lastAutoCheck).TotalHours >= 1 && !string.IsNullOrWhiteSpace(Configuration.GitHubConfigUrl))
+            {
+                lastAutoCheck = DateTime.Now;
+                _ = AutoPullConfigAsync();
+            }
+
+            PositionTracker.Update(ConfigManager.Config);
+
+            var config = ConfigManager.Config;
+            var isInVenue = config != null && PositionTracker.GetCurrentVenue(config) != null;
+
+            if (isInVenue && !wasInVenue)
+            {
+                VenueMapWindow.IsOpen = true;
+                VenueMapWindow.HideDirectory();
+            }
+            else if (!isInVenue && wasInVenue)
+            {
+                VenueMapWindow.ShowDirectory();
+            }
+
+            wasInVenue = isInVenue;
+        }
+        catch (Exception ex)
         {
-            lastAutoCheck = DateTime.Now;
-            _ = AutoPullConfigAsync();
+            if ((DateTime.Now - lastFrameworkError).TotalSeconds > 10)
+            {
+                Log.Error(ex, "[VenueMapper] Framework update error");
+                lastFrameworkError = DateTime.Now;
+            }
         }
-
-        PositionTracker.Update(ConfigManager.Config);
-
-        var config = ConfigManager.Config;
-        var isInVenue = config != null && PositionTracker.GetCurrentVenue(config) != null;
-
-        if (isInVenue && !wasInVenue)
-        {
-            VenueMapWindow.IsOpen = true;
-            VenueMapWindow.HideDirectory();
-        }
-        else if (!isInVenue && wasInVenue)
-        {
-            VenueMapWindow.ShowDirectory();
-        }
-
-        wasInVenue = isInVenue;
     }
 
     private void OnCommand(string command, string args)
@@ -191,7 +206,8 @@ public sealed class VenueMapperPlugin : IDalamudPlugin
 
         if (args.StartsWith("markers", StringComparison.OrdinalIgnoreCase))
         {
-            var sub = args.Length > 8 ? args[8..].Trim().ToLowerInvariant() : "";
+            var parts = args.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+            var sub = parts.Length > 1 ? parts[1].ToLowerInvariant() : "";
             PictomancyMarkers.Enabled = sub switch
             {
                 "on"  => true,
@@ -224,13 +240,7 @@ public sealed class VenueMapperPlugin : IDalamudPlugin
         {
             var updated = await GitHubPuller.PullAsync(Configuration.GitHubConfigUrl);
             if (updated)
-            {
-                var bundled = System.IO.Path.Combine(
-                    System.IO.Path.GetDirectoryName(PluginInterface.AssemblyLocation.FullName) ?? "",
-                    "Resources", "venues.json");
-                ConfigManager.Load(bundled);
                 Log.Information("[VenueMapper] Auto-pull: config updated from GitHub");
-            }
         }
         catch (Exception ex)
         {
@@ -275,6 +285,7 @@ public sealed class VenueMapperPlugin : IDalamudPlugin
         Lifestream.Dispose();
         PictomancyMarkers.Dispose();
         PartakeApi.Dispose();
+        XivVenues.Dispose();
 
         CommandManager.RemoveHandler(CommandName);
     }

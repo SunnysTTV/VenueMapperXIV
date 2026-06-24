@@ -10,12 +10,13 @@ public static class ChangelogData
         get
         {
             var v = Assembly.GetExecutingAssembly().GetName().Version;
-            return v != null ? $"v{v.Major}.{v.Minor}.{v.Build}" : "v0.5.4.5";
+            return v != null ? $"v{v.Major}.{v.Minor}.{v.Build}" : "v0.5.5";
         }
     }
 
     public static readonly (string Ver, string Date)[] Versions =
     [
+        ("v0.5.5",  "Jun 25, 2026"),
         ("v0.5.4.5", "Jun 22, 2026"),
         ("v0.5.4",  "Jun 22, 2026"),
         ("v0.5.3",  "Jun 22, 2026"),
@@ -27,6 +28,18 @@ public static class ChangelogData
 
     public static readonly Dictionary<string, string[]> Changelogs = new()
     {
+        ["v0.5.5"] = [
+            "XIVVenues schedule integration (OPEN NOW / Opens in Xh)",
+            "Partake event schedule as fallback in directory",
+            "Stage service marker (MicrophoneAlt icon)",
+            "RESX-based language selector",
+            "Framework error handling with throttled logging",
+            "JSON export fully escaped",
+            "URL validation on all external links",
+            "Thread-safe config and API collections",
+            "Dynamic User-Agent version",
+            "Reduced Partake API fetch to 2 events",
+        ],
         ["v0.5.4.5"] = [
             "Scrollable venue directory and events tab",
             "Server filter dropdown (appears when DC selected)",

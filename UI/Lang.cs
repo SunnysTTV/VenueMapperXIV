@@ -45,6 +45,8 @@ public static class Lang
 
     public static string Settings      => G("Settings");
     public static string Language      => G("Language");
+    public static string LangEnglish   => G("LangEnglish");
+    public static string LangGerman    => G("LangGerman");
     public static string About         => G("About");
     public static string GithubConfig  => G("GithubConfig");
     public static string AutoPull      => G("AutoPull");

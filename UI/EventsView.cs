@@ -269,6 +269,8 @@ public class EventsView
 
     private static void OpenUrl(string url)
     {
+        if (!Uri.TryCreate(url, UriKind.Absolute, out var u) ||
+            (u.Scheme != Uri.UriSchemeHttp && u.Scheme != Uri.UriSchemeHttps)) return;
         try { System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo
             { FileName = url, UseShellExecute = true }); } catch { }
     }

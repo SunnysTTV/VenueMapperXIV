@@ -43,7 +43,7 @@ public class OwnerSubmitWindow : Window, IDisposable
     private static readonly string[] Districts =
         ["Mist", "Lavender Beds", "The Goblet", "Shirogane", "Empyreum"];
     private static readonly string[] ServiceTypes =
-        ["bar", "dj_booth", "gambling", "entrance", "upstairs", "downstairs", "vip", "bath", "spa", "event"];
+        ["bar", "dj_booth", "gambling", "entrance", "upstairs", "downstairs", "vip", "bath", "spa", "event", "stage"];
     private static readonly string[] FloorNames =
         ["ground", "second", "cellar"];
 
@@ -438,25 +438,27 @@ public class OwnerSubmitWindow : Window, IDisposable
         ImGui.InputTextWithHint($"##{label}", hint, ref value, 256);
     }
 
+    private static string J(string s) => Newtonsoft.Json.JsonConvert.ToString(s);
+
     private string FormatJson()
     {
         var sb = new System.Text.StringBuilder();
         sb.AppendLine("{");
-        sb.AppendLine($"  \"venueId\": \"{clubName.ToLowerInvariant().Replace(" ", "")}\",");
-        sb.AppendLine($"  \"name\": \"{clubName}\",");
-        sb.AppendLine($"  \"address\": \"{selectedDc} - {selectedServer} - {Districts[districtIndex]} - Ward {ward} - Plot {plot}\",");
-        sb.AppendLine($"  \"datacenter\": \"{selectedDc}\",");
-        sb.AppendLine($"  \"server\": \"{selectedServer}\",");
+        sb.AppendLine($"  \"venueId\": {J(clubName.ToLowerInvariant().Replace(" ", ""))},");
+        sb.AppendLine($"  \"name\": {J(clubName)},");
+        sb.AppendLine($"  \"address\": {J($"{selectedDc} - {selectedServer} - {Districts[districtIndex]} - Ward {ward} - Plot {plot}")},");
+        sb.AppendLine($"  \"datacenter\": {J(selectedDc)},");
+        sb.AppendLine($"  \"server\": {J(selectedServer)},");
         sb.AppendLine("  \"colors\": {");
-        sb.AppendLine($"    \"primary\": \"{colorPrimary}\",");
-        sb.AppendLine($"    \"accent\": \"{colorAccent}\",");
-        sb.AppendLine($"    \"secondary\": \"{colorSecondary}\"");
+        sb.AppendLine($"    \"primary\": {J(colorPrimary)},");
+        sb.AppendLine($"    \"accent\": {J(colorAccent)},");
+        sb.AppendLine($"    \"secondary\": {J(colorSecondary)}");
         sb.AppendLine("  },");
         sb.AppendLine("  \"links\": {");
-        sb.AppendLine($"    \"discord\": \"{discordLink}\",");
-        sb.AppendLine($"    \"partake\": \"{partakeLink}\",");
-        sb.AppendLine($"    \"ffxivvenues\": \"{xivVenuesLink}\",");
-        sb.AppendLine($"    \"website\": \"{websiteLink}\"");
+        sb.AppendLine($"    \"discord\": {J(discordLink)},");
+        sb.AppendLine($"    \"partake\": {J(partakeLink)},");
+        sb.AppendLine($"    \"ffxivvenues\": {J(xivVenuesLink)},");
+        sb.AppendLine($"    \"website\": {J(websiteLink)}");
         sb.AppendLine("  },");
         sb.AppendLine("  \"floors\": [");
         var floors = services.GroupBy(s => FloorNames[s.FloorIndex]);

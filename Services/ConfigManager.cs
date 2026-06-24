@@ -12,7 +12,8 @@ public class ConfigManager
     private readonly string configDirectory;
     private readonly string cacheFilePath;
 
-    public VenueConfig? Config { get; private set; }
+    private volatile VenueConfig? config;
+    public VenueConfig? Config { get => config; private set => config = value; }
     public DateTime? LastUpdated { get; private set; }
 
     public ConfigManager(IPluginLog log, string configDirectory)

@@ -35,12 +35,12 @@ public class SettingsWindow : Window, IDisposable
         ImGui.PushStyleColor(ImGuiCol.Border, UIConstants.GlowDim);
         ImGui.PushStyleVar(ImGuiStyleVar.FrameBorderSize, 1f);
         ImGui.SetNextItemWidth(120);
-        var langLabel = config.Language == "DE" ? "Deutsch" : "English";
+        var langLabel = config.Language == "DE" ? Lang.LangGerman : Lang.LangEnglish;
         if (ImGui.BeginCombo("##lang", langLabel))
         {
-            if (ImGui.Selectable("English", config.Language == "EN"))
+            if (ImGui.Selectable(Lang.LangEnglish, config.Language == "EN"))
             { config.Language = "EN"; Lang.Set("EN"); config.Save(); plugin.VenueMapWindow.ShowSettings(); }
-            if (ImGui.Selectable("Deutsch", config.Language == "DE"))
+            if (ImGui.Selectable(Lang.LangGerman, config.Language == "DE"))
             { config.Language = "DE"; Lang.Set("DE"); config.Save(); plugin.VenueMapWindow.ShowSettings(); }
             ImGui.EndCombo();
         }
@@ -157,10 +157,18 @@ public class SettingsWindow : Window, IDisposable
         ImGui.TextColored(UIConstants.Primary, $"{ChangelogData.PluginVersion} - {Lang.CurRelease}");
         ImGui.Spacing();
 
-        if (ChangelogData.Changelogs.TryGetValue(ChangelogData.PluginVersion, out var cur))
-            foreach (var c in cur) { ImGui.Bullet(); ImGui.SameLine(); ImGui.TextWrapped(c); }
-
         ImGui.PopTextWrapPos();
+
+        ImGui.PushStyleVar(ImGuiStyleVar.ScrollbarSize, 0f);
+        if (ImGui.BeginChild("##changelogScroll", new Vector2(-1, -1)))
+        {
+            ImGui.PushTextWrapPos(0);
+            if (ChangelogData.Changelogs.TryGetValue(ChangelogData.PluginVersion, out var cur))
+                foreach (var c in cur) { ImGui.Bullet(); ImGui.SameLine(); ImGui.TextWrapped(c); }
+            ImGui.PopTextWrapPos();
+        }
+        ImGui.EndChild();
+        ImGui.PopStyleVar();
     }
 
 
