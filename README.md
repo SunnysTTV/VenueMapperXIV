@@ -27,7 +27,7 @@ A Dalamud plugin for discovering and exploring FFXIV housing venues. Browse venu
 
 ## Translate
 
-VenueMapper uses RESX-based localization and is ready for community translations via Crowdin. Currently supported: **English** and **Deutsch**. Want to help translate? Join our [Discord](https://discord.com/invite/agKWEzK5nR)!
+VenueMapper uses RESX-based localization and is ready for community translations. Currently supported: **English** and **German**. Want to help translate? Contribute on [Crowdin](https://crowdin.com/project/venuemapper) or join our [Discord](https://discord.com/invite/agKWEzK5nR)!
 
 ## For Venue Owners
 
