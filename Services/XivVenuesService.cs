@@ -102,8 +102,8 @@ public class XivVenuesService : IDisposable
             DateTime? start = null;
             DateTime? end = null;
 
-            if (DateTime.TryParse(resolution["start"]?.ToString(), out var s)) start = s;
-            if (DateTime.TryParse(resolution["end"]?.ToString(), out var e)) end = e;
+            if (DateTimeOffset.TryParse(resolution["start"]?.ToString(), out var s)) start = s.UtcDateTime;
+            if (DateTimeOffset.TryParse(resolution["end"]?.ToString(), out var e)) end = e.UtcDateTime;
 
             cache[venueId] = new ScheduleInfo
             {

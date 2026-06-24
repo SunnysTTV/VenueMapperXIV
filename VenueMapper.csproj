@@ -8,7 +8,7 @@
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     <PlatformTarget>x64</PlatformTarget>
     <AssemblyName>VenueMapper</AssemblyName>
-    <Version>0.5.5.0</Version>
+    <Version>0.5.5.1</Version>
     <OutputPath>bin\dev\</OutputPath>
     <ProduceReferenceAssembly>false</ProduceReferenceAssembly>
     <CopyLocalLockFileAssemblies>true</CopyLocalLockFileAssemblies>

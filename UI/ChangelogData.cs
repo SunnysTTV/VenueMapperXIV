@@ -10,12 +10,13 @@ public static class ChangelogData
         get
         {
             var v = Assembly.GetExecutingAssembly().GetName().Version;
-            return v != null ? $"v{v.Major}.{v.Minor}.{v.Build}" : "v0.5.5";
+            return v != null ? $"v{v.Major}.{v.Minor}.{v.Build}" : "v0.5.5.1";
         }
     }
 
     public static readonly (string Ver, string Date)[] Versions =
     [
+        ("v0.5.5.1", "Jun 25, 2026"),
         ("v0.5.5",  "Jun 25, 2026"),
         ("v0.5.4.5", "Jun 22, 2026"),
         ("v0.5.4",  "Jun 22, 2026"),
@@ -28,6 +29,11 @@ public static class ChangelogData
 
     public static readonly Dictionary<string, string[]> Changelogs = new()
     {
+        ["v0.5.5.1"] = [
+            "Fixed schedule time calculation (UTC timezone)",
+            "Fixed changelog scroll style stack",
+            "Partake fallback now triggers fetch from directory",
+        ],
         ["v0.5.5"] = [
             "XIVVenues schedule integration (OPEN NOW / Opens in Xh)",
             "Partake event schedule as fallback in directory",
