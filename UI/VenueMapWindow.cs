@@ -541,23 +541,12 @@ public class VenueMapWindow : Window, IDisposable
             var textX  = cardMin.X + padX + 6;
             var maxTextW = cardW - padX * 2 - 12;
 
-            if (isHere)
-            {
-                var badge    = Lang.Here2;
-                var badgeSz  = ImGui.CalcTextSize(badge);
-                var badgeMin = new Vector2(cardMax.X - badgeSz.X - 8, cardMin.Y + 4);
-                var badgeMax = new Vector2(badgeMin.X + badgeSz.X + 4, badgeMin.Y + badgeSz.Y + 2);
-                dl.AddRectFilled(badgeMin, badgeMax,
-                    ImGui.ColorConvertFloat4ToU32(UIConstants.WithAlpha(new Vector4(0.1f, 1f, 0.5f, 1f), 0.25f)));
-                dl.AddRect(badgeMin, badgeMax,
-                    ImGui.ColorConvertFloat4ToU32(new Vector4(0.2f, 1f, 0.55f, 0.7f)), 0f, ImDrawFlags.None, 1f);
-                dl.AddText(new Vector2(badgeMin.X + 2, badgeMin.Y + 1),
-                    ImGui.ColorConvertFloat4ToU32(new Vector4(0.2f, 1f, 0.55f, 1f)), badge);
-                maxTextW -= badgeSz.X + 12;
-            }
-
             var isFav = plugin.Configuration.FavoriteVenueIds.Contains(v.VenueId);
             var favAnimActive = favAnimStart.ContainsKey(v.VenueId);
+            var rightX = cardMax.X - 4;
+            var badgeCY = cardMin.Y + rowH * 0.5f;
+            var badgeY = cardMin.Y + 4;
+
             if (isFav)
             {
                 var iconFont = Dalamud.Interface.UiBuilder.IconFont;
@@ -570,10 +559,9 @@ public class VenueMapWindow : Window, IDisposable
                 var starSz = ImGui.CalcTextSize(starGlyphStr);
                 ImGui.PopFont();
                 var starScale = starSize / iconFont.FontSize;
-                var starX = cardMax.X - starSz.X * starScale - 6;
-                var starY = cardMin.Y + (rowH - starSz.Y * starScale) * 0.5f;
+                rightX -= starSz.X * starScale + 2;
                 if (!favAnimActive)
-                    dl.AddText(iconFont, starSize, new Vector2(starX, starY), starCol, starGlyphStr);
+                    dl.AddText(iconFont, starSize, new Vector2(rightX, badgeCY - starSz.Y * starScale * 0.5f), starCol, starGlyphStr);
 
                 dl.PushClipRect(cardMin, cardMax, true);
                 var shimPhase = (float)(ImGui.GetTime() % 2.5) / 2.5f;
@@ -586,7 +574,49 @@ public class VenueMapWindow : Window, IDisposable
                     ImGui.ColorConvertFloat4ToU32(new Vector4(1f, 0.84f, 0f, 0.06f)),
                     ImGui.ColorConvertFloat4ToU32(new Vector4(1f, 0.84f, 0f, 0f)));
                 dl.PopClipRect();
+                rightX -= 4;
             }
+
+            if (isHere)
+            {
+                var badge = Lang.Here2;
+                var badgeSz = ImGui.CalcTextSize(badge);
+                rightX -= badgeSz.X + 6;
+                var badgeMin = new Vector2(rightX, badgeY);
+                var badgeMax = new Vector2(rightX + badgeSz.X + 4, badgeMin.Y + badgeSz.Y + 2);
+                dl.AddRectFilled(badgeMin, badgeMax,
+                    ImGui.ColorConvertFloat4ToU32(UIConstants.WithAlpha(new Vector4(0.1f, 1f, 0.5f, 1f), 0.25f)));
+                dl.AddRect(badgeMin, badgeMax,
+                    ImGui.ColorConvertFloat4ToU32(new Vector4(0.2f, 1f, 0.55f, 0.7f)), 0f, ImDrawFlags.None, 1f);
+                dl.AddText(new Vector2(badgeMin.X + 2, badgeMin.Y + 1),
+                    ImGui.ColorConvertFloat4ToU32(new Vector4(0.2f, 1f, 0.55f, 1f)), badge);
+                rightX -= 4;
+            }
+
+            if (schedText.Length > 0)
+            {
+                var schedSz = ImGui.CalcTextSize(schedText);
+                rightX -= schedSz.X + 6;
+                var schedY = badgeY;
+                var schedCol = schedIsOpen
+                    ? new Vector4(0.2f, 1f, 0.5f, 1f)
+                    : UIConstants.WithAlpha(UIConstants.TextSecondary, 0.5f);
+
+                if (schedIsOpen)
+                {
+                    var glowPulse = (MathF.Sin((float)ImGui.GetTime() * 2.5f) + 1f) / 2f;
+                    dl.AddRectFilled(
+                        new Vector2(rightX - 2, schedY - 1),
+                        new Vector2(rightX + schedSz.X + 4, schedY + schedSz.Y + 1),
+                        ImGui.ColorConvertFloat4ToU32(UIConstants.WithAlpha(schedCol, 0.10f + 0.06f * glowPulse)));
+                }
+
+                dl.AddText(new Vector2(rightX, schedY),
+                    ImGui.ColorConvertFloat4ToU32(schedCol), schedText);
+                rightX -= 4;
+            }
+
+            maxTextW = rightX - textX - 4;
 
             if (favAnimStart.TryGetValue(v.VenueId, out var animT))
             {
@@ -691,32 +721,6 @@ public class VenueMapWindow : Window, IDisposable
             if (addrRaw.Length > 0)
                 dl.AddText(new Vector2(textX, cardMin.Y + padY + lineH + 2), addrCol, addrRaw);
 
-            if (schedText.Length > 0)
-            {
-                var schedSz = ImGui.CalcTextSize(schedText);
-                var schedX = cardMax.X - schedSz.X - 6;
-                var schedY = cardMin.Y + 4;
-                var schedCol = schedIsOpen
-                    ? new Vector4(0.2f, 1f, 0.5f, 1f)
-                    : UIConstants.WithAlpha(UIConstants.TextSecondary, 0.6f);
-
-                if (schedIsOpen)
-                {
-                    var glowPulse = (MathF.Sin((float)ImGui.GetTime() * 2.5f) + 1f) / 2f;
-                    dl.AddRectFilled(
-                        new Vector2(schedX - 4, schedY - 1),
-                        new Vector2(schedX + schedSz.X + 4, schedY + schedSz.Y + 1),
-                        ImGui.ColorConvertFloat4ToU32(UIConstants.WithAlpha(schedCol, 0.12f + 0.08f * glowPulse)));
-                    dl.AddRect(
-                        new Vector2(schedX - 4, schedY - 1),
-                        new Vector2(schedX + schedSz.X + 4, schedY + schedSz.Y + 1),
-                        ImGui.ColorConvertFloat4ToU32(UIConstants.WithAlpha(schedCol, 0.4f + 0.3f * glowPulse)),
-                        0f, ImDrawFlags.None, 1f);
-                }
-
-                dl.AddText(new Vector2(schedX, schedY),
-                    ImGui.ColorConvertFloat4ToU32(schedCol), schedText);
-            }
 
 
             var hasAddr  = !string.IsNullOrEmpty(v.Address);
