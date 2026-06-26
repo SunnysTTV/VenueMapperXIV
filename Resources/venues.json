@@ -268,7 +268,7 @@
       "territoryIds": [1376],
       "ward": 14,
       "plot": 60,
-      "teamId": 1527,
+      "teamId": 0,
       "availableFloors": ["ground"],
       "colors": {
         "primary": "#ff0000",
@@ -277,7 +277,7 @@
       },
       "links": {
         "discord": "https://discord.gg/rZrYMDRgp",
-        "partake": "https://www.partake.gg/teams/1527",
+        "partake": "",
         "ffxivvenues": "https://ffxivvenues.com/venue/kGT9j4sQhbT4",
         "website": ""
       },
