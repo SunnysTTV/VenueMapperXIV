@@ -382,6 +382,51 @@
           ]
         }
       ]
+    },
+    {
+      "venueId": "thehelix",
+      "name": "The Helix",
+      "address": "Light - Zodiark - Lavender Beds - Ward 2 - Plot 1",
+      "datacenter": "Light",
+      "territoryIds": [1376],
+      "ward": 2,
+      "plot": 1,
+      "teamId": 0,
+      "availableFloors": ["ground", "cellar"],
+      "colors": {
+        "primary": "#00d9ff",
+        "accent": "#fff000",
+        "secondary": "#ff00d7"
+      },
+      "links": {
+        "discord": "https://discord.gg/EGjWJ9MZU",
+        "partake": "",
+        "ffxivvenues": "",
+        "website": ""
+      },
+      "floors": [
+        {
+          "floor": "ground",
+          "yMin": -3.5,
+          "yMax": 6.5,
+          "mapId": 0,
+          "services": [
+            { "type": "entrance", "label": "Helix Entrance", "icon": "", "x": 0.59, "y": 7.07, "z": 0.00, "description": "" },
+            { "type": "bar", "label": "Helix Bar", "icon": "", "x": -4.35, "y": -3.15, "z": 0.00, "description": "" },
+            { "type": "downstairs", "label": "Stairs", "icon": "", "x": -3.34, "y": 6.35, "z": 0.00, "description": "" }
+          ]
+        },
+        {
+          "floor": "cellar",
+          "yMin": -10.0,
+          "yMax": -3.5,
+          "mapId": 0,
+          "services": [
+            { "type": "dj_booth", "label": "Helix DJ Booth", "icon": "", "x": -4.32, "y": 0.36, "z": -5.46, "description": "" },
+            { "type": "upstairs", "label": "Stairs", "icon": "", "x": -10.40, "y": -0.63, "z": -7.00, "description": "" }
+          ]
+        }
+      ]
     }
   ]
 }
