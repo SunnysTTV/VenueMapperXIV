@@ -19,7 +19,8 @@ public class ChangelogWindow : Window, IDisposable
 
     public void Open(string? version = null)
     {
-        selectedVersion = version ?? (ChangelogData.Versions.Length > 0 ? ChangelogData.Versions[0].Ver : "");
+        selectedVersion = version ?? (ChangelogData.Versions.Length > 1 ? ChangelogData.Versions[1].Ver :
+                         ChangelogData.Versions.Length > 0 ? ChangelogData.Versions[0].Ver : "");
         IsOpen = true;
     }
 
@@ -50,10 +51,28 @@ public class ChangelogWindow : Window, IDisposable
             ImGui.TableSetColumnIndex(0);
             if (ImGui.BeginChild("##clVerScroll", new Vector2(-1, -1)))
             {
+                var curVer = ChangelogData.Versions.Length > 0 ? ChangelogData.Versions[0].Ver : "";
+                if (ChangelogData.Versions.Length > 0)
+                {
+                    ImGui.TextColored(UIConstants.WithAlpha(UIConstants.TextSecondary, 0.5f), ChangelogData.Versions[0].Date);
+                    ImGui.Separator();
+                }
+                var curSel = selectedVersion == curVer;
+                ImGui.PushStyleColor(ImGuiCol.Text,          curSel ? UIConstants.Glow : UIConstants.Primary);
+                ImGui.PushStyleColor(ImGuiCol.Header,        UIConstants.WithAlpha(UIConstants.Primary, 0.15f));
+                ImGui.PushStyleColor(ImGuiCol.HeaderHovered, UIConstants.WithAlpha(UIConstants.Primary, 0.22f));
+                if (ImGui.Selectable(curVer, curSel))
+                    selectedVersion = curVer;
+                ImGui.PopStyleColor(3);
+                ImGui.TextColored(UIConstants.WithAlpha(UIConstants.Primary, 0.45f), Lang.CurrentTag);
+                ImGui.Spacing();
+                ImGui.Separator();
+                ImGui.Spacing();
+
                 var lastDate = "";
                 foreach (var (ver, date) in ChangelogData.Versions)
                 {
-                    if (ver == ChangelogData.Versions[0].Ver) continue;
+                    if (ver == curVer) continue;
                     if (date != lastDate)
                     {
                         if (lastDate.Length > 0) ImGui.Spacing();
@@ -72,14 +91,20 @@ public class ChangelogWindow : Window, IDisposable
             }
 
             ImGui.TableSetColumnIndex(1);
+            var isCur = ChangelogData.Versions.Length > 0 && selectedVersion == ChangelogData.Versions[0].Ver;
             ImGui.TextColored(UIConstants.Primary, selectedVersion);
+            if (isCur)
+            {
+                ImGui.SameLine(0, 6);
+                ImGui.TextColored(UIConstants.WithAlpha(UIConstants.Glow, 0.55f), Lang.CurRelease);
+            }
             ImGui.Separator();
             ImGui.Spacing();
 
-            if (ChangelogData.Changelogs.TryGetValue(selectedVersion, out var changes))
-                foreach (var c in changes) ImGui.BulletText(c);
+            if (ChangelogData.Changelogs.TryGetValue(selectedVersion, out var sections))
+                UIConstants.DrawChangelog(sections);
             else
-                ImGui.TextColored(UIConstants.WithAlpha(UIConstants.TextSecondary, 0.5f), "No changelog.");
+                ImGui.TextColored(UIConstants.WithAlpha(UIConstants.TextSecondary, 0.5f), Lang.NoChangelog);
 
             ImGui.EndTable();
         }

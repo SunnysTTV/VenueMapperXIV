@@ -157,6 +157,19 @@
   <data name="Coordinates" xml:space="preserve"><value>Coordinates</value></data>
   <data name="ServiceType" xml:space="preserve"><value>Type</value></data>
   <data name="ServiceName" xml:space="preserve"><value>Name</value></data>
+  <data name="DetectPosition" xml:space="preserve"><value>Detect from Current Position</value></data>
+  <data name="VenueNameHint" xml:space="preserve"><value>Your Venue Name</value></data>
+  <data name="DiscordHint" xml:space="preserve"><value>username</value></data>
+  <data name="HouseSize" xml:space="preserve"><value>House Size</value></data>
+  <data name="ColorPrimary" xml:space="preserve"><value>Primary</value></data>
+  <data name="ColorAccent" xml:space="preserve"><value>Accent</value></data>
+  <data name="ColorSecondary" xml:space="preserve"><value>Secondary</value></data>
+  <data name="ServiceNameHint" xml:space="preserve"><value>e.g. Main Bar</value></data>
+  <data name="CopyJson" xml:space="preserve"><value>Copy JSON</value></data>
+  <data name="FormOpened" xml:space="preserve"><value>Form opened</value></data>
+  <data name="CurrentTag" xml:space="preserve"><value>  current</value></data>
+  <data name="NoChangelog" xml:space="preserve"><value>No changelog.</value></data>
+  <data name="AllServers" xml:space="preserve"><value>All Servers</value></data>
 
   <!-- Location plurals -->
   <data name="LocationOne" xml:space="preserve"><value>  —  {0} location</value></data>

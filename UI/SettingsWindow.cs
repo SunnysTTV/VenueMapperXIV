@@ -39,9 +39,9 @@ public class SettingsWindow : Window, IDisposable
         if (ImGui.BeginCombo("##lang", langLabel))
         {
             if (ImGui.Selectable(Lang.LangEnglish, config.Language == "EN"))
-            { config.Language = "EN"; Lang.Set("EN"); config.Save(); plugin.VenueMapWindow.ShowSettings(); }
+            { config.Language = "EN"; Lang.Set("EN"); ChangelogData.CurrentLanguage = "EN"; config.Save(); plugin.VenueMapWindow.ShowSettings(); }
             if (ImGui.Selectable(Lang.LangGerman, config.Language == "DE"))
-            { config.Language = "DE"; Lang.Set("DE"); config.Save(); plugin.VenueMapWindow.ShowSettings(); }
+            { config.Language = "DE"; Lang.Set("DE"); ChangelogData.CurrentLanguage = "DE"; config.Save(); plugin.VenueMapWindow.ShowSettings(); }
             ImGui.EndCombo();
         }
         ImGui.PopStyleVar();
@@ -117,7 +117,7 @@ public class SettingsWindow : Window, IDisposable
 
         var btnW = (ImGui.GetContentRegionAvail().X - 4) / 2f;
 
-        LinkBtn("Discord", "https://discord.com/invite/agKWEzK5nR",
+        LinkBtn("Support Discord", "https://discord.com/invite/agKWEzK5nR",
             new Vector4(0.34f, 0.40f, 0.93f, 1f), btnW, "Join Discord");
         ImGui.SameLine(0, 4);
         LinkBtn("GitHub", "https://github.com/sunnysofficial/VenueMapper",
@@ -132,7 +132,7 @@ public class SettingsWindow : Window, IDisposable
         ImGui.TextColored(UIConstants.WithAlpha(UIConstants.TextSecondary, 0.5f),
             "Developer: SunnysOfficial");
         ImGui.TextColored(UIConstants.WithAlpha(UIConstants.TextSecondary, 0.35f),
-            "Dalamud  |  Lumina  |  Lifestream IPC  |  Pictomancy  |  Partake.gg API");
+            "Dalamud  |  Lumina  |  Lifestream IPC  |  Pictomancy  |  Partake.gg API  |  FFXIVVenues API");
 
         ImGui.Spacing();
         ImGui.Separator();
@@ -155,6 +155,11 @@ public class SettingsWindow : Window, IDisposable
         ImGui.Spacing();
 
         ImGui.TextColored(UIConstants.Primary, $"{ChangelogData.PluginVersion} - {Lang.CurRelease}");
+        if (ChangelogData.Versions.Length > 0)
+        {
+            ImGui.SameLine(0, 6);
+            ImGui.TextColored(UIConstants.WithAlpha(UIConstants.TextSecondary, 0.5f), ChangelogData.Versions[0].Date);
+        }
         ImGui.Spacing();
 
         ImGui.PopTextWrapPos();
@@ -163,8 +168,8 @@ public class SettingsWindow : Window, IDisposable
         if (ImGui.BeginChild("##changelogScroll", new Vector2(-1, -1)))
         {
             ImGui.PushTextWrapPos(0);
-            if (ChangelogData.Changelogs.TryGetValue(ChangelogData.PluginVersion, out var cur))
-                foreach (var c in cur) { ImGui.Bullet(); ImGui.SameLine(); ImGui.TextWrapped(c); }
+            if (ChangelogData.Changelogs.TryGetValue(ChangelogData.PluginVersion, out var sections))
+                UIConstants.DrawChangelog(sections);
             ImGui.PopTextWrapPos();
         }
         ImGui.EndChild();

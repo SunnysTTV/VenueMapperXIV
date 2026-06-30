@@ -114,6 +114,19 @@ public static class Lang
     public static string Coordinates   => G("Coordinates");
     public static string ServiceType   => G("ServiceType");
     public static string ServiceName   => G("ServiceName");
+    public static string DetectPosition=> G("DetectPosition");
+    public static string VenueNameHint => G("VenueNameHint");
+    public static string DiscordHint   => G("DiscordHint");
+    public static string HouseSize     => G("HouseSize");
+    public static string ColorPrimary  => G("ColorPrimary");
+    public static string ColorAccent   => G("ColorAccent");
+    public static string ColorSecondary=> G("ColorSecondary");
+    public static string ServiceNameHint => G("ServiceNameHint");
+    public static string CopyJson      => G("CopyJson");
+    public static string FormOpened    => G("FormOpened");
+    public static string CurrentTag    => G("CurrentTag");
+    public static string NoChangelog   => G("NoChangelog");
+    public static string AllServers    => G("AllServers");
 
     public static string SetupWelcomeTitle => G("SetupWelcomeTitle");
     public static string SetupWelcomeDesc  => G("SetupWelcomeDesc");

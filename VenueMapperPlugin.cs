@@ -52,6 +52,7 @@ public sealed class VenueMapperPlugin : IDalamudPlugin
             Configuration.Save();
         }
         UI.Lang.Set(Configuration.Language);
+        UI.ChangelogData.CurrentLanguage = Configuration.Language;
 
         ConfigManager = new ConfigManager(Log, PluginInterface.ConfigDirectory.FullName);
         GitHubPuller = new GitHubConfigPuller(Log, ConfigManager);
@@ -251,6 +252,8 @@ public sealed class VenueMapperPlugin : IDalamudPlugin
     private void DrawUI()
     {
         WindowSystem.Draw();
+
+        if (!ClientState.IsLoggedIn) return;
 
         var config = ConfigManager.Config;
         if (config != null)

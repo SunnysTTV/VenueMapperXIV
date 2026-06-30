@@ -51,7 +51,7 @@ public class VenueMapWindow : Window, IDisposable
         this.eventsView = new EventsView(plugin.PartakeApi);
         Size = new Vector2(560, 640);
         SizeCondition = ImGuiCond.FirstUseEver;
-        SizeConstraints = new WindowSizeConstraints { MinimumSize = new Vector2(350, 500) };
+        SizeConstraints = new WindowSizeConstraints { MinimumSize = new Vector2(450, 600) };
 
         TitleBarButtons =
         [
@@ -405,10 +405,10 @@ public class VenueMapWindow : Window, IDisposable
         {
             ImGui.SameLine(0, 4);
             ImGui.SetNextItemWidth(avW * 0.35f);
-            var srvLabel = selectedServers.Count == 0 ? "All Servers" : string.Join(", ", selectedServers);
+            var srvLabel = selectedServers.Count == 0 ? Lang.AllServers : string.Join(", ", selectedServers);
             if (ImGui.BeginCombo("##srvFilter", srvLabel))
             {
-                if (ImGui.Selectable("All Servers", selectedServers.Count == 0))
+                if (ImGui.Selectable(Lang.AllServers, selectedServers.Count == 0))
                     selectedServers.Clear();
                 ImGui.Separator();
                 foreach (var dc in selectedDcs)

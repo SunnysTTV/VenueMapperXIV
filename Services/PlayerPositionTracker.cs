@@ -22,6 +22,10 @@ public class PlayerPositionTracker
     public float PlayerY { get; private set; }
     public float PlayerZ { get; private set; }
 
+    public uint LastOutdoorTerritoryId { get; private set; }
+    public string CurrentServerName { get; private set; } = "";
+    public string CurrentHousingDistrict { get; private set; } = "";
+
     public string CurrentFloorName { get; private set; } = "Unknown";
     public float CurrentFloorYMin { get; private set; }
     public float CurrentFloorYMax { get; private set; }
@@ -43,7 +47,19 @@ public class PlayerPositionTracker
             return;
 
         LastPosition = player.Position;
-        CurrentTerritoryId = clientState.TerritoryType;
+
+        try
+        {
+            var worldName = player.CurrentWorld.ValueNullable?.Name.ExtractText();
+            if (!string.IsNullOrEmpty(worldName))
+                CurrentServerName = worldName;
+        }
+        catch { }
+
+        var territory = clientState.TerritoryType;
+        if (territory is not (1376 or 1250 or 980) && territory > 0)
+            LastOutdoorTerritoryId = territory;
+        CurrentTerritoryId = territory;
         CurrentMapId = clientState.MapId;
 
         PlayerX = player.Position.X;
@@ -59,6 +75,36 @@ public class PlayerPositionTracker
                 {
                     CurrentWard = hm->GetCurrentWard();
                     CurrentPlot = hm->GetCurrentPlot();
+
+                    // Outdoor housing zones have fixed territory type IDs
+                    var districtByTerritory = CurrentTerritoryId switch
+                    {
+                        339 => "Mist",
+                        340 => "Lavender Beds",
+                        341 => "The Goblet",
+                        641 => "Shirogane",
+                        979 => "Empyreum",
+                        _ => null
+                    };
+
+                    if (districtByTerritory != null)
+                    {
+                        CurrentHousingDistrict = districtByTerritory;
+                    }
+                    else
+                    {
+                        // Inside house instance (1376/1250/980) — use HousingManager
+                        var district = (int)hm->GetCurrentHousingTerritoryType();
+                        CurrentHousingDistrict = district switch
+                        {
+                            0 => "Mist",
+                            1 => "Lavender Beds",
+                            2 => "The Goblet",
+                            3 => "Shirogane",
+                            4 => "Empyreum",
+                            _ => CurrentHousingDistrict,
+                        };
+                    }
                 }
                 else
                 {
@@ -117,13 +163,20 @@ public class PlayerPositionTracker
     {
         foreach (var venue in config.Venues)
         {
-            if (!venue.TerritoryIds.Contains(CurrentTerritoryId))
+            if (venue.TerritoryIds.Count > 0 && !venue.TerritoryIds.Contains(CurrentTerritoryId))
                 continue;
 
             if (venue.Ward > 0 && venue.Plot > 0 && CurrentWard >= 0 && CurrentPlot >= 0)
             {
                 if (venue.Ward == CurrentWard + 1 && venue.Plot == CurrentPlot + 1)
+                {
+                    if (venue.TerritoryIds.Count == 0 && CurrentTerritoryId > 0)
+                    {
+                        venue.TerritoryIds.Add(CurrentTerritoryId);
+                        log.Information($"[VenueMapper] Learned territory {CurrentTerritoryId} for {venue.Name} (S house)");
+                    }
                     return venue;
+                }
                 continue;
             }
 

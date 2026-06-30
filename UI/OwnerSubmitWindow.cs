@@ -20,6 +20,7 @@ public class OwnerSubmitWindow : Window, IDisposable
     private string ward = "";
     private string plot = "";
     private int districtIndex;
+    private int houseSizeIndex;
 
     private string discordLink = "";
     private string partakeLink = "";
@@ -42,6 +43,79 @@ public class OwnerSubmitWindow : Window, IDisposable
 
     private static readonly string[] Districts =
         ["Mist", "Lavender Beds", "The Goblet", "Shirogane", "Empyreum"];
+    private static readonly string[] HouseSizeLabels = ["L - Large", "M - Medium", "S - Small"];
+    private static readonly string[] HouseSizeKeys = ["L", "M", "S"];
+
+    private static readonly Dictionary<string, (HashSet<int> L, HashSet<int> M)> PlotSizes = new()
+    {
+        ["Mist"]          = (new HashSet<int> { 2, 5, 15, 32, 35, 45 },
+                             new HashSet<int> { 1, 4, 6, 7, 14, 29, 30, 31, 34, 36, 37, 44, 59, 60 }),
+        ["Lavender Beds"] = (new HashSet<int> { 3, 6, 28, 33, 36, 58 },
+                             new HashSet<int> { 1, 5, 11, 16, 21, 27, 30, 31, 35, 41, 46, 51, 57, 60 }),
+        ["The Goblet"]    = (new HashSet<int> { 5, 13, 30, 35, 43, 60 },
+                             new HashSet<int> { 4, 6, 8, 11, 12, 19, 25, 34, 36, 38, 41, 42, 49, 55 }),
+        ["Empyreum"]      = (new HashSet<int> { 12, 22, 30, 42, 52, 60 },
+                             new HashSet<int> { 2, 7, 8, 17, 18, 21, 26, 32, 37, 47, 48, 51 }),
+        ["Shirogane"]     = (new HashSet<int> { 7, 16, 30, 37, 46, 60 },
+                             new HashSet<int> { 1, 8, 13, 15, 19, 24, 28, 31, 38, 43, 45, 49, 54, 58 }),
+    };
+
+    private void AutoDetectHouseSizeFromPlot()
+    {
+        if (!int.TryParse(plot, out var p)) return;
+        if (!PlotSizes.TryGetValue(Districts[districtIndex], out var sizes)) return;
+        houseSizeIndex = sizes.L.Contains(p) ? 0 : sizes.M.Contains(p) ? 1 : 2;
+    }
+
+    private void AutoDetectHouseSizeFromTerritory()
+    {
+        houseSizeIndex = plugin.PositionTracker.CurrentTerritoryId switch
+        {
+            1376 => 0,
+            1250 => 1,
+            980  => 2,
+            _    => houseSizeIndex,
+        };
+    }
+
+    private void AutoFillFromPosition()
+    {
+        var tracker = plugin.PositionTracker;
+
+        // DC + Server from current world
+        var worldName = tracker.CurrentServerName;
+        if (!string.IsNullOrEmpty(worldName))
+        {
+            foreach (var (dc, servers) in ServerData.DatacenterServers)
+            {
+                if (servers.Contains(worldName, StringComparer.OrdinalIgnoreCase))
+                {
+                    selectedDc = dc;
+                    selectedServer = worldName;
+                    break;
+                }
+            }
+        }
+
+        // District from HousingManager
+        var district = tracker.CurrentHousingDistrict;
+        if (!string.IsNullOrEmpty(district))
+        {
+            var idx = Array.IndexOf(Districts, district);
+            if (idx >= 0) districtIndex = idx;
+        }
+
+        // Ward + Plot
+        if (tracker.CurrentWard >= 0 && tracker.CurrentPlot >= 0)
+        {
+            ward = (tracker.CurrentWard + 1).ToString();
+            plot = (tracker.CurrentPlot + 1).ToString();
+            AutoDetectHouseSizeFromPlot();
+        }
+
+        // House size from territory ID (overrides plot-based if inside house)
+        AutoDetectHouseSizeFromTerritory();
+    }
     private static readonly string[] ServiceTypes =
         ["bar", "dj_booth", "gambling", "entrance", "upstairs", "downstairs", "vip", "bath", "spa", "event", "stage"];
     private static readonly string[] FloorNames =
@@ -52,7 +126,7 @@ public class OwnerSubmitWindow : Window, IDisposable
             ImGuiWindowFlags.NoCollapse | ImGuiWindowFlags.NoDocking | ImGuiWindowFlags.NoResize)
     {
         this.plugin = plugin;
-        Size = new Vector2(525, 525);
+        Size = new Vector2(525, 600);
         SizeCondition = ImGuiCond.Always;
     }
 
@@ -113,10 +187,22 @@ public class OwnerSubmitWindow : Window, IDisposable
     private void DrawVenueInfo()
     {
         ImGui.Spacing();
+
+        ImGui.PushStyleColor(ImGuiCol.Button, UIConstants.WithAlpha(UIConstants.Glow, 0.15f));
+        ImGui.PushStyleColor(ImGuiCol.ButtonHovered, UIConstants.WithAlpha(UIConstants.Glow, 0.28f));
+        ImGui.PushStyleColor(ImGuiCol.Text, UIConstants.Glow);
+        ImGui.PushStyleVar(ImGuiStyleVar.FrameBorderSize, 1f);
+        ImGui.PushStyleColor(ImGuiCol.Border, UIConstants.WithAlpha(UIConstants.Glow, 0.4f));
+        if (ImGui.Button($"{Lang.DetectPosition}##autopos", new Vector2(-1, 28)))
+            AutoFillFromPosition();
+        ImGui.PopStyleColor(4);
+        ImGui.PopStyleVar();
+        ImGui.Spacing();
+
         PushFieldStyle();
 
-        Field(Lang.VenueName, ref clubName, "Your Venue Name");
-        Field(Lang.YourDiscord, ref discordName, "username");
+        Field(Lang.VenueName, ref clubName, Lang.VenueNameHint);
+        Field(Lang.YourDiscord, ref discordName, Lang.DiscordHint);
         ImGui.Spacing();
 
         ImGui.TextColored(UIConstants.TextSecondary, Lang.Datacenter);
@@ -150,7 +236,8 @@ public class OwnerSubmitWindow : Window, IDisposable
 
         ImGui.TextColored(UIConstants.TextSecondary, Lang.HousingDist);
         ImGui.SetNextItemWidth(-1);
-        ImGui.Combo("##district", ref districtIndex, Districts, Districts.Length);
+        if (ImGui.Combo("##district", ref districtIndex, Districts, Districts.Length))
+            AutoDetectHouseSizeFromPlot();
 
         var halfW = (ImGui.GetContentRegionAvail().X - 8) / 2f;
         ImGui.TextColored(UIConstants.TextSecondary, Lang.Ward);
@@ -160,7 +247,12 @@ public class OwnerSubmitWindow : Window, IDisposable
         ImGui.InputTextWithHint("##ward", "1-30", ref ward, 8);
         ImGui.SameLine(0, 8);
         ImGui.SetNextItemWidth(halfW);
-        ImGui.InputTextWithHint("##plot", "1-60", ref plot, 8);
+        if (ImGui.InputTextWithHint("##plot", "1-60", ref plot, 8))
+            AutoDetectHouseSizeFromPlot();
+
+        ImGui.TextColored(UIConstants.TextSecondary, Lang.HouseSize);
+        ImGui.SetNextItemWidth(-1);
+        ImGui.Combo("##housesize", ref houseSizeIndex, HouseSizeLabels, HouseSizeLabels.Length);
 
         ImGui.Spacing();
         Field(Lang.Description, ref description, "");
@@ -185,11 +277,11 @@ public class OwnerSubmitWindow : Window, IDisposable
             ImGui.TextColored(UIConstants.WithAlpha(UIConstants.TextSecondary, 0.5f), label);
         }
 
-        ColorField("Primary", ref colPriVec, ref colorPrimary);
+        ColorField(Lang.ColorPrimary, ref colPriVec, ref colorPrimary);
         ImGui.SameLine(0, 8);
-        ColorField("Accent", ref colAccVec, ref colorAccent);
+        ColorField(Lang.ColorAccent, ref colAccVec, ref colorAccent);
         ImGui.SameLine(0, 8);
-        ColorField("Secondary", ref colSecVec, ref colorSecondary);
+        ColorField(Lang.ColorSecondary, ref colSecVec, ref colorSecondary);
 
         PopFieldStyle();
     }
@@ -236,7 +328,7 @@ public class OwnerSubmitWindow : Window, IDisposable
                 ImGui.SetNextItemWidth(-1);
                 ImGui.Combo("##type", ref svc.TypeIndex, ServiceTypes, ServiceTypes.Length);
 
-                Field(Lang.ServiceName, ref svc.Name, "e.g. Main Bar");
+                Field(Lang.ServiceName, ref svc.Name, Lang.ServiceNameHint);
 
                 ImGui.TextColored(UIConstants.TextSecondary, Lang.Floor);
                 ImGui.SetNextItemWidth(-1);
@@ -259,6 +351,7 @@ public class OwnerSubmitWindow : Window, IDisposable
                         > 6.5f  => 1,
                         _       => 0,
                     };
+                    AutoDetectHouseSizeFromTerritory();
                 }
                 ImGui.PopStyleColor(2);
 
@@ -319,7 +412,7 @@ public class OwnerSubmitWindow : Window, IDisposable
             var formUrl = GenerateGoogleFormUrl();
             try { System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo
                 { FileName = formUrl, UseShellExecute = true }); } catch { }
-            copied = true; copiedTime = ImGui.GetTime(); copiedWhat = "Form opened";
+            copied = true; copiedTime = ImGui.GetTime(); copiedWhat = Lang.FormOpened;
         }
         ImGui.PopStyleColor(3);
 
@@ -350,7 +443,7 @@ public class OwnerSubmitWindow : Window, IDisposable
             ImGui.PushStyleColor(ImGuiCol.Button, UIConstants.WithAlpha(UIConstants.Primary, 0.25f));
             ImGui.PushStyleColor(ImGuiCol.ButtonHovered, UIConstants.WithAlpha(UIConstants.Primary, 0.45f));
             ImGui.PushStyleColor(ImGuiCol.Text, UIConstants.Primary);
-            if (ImGui.Button("Copy JSON##copyJson", new Vector2(-1, 28)))
+            if (ImGui.Button($"{Lang.CopyJson}##copyJson", new Vector2(-1, 28)))
             {
                 ImGui.SetClipboardText(FormatJson());
                 copyJsonStart = ImGui.GetTime();
@@ -449,6 +542,7 @@ public class OwnerSubmitWindow : Window, IDisposable
         sb.AppendLine($"  \"address\": {J($"{selectedDc} - {selectedServer} - {Districts[districtIndex]} - Ward {ward} - Plot {plot}")},");
         sb.AppendLine($"  \"datacenter\": {J(selectedDc)},");
         sb.AppendLine($"  \"server\": {J(selectedServer)},");
+        sb.AppendLine($"  \"houseSize\": {J(HouseSizeKeys[houseSizeIndex])},");
         sb.AppendLine("  \"colors\": {");
         sb.AppendLine($"    \"primary\": {J(colorPrimary)},");
         sb.AppendLine($"    \"accent\": {J(colorAccent)},");

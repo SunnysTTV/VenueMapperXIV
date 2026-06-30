@@ -1,4 +1,6 @@
-﻿using System.Numerics;
+﻿using System.Linq;
+using System.Numerics;
+using Dalamud.Bindings.ImGui;
 
 namespace VenueMapper.UI;
 
@@ -33,4 +35,107 @@ public static class UIConstants
         System.MathF.Min(1f, color.Y + amount),
         System.MathF.Min(1f, color.Z + amount),
         color.W);
+
+    private static int TagOrder(string tag) => tag switch
+    {
+        "ADDED"    => 0,
+        "IMPROVED" => 1,
+        "CHANGED"  => 2,
+        "FIXED"    => 3,
+        "REMOVED"  => 4,
+        _          => 5,
+    };
+
+    public static void DrawChangelog(ChangelogSection[] sections)
+    {
+        var dl    = ImGui.GetWindowDrawList();
+        var first = true;
+        foreach (var section in sections)
+        {
+            if (!first) ImGui.Dummy(new Vector2(0, 5));
+            first = false;
+
+            var lang   = ChangelogData.CurrentLanguage;
+            var sorted = section.Entries
+                .OrderBy(e => TagOrder(e.Tag))
+                .ToArray();
+
+            if (section.Title != null)
+            {
+                var sectionTitle = (lang == "DE" && section.TitleDE != null) ? section.TitleDE : section.Title;
+                const float sPadX = 7f;
+                var titleSz = ImGui.CalcTextSize(sectionTitle);
+                var pillW   = titleSz.X + sPadX * 2;
+                var pillPos = ImGui.GetCursorScreenPos();
+
+                dl.AddRectFilled(
+                    new Vector2(pillPos.X,        pillPos.Y + 1f),
+                    new Vector2(pillPos.X + pillW, pillPos.Y + titleSz.Y + 1f),
+                    ImGui.ColorConvertFloat4ToU32(WithAlpha(Secondary, 0.20f)), 4f);
+                dl.AddText(
+                    new Vector2(pillPos.X + sPadX, pillPos.Y),
+                    ImGui.ColorConvertFloat4ToU32(WithAlpha(Secondary, 0.95f)), sectionTitle);
+
+                ImGui.Dummy(new Vector2(pillW, titleSz.Y + 4));
+
+                var lineX      = pillPos.X + 3;
+                var lineStartY = ImGui.GetCursorScreenPos().Y;
+
+                ImGui.Indent(14f);
+                foreach (var e in sorted)
+                {
+                    DrawChangelogTag(e.Tag);
+                    ImGui.TextWrapped((lang == "DE" && e.TextDE != null) ? e.TextDE : e.Text);
+                }
+                var lineEndY = ImGui.GetCursorScreenPos().Y - 2;
+                ImGui.Unindent(14f);
+
+                if (lineEndY > lineStartY)
+                    dl.AddLine(
+                        new Vector2(lineX, lineStartY),
+                        new Vector2(lineX, lineEndY),
+                        ImGui.ColorConvertFloat4ToU32(WithAlpha(Secondary, 0.40f)), 2f);
+            }
+            else
+            {
+                foreach (var e in sorted)
+                {
+                    DrawChangelogTag(e.Tag);
+                    ImGui.TextWrapped((lang == "DE" && e.TextDE != null) ? e.TextDE : e.Text);
+                }
+            }
+        }
+    }
+
+    public static void DrawChangelogTag(string tag)
+    {
+        if (string.IsNullOrEmpty(tag)) return;
+
+        var (bg, fg) = tag switch
+        {
+            "ADDED"    => (new Vector4(0.20f, 0.65f, 0.35f, 0.20f), new Vector4(0.40f, 0.90f, 0.55f, 1f)),
+            "FIXED"    => (new Vector4(0.75f, 0.50f, 0.10f, 0.20f), new Vector4(0.98f, 0.75f, 0.20f, 1f)),
+            "CHANGED"  => (new Vector4(0.20f, 0.45f, 0.90f, 0.20f), new Vector4(0.45f, 0.70f, 1.00f, 1f)),
+            "IMPROVED" => (new Vector4(0.50f, 0.25f, 0.85f, 0.20f), new Vector4(0.70f, 0.50f, 1.00f, 1f)),
+            "REMOVED"  => (new Vector4(0.80f, 0.20f, 0.20f, 0.20f), new Vector4(1.00f, 0.45f, 0.45f, 1f)),
+            _          => (new Vector4(0.45f, 0.45f, 0.45f, 0.20f), new Vector4(0.70f, 0.70f, 0.70f, 1f)),
+        };
+
+        const float padX = 5f;
+        var textSize = ImGui.CalcTextSize(tag);
+        var tagW     = textSize.X + padX * 2;
+        var pos      = ImGui.GetCursorScreenPos();
+        var dl       = ImGui.GetWindowDrawList();
+
+        dl.AddRectFilled(
+            new Vector2(pos.X,        pos.Y + 1f),
+            new Vector2(pos.X + tagW, pos.Y + textSize.Y + 1f),
+            ImGui.ColorConvertFloat4ToU32(bg), 3f);
+        dl.AddText(
+            new Vector2(pos.X + padX, pos.Y),
+            ImGui.ColorConvertFloat4ToU32(fg), tag);
+
+        ImGui.Dummy(new Vector2(tagW, textSize.Y));
+        ImGui.SameLine(0, 6);
+    }
 }

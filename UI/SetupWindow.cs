@@ -206,6 +206,7 @@ public class SetupWindow : Window
         plugin.Configuration.Save();
 
         Lang.Set(lang);
+        ChangelogData.CurrentLanguage = lang;
         plugin.PictomancyMarkers.Enabled = markers3d;
 
         IsOpen = false;
