@@ -6,6 +6,7 @@
       "address": "Light - Raiden - The Goblet - Ward 29 - Plot 35",
       "datacenter": "Light",
       "territoryIds": [1376],
+      "houseSize": "L",
       "ward": 29,
       "plot": 35,
       "teamId": 708,
@@ -52,6 +53,7 @@
       "address": "Light - Raiden - Lavender Beds - Ward 8 - Plot 3",
       "datacenter": "Light",
       "territoryIds": [1376],
+      "houseSize": "L",
       "ward": 8,
       "plot": 3,
       "teamId": 769,
@@ -93,6 +95,7 @@
       "address": "Light - Raiden - Mist - Ward 11 - Plot 5",
       "datacenter": "Light",
       "territoryIds": [1376],
+      "houseSize": "L",
       "ward": 11,
       "plot": 5,
       "teamId": 1412,
@@ -142,6 +145,7 @@
       "address": "Light - Zodiark - Lavender Beds - Ward 17 - Plot 58",
       "datacenter": "Light",
       "territoryIds": [1376],
+      "houseSize": "L",
       "ward": 17,
       "plot": 58,
       "teamId": 1421,
@@ -186,6 +190,7 @@
       "address": "Light - Raiden - The Goblet - Ward 11 - Plot 30",
       "datacenter": "Light",
       "territoryIds": [1376],
+      "houseSize": "L",
       "ward": 11,
       "plot": 30,
       "teamId": 413,
@@ -230,6 +235,7 @@
       "address": "Light - Raiden - Lavender Beds - Ward 8 - Plot 58",
       "datacenter": "Light",
       "territoryIds": [1376],
+      "houseSize": "L",
       "ward": 8,
       "plot": 58,
       "teamId": 699,
@@ -266,6 +272,7 @@
       "address": "Light - Raiden - The Goblet - Ward 14 - Plot 60",
       "datacenter": "Light",
       "territoryIds": [1376],
+      "houseSize": "L",
       "ward": 14,
       "plot": 60,
       "teamId": 1527,
@@ -302,6 +309,7 @@
       "address": "Materia - Sophia - Empyreum - Ward 2 - Plot 30",
       "datacenter": "Materia",
       "territoryIds": [1376],
+      "houseSize": "L",
       "ward": 2,
       "plot": 30,
       "teamId": 0,
@@ -348,6 +356,7 @@
       "address": "Light - Twintania - The Goblet - Ward 20 - Plot 5",
       "datacenter": "Light",
       "territoryIds": [1376],
+      "houseSize": "L",
       "ward": 20,
       "plot": 5,
       "teamId": 1460,
@@ -389,9 +398,10 @@
       "address": "Light - Zodiark - Lavender Beds - Ward 2 - Plot 1",
       "datacenter": "Light",
       "territoryIds": [1250],
+      "houseSize": "M",
       "ward": 2,
       "plot": 1,
-      "teamId": 0,
+      "teamId": 1599,
       "availableFloors": ["ground", "cellar"],
       "colors": {
         "primary": "#00d9ff",
@@ -400,8 +410,8 @@
       },
       "links": {
         "discord": "https://discord.gg/EGjWJ9MZU",
-        "partake": "",
-        "ffxivvenues": "",
+        "partake": "https://www.partake.gg/teams/1599",
+        "ffxivvenues": "https://ffxivvenues.com/venue/g0HQpf7QSJKd",
         "website": ""
       },
       "floors": [
@@ -424,6 +434,137 @@
           "services": [
             { "type": "dj_booth", "label": "Helix DJ Booth", "icon": "", "x": -4.32, "y": 0.36, "z": -5.46, "description": "" },
             { "type": "upstairs", "label": "Stairs", "icon": "", "x": -10.40, "y": -0.63, "z": -7.00, "description": "" }
+          ]
+        }
+      ]
+    },
+    {
+      "venueId": "sodalicious",
+      "name": "Sodalicious",
+      "address": "Primal - Exodus - Mist - Ward 17 - Plot 14",
+      "datacenter": "Primal",
+      "territoryIds": [1250],
+      "houseSize": "M",
+      "ward": 17,
+      "plot": 14,
+      "teamId": 0,
+      "availableFloors": ["ground", "cellar"],
+      "colors": {
+        "primary": "#f59ec4",
+        "accent": "#f3da8f",
+        "secondary": "#33a6e2"
+      },
+      "links": {
+        "discord": "https://discord.com/invite/kyTBHhUgmb",
+        "partake": "https://www.partake.gg/users/mapleterra",
+        "ffxivvenues": "https://ffxivvenues.com/venue/6dBfCpXxvQGg",
+        "website": "https://sodalicious.carrd.co"
+      },
+      "floors": [
+        {
+          "floor": "ground",
+          "yMin": -3.5,
+          "yMax": 6.5,
+          "mapId": 0,
+          "services": [
+            { "type": "gambling", "label": "Blackjack Table", "icon": "", "x": -9.2, "y": -6.3, "z": -3.3, "description": "" },
+            { "type": "gambling", "label": "POP Tickets", "icon": "", "x": -9.0, "y": -6.2, "z": -3.3, "description": "" }
+          ]
+        },
+        {
+          "floor": "cellar",
+          "yMin": -10.0,
+          "yMax": -3.5,
+          "mapId": 0,
+          "services": [
+            { "type": "stage", "label": "Bard Band Performances", "icon": "", "x": 7.5, "y": -0.0, "z": -6.0, "description": "" },
+            { "type": "bar", "label": "Soda Bar", "icon": "", "x": -7.5, "y": -2.5, "z": -7.0, "description": "" },
+            { "type": "gambling", "label": "Gum-pon Machine", "icon": "", "x": -5.2, "y": -6.6, "z": -7.0, "description": "" }
+          ]
+        }
+      ]
+    },
+    {
+      "venueId": "sodapop",
+      "name": "Soda Pop LGBTQ+",
+      "address": "Light - Phoenix - Mist - Ward 25 - Plot 45",
+      "datacenter": "Light",
+      "territoryIds": [1376],
+      "houseSize": "L",
+      "ward": 25,
+      "plot": 45,
+      "teamId": 1120,
+      "availableFloors": ["ground"],
+      "colors": {
+        "primary": "#49a0d8",
+        "accent": "#00f0ff",
+        "secondary": "#4061c2"
+      },
+      "links": {
+        "discord": "https://discord.gg/G7zpYwR9Zh",
+        "partake": "https://www.partake.gg/teams/1120",
+        "ffxivvenues": "https://ffxivvenues.com/venue/V6VRtklplVYL",
+        "website": "https://sodapopffxiv.carrd.co/"
+      },
+      "floors": [
+        {
+          "floor": "ground",
+          "yMin": -3.5,
+          "yMax": 6.5,
+          "mapId": 0,
+          "services": [
+            { "type": "entrance", "label": "Greeter Desk", "icon": "", "x": 0.5, "y": -0.4, "z": 0.0, "description": "" },
+            { "type": "bar", "label": "Bar", "icon": "", "x": 9.7, "y": 9.8, "z": 0.0, "description": "" },
+            { "type": "gambling", "label": "Gamba", "icon": "", "x": 17.3, "y": 9.8, "z": 0.0, "description": "" },
+            { "type": "dj_booth", "label": "DJ Deck", "icon": "", "x": 16.9, "y": -0.1, "z": 1.0, "description": "" },
+            { "type": "vip", "label": "VIP Area", "icon": "", "x": 4.2, "y": -7.1, "z": 4.3, "description": "" }
+          ]
+        }
+      ]
+    },
+    {
+      "venueId": "tempest",
+      "name": "Tempest",
+      "address": "Light - Lich - Mist - Ward 21 - Plot 32",
+      "datacenter": "Light",
+      "territoryIds": [1376],
+      "houseSize": "L",
+      "ward": 21,
+      "plot": 32,
+      "teamId": 714,
+      "availableFloors": ["ground", "cellar"],
+      "colors": {
+        "primary": "#0077ff",
+        "accent": "#ffffff",
+        "secondary": "#9d4edd"
+      },
+      "links": {
+        "discord": "https://discord.gg/zqp6HUknPy",
+        "partake": "https://www.partake.gg/teams/714",
+        "ffxivvenues": "https://ffxivvenues.com/venue/8fgbPTXmH4kL",
+        "website": "https://tempestffxiv.carrd.co/"
+      },
+      "floors": [
+        {
+          "floor": "ground",
+          "yMin": -3.5,
+          "yMax": 6.5,
+          "mapId": 0,
+          "services": [
+            { "type": "entrance", "label": "Entrance", "icon": "", "x": -12.7, "y": -1.7, "z": 0.0, "description": "" },
+            { "type": "entrance", "label": "Private Rooms", "icon": "", "x": -4.7, "y": -2.7, "z": 0.0, "description": "" }
+          ]
+        },
+        {
+          "floor": "cellar",
+          "yMin": -10.0,
+          "yMax": -3.5,
+          "mapId": 0,
+          "services": [
+            { "type": "bar", "label": "Bar", "icon": "", "x": 16.7, "y": -2.2, "z": -6.0, "description": "" },
+            { "type": "gambling", "label": "Gamba", "icon": "", "x": -14.3, "y": 8.7, "z": -4.4, "description": "" },
+            { "type": "stage", "label": "Gpose Area", "icon": "", "x": -6.2, "y": -7.4, "z": -6.2, "description": "" },
+            { "type": "dj_booth", "label": "DJ Booth", "icon": "", "x": 3.8, "y": -7.5, "z": -3.9, "description": "" }
           ]
         }
       ]
