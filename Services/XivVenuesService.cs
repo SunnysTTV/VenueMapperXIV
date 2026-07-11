@@ -5,6 +5,7 @@ using System.Net.Http;
 using System.Threading.Tasks;
 using Dalamud.Plugin.Services;
 using Newtonsoft.Json.Linq;
+using VenueMapper.UI;
 
 namespace VenueMapper.Services;
 
@@ -129,21 +130,15 @@ public class XivVenuesService : IDisposable
         public DateTime? NextStart { get; set; }
         public DateTime? NextEnd { get; set; }
 
-        public string GetStatusText(bool german)
+        public string GetStatusText()
         {
-            if (IsOpenNow)
-                return german ? "JETZT OFFEN" : "OPEN NOW";
-
+            if (IsOpenNow) return Lang.StatusOpenNow;
             if (NextStart == null) return "";
-
             var diff = NextStart.Value - DateTime.UtcNow;
             if (diff.TotalSeconds < 0) return "";
-
-            if (diff.TotalMinutes < 60)
-                return german ? $"Oeffnet in {(int)diff.TotalMinutes}min" : $"Opens in {(int)diff.TotalMinutes}min";
-            if (diff.TotalHours < 24)
-                return german ? $"Oeffnet in {(int)diff.TotalHours}h" : $"Opens in {(int)diff.TotalHours}h";
-            return german ? $"Oeffnet in {(int)diff.TotalDays}d" : $"Opens in {(int)diff.TotalDays}d";
+            if (diff.TotalMinutes < 60) return Lang.StatusOpensInMin((int)diff.TotalMinutes);
+            if (diff.TotalHours < 24)   return Lang.StatusOpensInHours((int)diff.TotalHours);
+            return Lang.StatusOpensInDays((int)diff.TotalDays);
         }
     }
 }

@@ -1,4 +1,5 @@
-﻿using System.Linq;
+﻿using System;
+using System.Linq;
 using System.Numerics;
 using Dalamud.Bindings.ImGui;
 
@@ -122,20 +123,25 @@ public static class UIConstants
         };
 
         const float padX = 5f;
+        const float colW = 82f; // fixed column wide enough for "IMPROVED"
+
         var textSize = ImGui.CalcTextSize(tag);
         var tagW     = textSize.X + padX * 2;
         var pos      = ImGui.GetCursorScreenPos();
         var dl       = ImGui.GetWindowDrawList();
 
+        // Center the pill within the fixed column
+        var xOff = MathF.Floor((colW - tagW) / 2f);
+
         dl.AddRectFilled(
-            new Vector2(pos.X,        pos.Y + 1f),
-            new Vector2(pos.X + tagW, pos.Y + textSize.Y + 1f),
+            new Vector2(pos.X + xOff,        pos.Y + 1f),
+            new Vector2(pos.X + xOff + tagW,  pos.Y + textSize.Y + 1f),
             ImGui.ColorConvertFloat4ToU32(bg), 3f);
         dl.AddText(
-            new Vector2(pos.X + padX, pos.Y),
+            new Vector2(pos.X + xOff + padX, pos.Y),
             ImGui.ColorConvertFloat4ToU32(fg), tag);
 
-        ImGui.Dummy(new Vector2(tagW, textSize.Y));
+        ImGui.Dummy(new Vector2(colW, textSize.Y));
         ImGui.SameLine(0, 6);
     }
 }

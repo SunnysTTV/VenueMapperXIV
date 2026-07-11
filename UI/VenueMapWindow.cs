@@ -209,7 +209,14 @@ public class VenueMapWindow : Window, IDisposable
             filtered = filtered.Where(v => selectedServers.Any(s =>
                 v.Address.Contains(s, StringComparison.OrdinalIgnoreCase)));
 
-        var venues = filtered.ToList();
+        var venues = filtered
+            .OrderBy(v =>
+            {
+                if (!plugin.Configuration.FavoriteVenueIds.Contains(v.VenueId)) return 1;
+                if (favAnimStart.TryGetValue(v.VenueId, out var t) && ImGui.GetTime() - t < 3.0) return 1;
+                return 0;
+            })
+            .ToList();
 
         if (ImGui.BeginChild("##venueScroll", new Vector2(-1, -1)))
             DrawVenueDirectory(venues);
@@ -463,7 +470,7 @@ public class VenueMapWindow : Window, IDisposable
                 var sched = plugin.XivVenues.GetSchedule(xivId);
                 if (sched != null)
                 {
-                    schedText = sched.GetStatusText(plugin.Configuration.Language == "DE");
+                    schedText = sched.GetStatusText();
                     schedIsOpen = sched.IsOpenNow;
                 }
             }
@@ -478,19 +485,18 @@ public class VenueMapWindow : Window, IDisposable
                     var now = DateTime.UtcNow;
                     if (evt.StartTime <= now && evt.EndTime >= now)
                     {
-                        schedText = plugin.Configuration.Language == "DE" ? "JETZT OFFEN" : "OPEN NOW";
+                        schedText = Lang.StatusOpenNow;
                         schedIsOpen = true;
                     }
                     else if (evt.StartTime > now)
                     {
                         var diff = evt.StartTime - now;
-                        var de = plugin.Configuration.Language == "DE";
                         if (diff.TotalMinutes < 60)
-                            schedText = de ? $"Oeffnet in {(int)diff.TotalMinutes}min" : $"Opens in {(int)diff.TotalMinutes}min";
+                            schedText = Lang.StatusOpensInMin((int)diff.TotalMinutes);
                         else if (diff.TotalHours < 24)
-                            schedText = de ? $"Oeffnet in {(int)diff.TotalHours}h" : $"Opens in {(int)diff.TotalHours}h";
+                            schedText = Lang.StatusOpensInHours((int)diff.TotalHours);
                         else
-                            schedText = de ? $"Oeffnet in {(int)diff.TotalDays}d" : $"Opens in {(int)diff.TotalDays}d";
+                            schedText = Lang.StatusOpensInDays((int)diff.TotalDays);
                     }
                 }
             }
@@ -535,9 +541,11 @@ public class VenueMapWindow : Window, IDisposable
             }
 
             var tracker = plugin.PositionTracker;
-            var isHere = v.TerritoryIds.Contains(tracker.CurrentTerritoryId)
-                && (v.Ward <= 0 || v.Plot <= 0 || tracker.CurrentWard < 0
-                    || (v.Ward == tracker.CurrentWard + 1 && v.Plot == tracker.CurrentPlot + 1));
+            var inDc = string.IsNullOrEmpty(v.Datacenter) || string.IsNullOrEmpty(tracker.CurrentServerName)
+                || (Models.ServerData.DatacenterServers.TryGetValue(v.Datacenter, out var dcServers)
+                    && dcServers.Contains(tracker.CurrentServerName, StringComparer.OrdinalIgnoreCase));
+            var isHere = inDc && tracker.CurrentWard >= 0
+                && v.Ward == tracker.CurrentWard + 1 && v.Plot == tracker.CurrentPlot + 1;
             var textX  = cardMin.X + padX + 6;
             var maxTextW = cardW - padX * 2 - 12;
 
@@ -978,7 +986,7 @@ public class VenueMapWindow : Window, IDisposable
             ImGui.ColorConvertFloat4ToU32(UIConstants.WithAlpha(UIConstants.Primary, 0f)));
 
         var title    = venue.Name.ToUpperInvariant();
-        var floorStr = (floor?.Name ?? "-").ToUpperInvariant();
+        var floorStr = floor != null ? TranslateFloorName(floor.Name) : "-";
 
         ImGui.PushStyleVar(ImGuiStyleVar.CellPadding, new Vector2(4, 4));
         if (ImGui.BeginTable("##mapHeader", 3))
@@ -1044,7 +1052,7 @@ public class VenueMapWindow : Window, IDisposable
             ImGui.PushStyleVar(ImGuiStyleVar.FrameBorderSize, active ? 2f : 1f);
             ImGui.PushStyleVar(ImGuiStyleVar.FrameRounding, 0f);
 
-            if (ImGui.Button(f.Name.ToUpperInvariant(), new Vector2(tabW, 28)))
+            if (ImGui.Button(TranslateFloorName(f.Name), new Vector2(tabW, 28)))
                 selectedFloor = f;
 
             ImGui.PopStyleVar(2);
@@ -1406,7 +1414,17 @@ public class VenueMapWindow : Window, IDisposable
 
     private static string ChipLabel(string type) => type switch
     {
-        "dj_booth" => "DJ Stage",
+        "entrance"   => Lang.SvcEntrance,
+        "bar"        => Lang.SvcBar,
+        "stage"      => Lang.SvcStage,
+        "gambling"   => Lang.SvcGambling,
+        "dj_booth"   => Lang.SvcDjBooth,
+        "vip"        => Lang.SvcVip,
+        "bath"       => Lang.SvcBath,
+        "spa"        => Lang.SvcBath,
+        "event"      => Lang.SvcEvent,
+        "upstairs"   => Lang.SvcUpstairs,
+        "downstairs" => Lang.SvcDownstairs,
         _ => char.ToUpperInvariant(type.Replace('_', ' ')[0]) + type.Replace('_', ' ')[1..],
     };
 
@@ -1491,4 +1509,12 @@ public class VenueMapWindow : Window, IDisposable
             1f);
         return ImGui.ColorConvertFloat4ToU32(c);
     }
+
+    private static string TranslateFloorName(string name) => name.ToLowerInvariant() switch
+    {
+        "ground" => Lang.FloorGround,
+        "second" => Lang.FloorSecond,
+        "cellar" => Lang.FloorCellar,
+        _        => name.ToUpperInvariant(),
+    };
 }

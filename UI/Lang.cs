@@ -128,6 +128,26 @@ public static class Lang
     public static string NoChangelog   => G("NoChangelog");
     public static string AllServers    => G("AllServers");
 
+    public static string FloorGround        => G("FloorGround");
+    public static string FloorSecond        => G("FloorSecond");
+    public static string FloorCellar        => G("FloorCellar");
+
+    public static string SvcEntrance        => G("SvcEntrance");
+    public static string SvcBar             => G("SvcBar");
+    public static string SvcStage           => G("SvcStage");
+    public static string SvcGambling        => G("SvcGambling");
+    public static string SvcDjBooth         => G("SvcDjBooth");
+    public static string SvcVip             => G("SvcVip");
+    public static string SvcBath            => G("SvcBath");
+    public static string SvcEvent           => G("SvcEvent");
+    public static string SvcUpstairs        => G("SvcUpstairs");
+    public static string SvcDownstairs      => G("SvcDownstairs");
+
+    public static string StatusOpenNow      => G("StatusOpenNow");
+    public static string StatusOpensInMin(int n) => string.Format(G("StatusOpensInMin"), n);
+    public static string StatusOpensInHours(int n) => string.Format(G("StatusOpensInHours"), n);
+    public static string StatusOpensInDays(int n)  => string.Format(G("StatusOpensInDays"), n);
+
     public static string SetupWelcomeTitle => G("SetupWelcomeTitle");
     public static string SetupWelcomeDesc  => G("SetupWelcomeDesc");
     public static string SetupWhatYouGet   => G("SetupWhatYouGet");

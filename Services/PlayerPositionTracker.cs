@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Linq;
 using System.Numerics;
 using Dalamud.Plugin.Services;
 using FFXIVClientStructs.FFXIV.Client.Game;
@@ -159,24 +160,25 @@ public class PlayerPositionTracker
         }
     }
 
+    private bool IsInVenueDatacenter(Venue venue)
+    {
+        if (string.IsNullOrEmpty(venue.Datacenter) || string.IsNullOrEmpty(CurrentServerName))
+            return true;
+        return ServerData.DatacenterServers.TryGetValue(venue.Datacenter, out var servers)
+            && servers.Any(s => string.Equals(s, CurrentServerName, StringComparison.OrdinalIgnoreCase));
+    }
+
     public Venue? GetCurrentVenue(VenueConfig config)
     {
         foreach (var venue in config.Venues)
         {
-            if (venue.TerritoryIds.Count > 0 && !venue.TerritoryIds.Contains(CurrentTerritoryId))
+            if (!IsInVenueDatacenter(venue))
                 continue;
 
             if (venue.Ward > 0 && venue.Plot > 0 && CurrentWard >= 0 && CurrentPlot >= 0)
             {
                 if (venue.Ward == CurrentWard + 1 && venue.Plot == CurrentPlot + 1)
-                {
-                    if (venue.TerritoryIds.Count == 0 && CurrentTerritoryId > 0)
-                    {
-                        venue.TerritoryIds.Add(CurrentTerritoryId);
-                        log.Information($"[VenueMapper] Learned territory {CurrentTerritoryId} for {venue.Name} (S house)");
-                    }
                     return venue;
-                }
                 continue;
             }
 

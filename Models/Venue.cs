@@ -20,9 +20,6 @@ public class Venue
     [JsonProperty("datacenter")]
     public string Datacenter { get; set; } = string.Empty;
 
-    [JsonProperty("territoryIds")]
-    public List<uint> TerritoryIds { get; set; } = new();
-
     [JsonProperty("houseSize")]
     public string HouseSize { get; set; } = "L";
 

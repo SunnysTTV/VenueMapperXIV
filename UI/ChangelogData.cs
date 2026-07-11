@@ -15,12 +15,13 @@ public static class ChangelogData
         get
         {
             var v = Assembly.GetExecutingAssembly().GetName().Version;
-            return v != null ? (v.Revision > 0 ? $"v{v.Major}.{v.Minor}.{v.Build}.{v.Revision}" : $"v{v.Major}.{v.Minor}.{v.Build}") : "v0.5.6";
+            return v != null ? (v.Revision > 0 ? $"v{v.Major}.{v.Minor}.{v.Build}.{v.Revision}" : $"v{v.Major}.{v.Minor}.{v.Build}") : "v0.5.7";
         }
     }
 
     public static readonly (string Ver, string Date)[] Versions =
     [
+        ("v0.5.7",   "Jul 11, 2026"),
         ("v0.5.6",   "Jun 30, 2026"),
         ("v0.5.5.2", "Jun 25, 2026"),
         ("v0.5.5",   "Jun 25, 2026"),
@@ -35,6 +36,22 @@ public static class ChangelogData
 
     public static readonly Dictionary<string, ChangelogSection[]> Changelogs = new()
     {
+        ["v0.5.7"] =
+        [
+            new(null, null,
+            [
+                new("IMPROVED", "Venue detection now uses datacenter + ward/plot matching instead of territory IDs - works reliably in all house types",
+                                "Venue-Erkennung nutzt jetzt Datacenter + Ward/Plot statt Territory-IDs - funktioniert zuverlässig in allen Haustypen"),
+                new("IMPROVED", "Floor names, service labels and schedule status fully localizable via RESX and Crowdin",
+                                "Etagennamen, Service-Labels und Zeitstatus vollständig über RESX und Crowdin lokalisierbar"),
+                new("FIXED",    "HERE badge and venue map correctly match venues across all datacenters",
+                                "HIER-Badge und Venue-Karte erkennen Venues jetzt korrekt über alle Datacenter"),
+                new("FIXED",    "Favorite venues now sorted to top of directory",
+                                "Favorisierte Venues werden jetzt oben im Verzeichnis angezeigt"),
+                new("FIXED",    "Schedule status text now shows correct umlauts in German",
+                                "Zeitstatus zeigt jetzt korrekte Umlaute auf Deutsch"),
+            ]),
+        ],
         ["v0.5.6"] =
         [
             new("Owner Setup", "Owner Setup",

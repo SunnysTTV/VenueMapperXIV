@@ -171,6 +171,29 @@
   <data name="NoChangelog" xml:space="preserve"><value>Kein Changelog.</value></data>
   <data name="AllServers" xml:space="preserve"><value>Alle Server</value></data>
 
+  <!-- Floor names -->
+  <data name="FloorGround" xml:space="preserve"><value>EG</value></data>
+  <data name="FloorSecond" xml:space="preserve"><value>1.OG</value></data>
+  <data name="FloorCellar" xml:space="preserve"><value>UG</value></data>
+
+  <!-- Service chip labels -->
+  <data name="SvcEntrance"   xml:space="preserve"><value>Eingang</value></data>
+  <data name="SvcBar"        xml:space="preserve"><value>Bar</value></data>
+  <data name="SvcStage"      xml:space="preserve"><value>Bühne</value></data>
+  <data name="SvcGambling"   xml:space="preserve"><value>Casino</value></data>
+  <data name="SvcDjBooth"    xml:space="preserve"><value>DJ Bühne</value></data>
+  <data name="SvcVip"        xml:space="preserve"><value>VIP</value></data>
+  <data name="SvcBath"       xml:space="preserve"><value>Bad / Spa</value></data>
+  <data name="SvcEvent"      xml:space="preserve"><value>Event</value></data>
+  <data name="SvcUpstairs"   xml:space="preserve"><value>Aufgang</value></data>
+  <data name="SvcDownstairs" xml:space="preserve"><value>Abgang</value></data>
+
+  <!-- Schedule status -->
+  <data name="StatusOpenNow"      xml:space="preserve"><value>JETZT OFFEN</value></data>
+  <data name="StatusOpensInMin"   xml:space="preserve"><value>Öffnet in {0}min</value></data>
+  <data name="StatusOpensInHours" xml:space="preserve"><value>Öffnet in {0}h</value></data>
+  <data name="StatusOpensInDays"  xml:space="preserve"><value>Öffnet in {0}d</value></data>
+
   <!-- Location plurals -->
   <data name="LocationOne" xml:space="preserve"><value>  —  {0} Standort</value></data>
   <data name="LocationMany" xml:space="preserve"><value>  —  {0} Standorte</value></data>

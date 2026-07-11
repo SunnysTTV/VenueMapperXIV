@@ -2,18 +2,18 @@
 
 A Dalamud plugin for discovering and exploring FFXIV housing venues. Browse venues, view interactive maps, track live events, and submit your own venue.
 
-![Dalamud](https://img.shields.io/badge/Dalamud-Plugin-blue) ![API Level](https://img.shields.io/badge/API%20Level-15-green) ![License](https://img.shields.io/badge/license-MIT-lightgrey)
+![Dalamud](https://img.shields.io/badge/Dalamud-Plugin-blue) ![API Level](https://img.shields.io/badge/API%20Level-15-green) ![License](https://img.shields.io/badge/license-MIT-lightgrey) [![Crowdin](https://badges.crowdin.net/venuemapper/localized.svg)](https://crowdin.com/project/venuemapper)
 
 ## Features
 
-- **Interactive Housing Maps** — 2D map with zoom, pan, and floor switching using in-game textures
-- **3D World Markers** — Pictomancy-powered markers at service locations (bar, DJ, gambling, etc.)
-- **Venue Directory** — Browse all venues with favorites, search, datacenter and server filters
-- **Live Events** — Upcoming and active events from Partake.gg with NOW badge for running events
-- **Teleport Integration** — One-click teleport to any venue via Lifestream IPC
-- **Owner Tools** — Submit your venue with auto-captured coordinates and Google Form integration
-- **Multi-Language** — English and Deutsch (RESX-based, Crowdin-ready)
-- **Auto-Update** — Venue config syncs from GitHub hourly via ETag polling
+- **Interactive Housing Maps** - 2D map with zoom, pan, and floor switching using in-game textures
+- **3D World Markers** - Pictomancy-powered markers at service locations (bar, DJ, gambling, etc.)
+- **Venue Directory** - Browse all venues with favorites, search, datacenter and server filters
+- **Live Events** - Upcoming and active events from Partake.gg with NOW badge for running events
+- **Teleport Integration** - One-click teleport to any venue via Lifestream IPC
+- **Owner Tools** - Submit your venue with auto-captured coordinates and Google Form integration
+- **Multi-Language** - English and Deutsch (RESX-based, Crowdin-ready)
+- **Auto-Update** - Venue config syncs from GitHub hourly via ETag polling
 
 ## Installation
 
@@ -42,18 +42,18 @@ Your venue will appear in the directory after review.
 
 ## How It Works
 
-- **Maps** are loaded from FFXIV's game data via Lumina — no external images needed
+- **Maps** are loaded from FFXIV's game data via Lumina - no external images needed
 - **Venue data** is stored in `venues.json` on GitHub and auto-synced to all users
 - **Ward/Plot detection** uses `HousingManager` for precise venue matching
 - **Events** are fetched from the Partake.gg GraphQL API
 
 ## Built With
 
-- [Dalamud](https://github.com/goatcorp/Dalamud) — Plugin framework
-- [Lumina](https://github.com/NotAdam/Lumina) — FFXIV data access
-- [Pictomancy](https://github.com/sourpuh/Pictomancy) — 3D world-space rendering
-- [Lifestream](https://github.com/NightmareXIV/Lifestream) — Teleport IPC
-- [Partake.gg](https://partake.gg) — Event data API
+- [Dalamud](https://github.com/goatcorp/Dalamud) - Plugin framework
+- [Lumina](https://github.com/NotAdam/Lumina) - FFXIV data access
+- [Pictomancy](https://github.com/sourpuh/Pictomancy) - 3D world-space rendering
+- [Lifestream](https://github.com/NightmareXIV/Lifestream) - Teleport IPC
+- [Partake.gg](https://partake.gg) - Event data API
 
 ## Links
 
