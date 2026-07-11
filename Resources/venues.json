@@ -272,9 +272,27 @@
               "type": "gambling",
               "label": "VIP Gamba",
               "icon": "",
-              "x": -10.8,
-              "y": 0.1,
-              "z": 7,
+              "x": -14.97,
+              "y": 3.97,
+              "z": 7.02,
+              "description": ""
+            },
+            {
+              "type": "bath",
+              "label": "Bath Area",
+              "icon": "",
+              "x": 13.80,
+              "y": -8.02,
+              "z": 7.01,
+              "description": ""
+            },
+            {
+              "type": "vip",
+              "label": "VIP Area",
+              "icon": "",
+              "x": -0.33,
+              "y": 8.16,
+              "z": 8.20,
               "description": ""
             }
           ]
@@ -832,7 +850,7 @@
       "houseSize": "M",
       "ward": 17,
       "plot": 14,
-      "teamId": 0,
+      "teamId": 1605,
       "availableFloors": [
         "ground",
         "cellar"
@@ -844,7 +862,7 @@
       },
       "links": {
         "discord": "https://discord.com/invite/kyTBHhUgmb",
-        "partake": "https://www.partake.gg/users/mapleterra",
+        "partake": "https://www.partake.gg/teams/1605",
         "ffxivvenues": "https://ffxivvenues.com/venue/6dBfCpXxvQGg",
         "website": "https://sodalicious.carrd.co"
       },
