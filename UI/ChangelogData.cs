@@ -15,12 +15,13 @@ public static class ChangelogData
         get
         {
             var v = Assembly.GetExecutingAssembly().GetName().Version;
-            return v != null ? (v.Revision > 0 ? $"v{v.Major}.{v.Minor}.{v.Build}.{v.Revision}" : $"v{v.Major}.{v.Minor}.{v.Build}") : "v0.5.7";
+            return v != null ? (v.Revision > 0 ? $"v{v.Major}.{v.Minor}.{v.Build}.{v.Revision}" : $"v{v.Major}.{v.Minor}.{v.Build}") : "v0.5.7.1";
         }
     }
 
     public static readonly (string Ver, string Date)[] Versions =
     [
+        ("v0.5.7.1", "Jul 11, 2026"),
         ("v0.5.7",   "Jul 11, 2026"),
         ("v0.5.6",   "Jun 30, 2026"),
         ("v0.5.5.2", "Jun 25, 2026"),
@@ -36,6 +37,20 @@ public static class ChangelogData
 
     public static readonly Dictionary<string, ChangelogSection[]> Changelogs = new()
     {
+        ["v0.5.7.1"] =
+        [
+            new(null, null,
+            [
+                new("FIXED", "Venue map no longer shows when standing in garden or outdoor housing area",
+                             "Venue-Karte wird nicht mehr angezeigt wenn man im Garten oder im Außenbereich steht"),
+                new("FIXED", "Venue map no longer shows in non-housing zones (e.g. Limsa Lominsa)",
+                             "Venue-Karte wird nicht mehr in Nicht-Housing-Zonen angezeigt (z.B. Limsa Lominsa)"),
+                new("FIXED", "Empyreum housing district now detected correctly in all house types",
+                             "Empyreum wird jetzt in allen Haustypen korrekt erkannt"),
+                new("IMPROVED", "Housing detection fully rewritten using HousingManager API - no hardcoded territory IDs",
+                                "Housing-Erkennung komplett mit HousingManager API neu geschrieben - keine hardcodierten Territory-IDs mehr"),
+            ]),
+        ],
         ["v0.5.7"] =
         [
             new(null, null,

@@ -23,7 +23,7 @@ public class PlayerPositionTracker
     public float PlayerY { get; private set; }
     public float PlayerZ { get; private set; }
 
-    public uint LastOutdoorTerritoryId { get; private set; }
+    public bool IsInsideHouse { get; private set; }
     public string CurrentServerName { get; private set; } = "";
     public string CurrentHousingDistrict { get; private set; } = "";
 
@@ -57,10 +57,7 @@ public class PlayerPositionTracker
         }
         catch { }
 
-        var territory = clientState.TerritoryType;
-        if (territory is not (1376 or 1250 or 980) && territory > 0)
-            LastOutdoorTerritoryId = territory;
-        CurrentTerritoryId = territory;
+        CurrentTerritoryId = clientState.TerritoryType;
         CurrentMapId = clientState.MapId;
 
         PlayerX = player.Position.X;
@@ -76,27 +73,17 @@ public class PlayerPositionTracker
                 {
                     CurrentWard = hm->GetCurrentWard();
                     CurrentPlot = hm->GetCurrentPlot();
+                    IsInsideHouse = hm->IndoorTerritory != null;
 
-                    // Outdoor housing zones have fixed territory type IDs
-                    var districtByTerritory = CurrentTerritoryId switch
-                    {
-                        339 => "Mist",
-                        340 => "Lavender Beds",
-                        341 => "The Goblet",
-                        641 => "Shirogane",
-                        979 => "Empyreum",
-                        _ => null
-                    };
+                    // Resolve district directly from whichever territory struct is active
+                    HousingTerritory* activeTerritory =
+                        hm->IndoorTerritory  != null ? (HousingTerritory*)hm->IndoorTerritory :
+                        hm->OutdoorTerritory != null ? (HousingTerritory*)hm->OutdoorTerritory :
+                        null;
 
-                    if (districtByTerritory != null)
+                    if (activeTerritory != null)
                     {
-                        CurrentHousingDistrict = districtByTerritory;
-                    }
-                    else
-                    {
-                        // Inside house instance (1376/1250/980) — use HousingManager
-                        var district = (int)hm->GetCurrentHousingTerritoryType();
-                        CurrentHousingDistrict = district switch
+                        CurrentHousingDistrict = (int)activeTerritory->GetTerritoryType() switch
                         {
                             0 => "Mist",
                             1 => "Lavender Beds",
@@ -111,6 +98,7 @@ public class PlayerPositionTracker
                 {
                     CurrentWard = -1;
                     CurrentPlot = -1;
+                    IsInsideHouse = false;
                 }
             }
         }
@@ -118,6 +106,7 @@ public class PlayerPositionTracker
         {
             CurrentWard = -1;
             CurrentPlot = -1;
+            IsInsideHouse = false;
         }
 
         if (config == null)
@@ -170,19 +159,18 @@ public class PlayerPositionTracker
 
     public Venue? GetCurrentVenue(VenueConfig config)
     {
+        if (!IsInsideHouse || CurrentWard < 0 || CurrentPlot < 0)
+            return null;
+
         foreach (var venue in config.Venues)
         {
             if (!IsInVenueDatacenter(venue))
                 continue;
 
-            if (venue.Ward > 0 && venue.Plot > 0 && CurrentWard >= 0 && CurrentPlot >= 0)
-            {
-                if (venue.Ward == CurrentWard + 1 && venue.Plot == CurrentPlot + 1)
-                    return venue;
-                continue;
-            }
-
-            return venue;
+            if (venue.Ward > 0 && venue.Plot > 0
+                && venue.Ward == CurrentWard + 1
+                && venue.Plot == CurrentPlot + 1)
+                return venue;
         }
 
         return null;
