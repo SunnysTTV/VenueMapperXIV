@@ -1217,6 +1217,100 @@
       ],
       "ownerIdHashes": [],
       "description": "A 18+ Club + FC, for Gentlemen of all genders! Parties on Friday nights!"
+    },
+    {
+      "venueId": "skysingersbeach-club",
+      "name": "SKYSINGERS BEACH-CLUB",
+      "address": "Light - Alpha - Mist - Ward 4 - Plot 15",
+      "datacenter": "Light",
+      "server": "Alpha",
+      "houseSize": "L",
+      "nsfw": true,
+      "ward": 4,
+      "plot": 15,
+      "teamId": 1118,
+      "availableFloors": [
+        "cellar",
+        "ground"
+      ],
+      "colors": {
+        "primary": "#8f00aa",
+        "accent": "#ffc060",
+        "secondary": "#2ac1ff"
+      },
+      "links": {
+        "discord": "https://discord.gg/9ygPGTYcuH",
+        "partake": "https://www.partake.gg/teams/1118",
+        "ffxivvenues": "https://ffxivvenues.com/venue/ZTHQrpBVpqL9",
+        "website": "https://skysingers.carrd.co/"
+      },
+      "floors": [
+        {
+          "floor": "cellar",
+          "yMin": -10,
+          "yMax": -3.5,
+          "mapId": 0,
+          "services": [
+            {
+              "type": "bar",
+              "label": "Bar",
+              "icon": "",
+              "x": 5.39,
+              "y": 7.90,
+              "z": -6.10,
+              "description": ""
+            },
+            {
+              "type": "dj_booth",
+              "label": "DJ",
+              "icon": "",
+              "x": 16.30,
+              "y": 0.67,
+              "z": -5.17,
+              "description": ""
+            },
+            {
+              "type": "gambling",
+              "label": "Gamba",
+              "icon": "",
+              "x": -14.12,
+              "y": 7.41,
+              "z": -5.40,
+              "description": ""
+            }
+          ]
+        },
+        {
+          "floor": "ground",
+          "yMin": -3.5,
+          "yMax": 6.5,
+          "mapId": 0,
+          "services": [
+            {
+              "type": "entrance",
+              "label": "Entry",
+              "icon": "",
+              "x": 0.02,
+              "y": 8.95,
+              "z": 0.02,
+              "description": ""
+            },
+            {
+              "type": "downstairs",
+              "label": "Stairs",
+              "icon": "",
+              "x": -17.66,
+              "y": -7.60,
+              "z": 1.20,
+              "description": ""
+            }
+          ]
+        }
+      ],
+      "ownerIdHashes": [
+        "2b2f5f440c231409f8057c8d8cfde3a706929d13af5fd9e0f4dd76b80e7c9cbc"
+      ],
+      "description": "A tropical hideaway on the shores of Mist. LGBTQ+"
     }
   ]
 }
