@@ -67,6 +67,9 @@
   <data name="AddFavorite" xml:space="preserve"><value>Zu Favoriten</value></data>
   <data name="RemoveFavorite" xml:space="preserve"><value>Entfernen</value></data>
   <data name="CopyAddress" xml:space="preserve"><value>Adresse kopieren</value></data>
+  <data name="HideVenue" xml:space="preserve"><value>Venue ausblenden</value></data>
+  <data name="UnhideVenue" xml:space="preserve"><value>Venue einblenden</value></data>
+  <data name="ShowHidden" xml:space="preserve"><value>Ausgeblendete anzeigen</value></data>
   <data name="RightClickHint" xml:space="preserve"><value>Rechtsklick: Optionen</value></data>
 
   <!-- Status -->
@@ -84,11 +87,59 @@
   <data name="LangEnglish" xml:space="preserve"><value>Englisch</value></data>
   <data name="LangGerman" xml:space="preserve"><value>Deutsch</value></data>
   <data name="About" xml:space="preserve"><value>Info</value></data>
-  <data name="GithubConfig" xml:space="preserve"><value>GitHub Config Repo:</value></data>
+  <data name="GithubConfig" xml:space="preserve"><value>Config-Synchronisierung</value></data>
   <data name="AutoPull" xml:space="preserve"><value>Auto-Pull beim Start</value></data>
   <data name="LastUpdated" xml:space="preserve"><value>Zuletzt aktualisiert:</value></data>
   <data name="PullNow" xml:space="preserve"><value>JETZT LADEN</value></data>
   <data name="ResetCache" xml:space="preserve"><value>CACHE LEEREN</value></data>
+  <data name="Notifications" xml:space="preserve"><value>Benachrichtigungen</value></data>
+  <data name="TestNotification" xml:space="preserve"><value>TESTBENACHRICHTIGUNG</value></data>
+  <data name="TestNotificationText" xml:space="preserve"><value>Dies ist eine Testbenachrichtigung!</value></data>
+  <data name="NotificationPosition" xml:space="preserve"><value>Position:</value></data>
+  <data name="PosTopRight" xml:space="preserve"><value>Oben rechts</value></data>
+  <data name="PosTopLeft" xml:space="preserve"><value>Oben links</value></data>
+  <data name="PosBottomRight" xml:space="preserve"><value>Unten rechts</value></data>
+  <data name="PosBottomLeft" xml:space="preserve"><value>Unten links</value></data>
+  <data name="EventReminders" xml:space="preserve"><value>Event-Erinnerungen</value></data>
+  <data name="EventRemindersFavOnly" xml:space="preserve"><value>Nur für favorisierte Venues</value></data>
+  <data name="EventReminderMinutesLabel" xml:space="preserve"><value>Erinnerung (Minuten vorher):</value></data>
+  <data name="EnableNotifications" xml:space="preserve"><value>Benachrichtigungen aktivieren</value></data>
+  <data name="MiscSettings" xml:space="preserve"><value>Sonstiges</value></data>
+  <data name="ResetWindowPosition" xml:space="preserve"><value>POSITION ZURÜCKSETZEN</value></data>
+  <data name="ResetWindowPositionTip" xml:space="preserve"><value>Position und Größe des Hauptfensters auf Standard zurücksetzen</value></data>
+  <data name="UnhideAllVenues" xml:space="preserve"><value>ALLE EINBLENDEN</value></data>
+  <data name="UnhideAllVenuesTip" xml:space="preserve"><value>{0} ausgeblendete Venues wieder einblenden</value></data>
+  <data name="ToastWindowReset" xml:space="preserve"><value>Fensterposition zurückgesetzt</value></data>
+  <data name="ToastAllVenuesUnhidden" xml:space="preserve"><value>{0} Venues wieder eingeblendet</value></data>
+  <data name="MaxVisibleToasts" xml:space="preserve"><value>Max. gleichzeitig sichtbar:</value></data>
+  <data name="ToastDurationLabel" xml:space="preserve"><value>Popup-Dauer:</value></data>
+  <data name="SuppressInCombat" xml:space="preserve"><value>Benachrichtigungen während Kampf/Duty unterdrücken</value></data>
+  <data name="DefaultTabLabel" xml:space="preserve"><value>Standard-Tab:</value></data>
+  <data name="DefaultTabRemember" xml:space="preserve"><value>Zuletzt genutzten merken</value></data>
+  <data name="BoostOpenVenues" xml:space="preserve"><value>Gerade geöffnete Venues nach oben schieben</value></data>
+  <data name="BoostOpenVenuesTip" xml:space="preserve"><value>Innerhalb deiner Favoriten und im restlichen Verzeichnis rutschen gerade geöffnete Venues jeweils nach oben</value></data>
+  <data name="ToastCacheCleared" xml:space="preserve"><value>Cache geleert</value></data>
+  <data name="ToastCacheClearFailed" xml:space="preserve"><value>Cache konnte nicht geleert werden</value></data>
+  <data name="ToastConfigUpdated" xml:space="preserve"><value>Venue-Liste aktualisiert</value></data>
+  <data name="ToastConfigUpToDate" xml:space="preserve"><value>Venue-Liste ist bereits aktuell</value></data>
+  <data name="ToastConfigPullFailed" xml:space="preserve"><value>Venue-Liste konnte nicht abgerufen werden</value></data>
+  <data name="ToastLifestreamMissing" xml:space="preserve"><value>Lifestream ist nicht installiert - Teleport nicht verfügbar</value></data>
+  <data name="ToastTeleportingTo" xml:space="preserve"><value>Teleportiere zu {0}</value></data>
+  <data name="ToastTeleportFailed" xml:space="preserve"><value>Teleport fehlgeschlagen</value></data>
+  <data name="ToastFavoriteAdded" xml:space="preserve"><value>{0} zu Favoriten hinzugefügt</value></data>
+  <data name="ToastFavoriteRemoved" xml:space="preserve"><value>{0} aus Favoriten entfernt</value></data>
+  <data name="ToastAddressCopied" xml:space="preserve"><value>Adresse kopiert</value></data>
+  <data name="ToastVenueHidden" xml:space="preserve"><value>{0} ausgeblendet</value></data>
+  <data name="ToastVenueUnhidden" xml:space="preserve"><value>{0} wiederhergestellt</value></data>
+  <data name="ToastJsonCopied" xml:space="preserve"><value>JSON in Zwischenablage kopiert</value></data>
+  <data name="ToastRequiredFieldsMissing" xml:space="preserve"><value>Bitte alle Pflichtfelder ausfüllen</value></data>
+  <data name="ToastWelcomeFirstLoad" xml:space="preserve"><value>Willkommen bei VenueMapper! {0} Venues geladen.</value></data>
+  <data name="ToastUpdated" xml:space="preserve"><value>Aktualisiert auf {0} - schau dir das Changelog an!</value></data>
+  <data name="ToastSetupComplete" xml:space="preserve"><value>Einrichtung abgeschlossen - willkommen bei VenueMapper!</value></data>
+  <data name="ToastAllEggsFound" xml:space="preserve"><value>Alle Geheimnisse gefunden! Du bist ein echter Entdecker.</value></data>
+  <data name="ToastWelcomeToVenue" xml:space="preserve"><value>Willkommen bei {0}</value></data>
+  <data name="ToastVenueClosed" xml:space="preserve"><value>{0} hat gerade geschlossen</value></data>
+  <data name="ToastEventSoon" xml:space="preserve"><value>{0} bei {1} startet in {2} Min.</value></data>
 
   <!-- Debug -->
   <data name="DebugInfo" xml:space="preserve"><value>DEBUG INFO</value></data>
@@ -121,6 +172,7 @@
   <!-- About -->
   <data name="AutoPullCfg" xml:space="preserve"><value>Config beim Start laden</value></data>
   <data name="JoinSupport" xml:space="preserve"><value>BEITRETEN &amp; UNTERSTÜTZEN</value></data>
+  <data name="GotIdeas" xml:space="preserve"><value>Ideen? Schreib mir auf Discord!</value></data>
   <data name="CurRelease" xml:space="preserve"><value>Aktuelle Version</value></data>
   <data name="OlderVer" xml:space="preserve"><value>Ältere Versionen</value></data>
   <data name="WantVenue" xml:space="preserve"><value>Dein Venue in VenueMapper?</value></data>
@@ -129,9 +181,12 @@
   <!-- Owner Setup -->
   <data name="OwnerTitle" xml:space="preserve"><value>VENUE OWNER SETUP</value></data>
   <data name="OwnerDesc" xml:space="preserve"><value>Gib deine Venue-Daten ein, füge Services hinzu, dann exportiere.</value></data>
+  <data name="UpdateVenueTitle" xml:space="preserve"><value>VENUE AKTUALISIEREN</value></data>
+  <data name="UpdateVenueDesc" xml:space="preserve"><value>Bearbeite die Daten und Services deiner Venue, dann exportiere das Update.</value></data>
   <data name="VenueInfo" xml:space="preserve"><value>Venue Info</value></data>
   <data name="VenueName" xml:space="preserve"><value>Venue Name *</value></data>
   <data name="YourDiscord" xml:space="preserve"><value>Dein Discord *</value></data>
+  <data name="YourDiscordOptional" xml:space="preserve"><value>Dein Discord</value></data>
   <data name="Datacenter" xml:space="preserve"><value>Datacenter *</value></data>
   <data name="Server" xml:space="preserve"><value>Server *</value></data>
   <data name="HousingDist" xml:space="preserve"><value>Wohngebiet *</value></data>
@@ -147,9 +202,12 @@
   <data name="Export" xml:space="preserve"><value>Export</value></data>
   <data name="OptForm" xml:space="preserve"><value>OPTION 1: GOOGLE FORMULAR</value></data>
   <data name="OptFormDesc" xml:space="preserve"><value>Öffnet ein Google Formular mit deinen Daten vorausgefüllt. Prüfen und absenden!</value></data>
+  <data name="OptFormDescVerified" xml:space="preserve"><value>Öffnet ein Google Formular mit deinen aktualisierten Daten vorausgefüllt. Discord-Name ist dort ebenfalls optional.</value></data>
   <data name="OpenForm" xml:space="preserve"><value>Google Formular öffnen (Auto-Fill)</value></data>
   <data name="OptDiscord" xml:space="preserve"><value>OPTION 2: DISCORD DM</value></data>
   <data name="OptDiscordDesc" xml:space="preserve"><value>Kopiert deine Venue-Daten als JSON. In eine Discord DM an sunnysofficial einfügen.</value></data>
+  <data name="SendUpdate" xml:space="preserve"><value>UPDATE SENDEN</value></data>
+  <data name="SendUpdateDesc" xml:space="preserve"><value>Du bist bereits verifiziert - kopier einfach deine aktualisierten Venue-Daten als JSON und schick sie per Discord DM an sunnysofficial.</value></data>
   <data name="CopyJsonDm" xml:space="preserve"><value>JSON kopieren &amp; Discord DM öffnen</value></data>
   <data name="Preview" xml:space="preserve"><value>VORSCHAU</value></data>
   <data name="FillRequired" xml:space="preserve"><value>Pflichtfelder im Venue Info Tab ausfüllen.</value></data>
@@ -158,9 +216,24 @@
   <data name="ServiceType" xml:space="preserve"><value>Typ</value></data>
   <data name="ServiceName" xml:space="preserve"><value>Name</value></data>
   <data name="DetectPosition" xml:space="preserve"><value>Position erkennen</value></data>
+  <data name="ToastVenueLoaded" xml:space="preserve"><value>{0} zum Bearbeiten geladen</value></data>
+  <data name="UpdateVenue" xml:space="preserve"><value>Venue aktualisieren</value></data>
+  <data name="UpdateVenueTip" xml:space="preserve"><value>Verifiziert dich und lädt alle Details der Venue, in der du gerade stehst, damit du nur noch änderst was sich geändert hat</value></data>
+  <data name="OwnerVerifyTitle" xml:space="preserve"><value>OWNER-ID-SCAN</value></data>
+  <data name="OwnerVerifyScanning" xml:space="preserve"><value>Owner wird verifiziert...</value></data>
+  <data name="OwnerVerifyGranted" xml:space="preserve"><value>ZUGRIFF GEWÄHRT</value></data>
+  <data name="OwnerVerifyDenied" xml:space="preserve"><value>ZUGRIFF VERWEIGERT</value></data>
+  <data name="OwnerVerifyDeniedHint" xml:space="preserve"><value>Diese Venue ist auf ihren registrierten Owner gesperrt. Falls du sie betreibst, lass dir deine Owner-ID registrieren.</value></data>
   <data name="VenueNameHint" xml:space="preserve"><value>Dein Venue-Name</value></data>
   <data name="DiscordHint" xml:space="preserve"><value>Nutzername</value></data>
   <data name="HouseSize" xml:space="preserve"><value>Hausgröße</value></data>
+  <data name="NsfwVenue" xml:space="preserve"><value>Diese Venue ist NSFW</value></data>
+  <data name="NsfwVenueTip" xml:space="preserve"><value>Zeigt ein NSFW-Badge im Verzeichnis, damit Besucher vorher Bescheid wissen</value></data>
+  <data name="NsfwUncheckedHint" xml:space="preserve"><value>nicht angehakt = als SFW markiert</value></data>
+  <data name="RegisterOwnerId" xml:space="preserve"><value>Meine Owner ID registrieren</value></data>
+  <data name="RegisterOwnerIdTip" xml:space="preserve"><value>Sperrt zukünftige Bearbeitungen dieser Venue auf deine registrierte(n) Owner-ID(s), sodass nur du (oder Co-Owner) sie aktualisieren können. Lass es unangehakt, wenn du diese Venue nicht sperren willst.</value></data>
+  <data name="NsfwBadge" xml:space="preserve"><value>NSFW</value></data>
+  <data name="SfwBadge" xml:space="preserve"><value>SFW</value></data>
   <data name="ColorPrimary" xml:space="preserve"><value>Primär</value></data>
   <data name="ColorAccent" xml:space="preserve"><value>Akzent</value></data>
   <data name="ColorSecondary" xml:space="preserve"><value>Sekundär</value></data>
@@ -183,7 +256,8 @@
   <data name="SvcGambling"   xml:space="preserve"><value>Casino</value></data>
   <data name="SvcDjBooth"    xml:space="preserve"><value>DJ Bühne</value></data>
   <data name="SvcVip"        xml:space="preserve"><value>VIP</value></data>
-  <data name="SvcBath"       xml:space="preserve"><value>Bad / Spa</value></data>
+  <data name="SvcBath"       xml:space="preserve"><value>Bad</value></data>
+  <data name="SvcSpa"        xml:space="preserve"><value>Spa</value></data>
   <data name="SvcEvent"      xml:space="preserve"><value>Event</value></data>
   <data name="SvcUpstairs"   xml:space="preserve"><value>Aufgang</value></data>
   <data name="SvcDownstairs" xml:space="preserve"><value>Abgang</value></data>
@@ -197,6 +271,21 @@
   <!-- Location plurals -->
   <data name="LocationOne" xml:space="preserve"><value>  —  {0} Standort</value></data>
   <data name="LocationMany" xml:space="preserve"><value>  —  {0} Standorte</value></data>
+
+  <!-- Easter Eggs -->
+  <data name="EasterEggs" xml:space="preserve"><value>Easter Eggs</value></data>
+  <data name="EggDiscoveredOn" xml:space="preserve"><value>Entdeckt am {0}</value></data>
+  <data name="EggUnlockedToast" xml:space="preserve"><value>Easter Egg gefunden: {0}!</value></data>
+  <data name="EggRgbName" xml:space="preserve"><value>RGB-Overload</value></data>
+  <data name="EggRgbHint" xml:space="preserve"><value>Ein alter Cheat-Code aus Konsolenzeiten...</value></data>
+  <data name="EggHackerName" xml:space="preserve"><value>Hacker-Modus</value></data>
+  <data name="EggHackerHint" xml:space="preserve"><value>Manche Codes öffnen mehr als eine Tür...</value></data>
+  <data name="EggSunnyName" xml:space="preserve"><value>Sunny-Detection</value></data>
+  <data name="EggSunnyHint" xml:space="preserve"><value>Manche Orte erkennen ihre Besucher...</value></data>
+  <data name="EggWobbleName" xml:space="preserve"><value>Fenster-Wackler</value></data>
+  <data name="EggWobbleHint" xml:space="preserve"><value>Nicht jeder Start verläuft ganz glatt...</value></data>
+  <data name="EggTitleName" xml:space="preserve"><value>Random-Fenstertitel</value></data>
+  <data name="EggTitleHint" xml:space="preserve"><value>Der Name ist nicht immer derselbe...</value></data>
 
   <!-- Setup Screen -->
   <data name="SetupWelcomeTitle" xml:space="preserve"><value>Willkommen! VenueMapper ist dein Guide für FFXIV Housing Venues.</value></data>
@@ -212,6 +301,10 @@
   <data name="SetupLangHintEn" xml:space="preserve"><value>You can change the language anytime in Settings.</value></data>
   <data name="SetupLangHintDe" xml:space="preserve"><value>Du kannst die Sprache jederzeit in den Einstellungen ändern.</value></data>
   <data name="SetupKeyFeatures" xml:space="preserve"><value>Hauptfunktionen</value></data>
+  <data name="SetupForcedBannerTitle" xml:space="preserve"><value>Warum sehe ich das?</value></data>
+  <data name="SetupForcedBannerDesc" xml:space="preserve"><value>Dieses Update hat große neue Systeme hinzugefügt - Benachrichtigungen, Owner-ID-Verifizierung und mehr. Schau dir kurz an, was neu ist.</value></data>
+  <data name="SetupOwnerIdNoteTitle" xml:space="preserve"><value>Besitzt du schon eine Venue?</value></data>
+  <data name="SetupOwnerIdNoteDesc" xml:space="preserve"><value>Wenn sich an deiner Venue nichts ändern muss, brauchst du nicht den kompletten Update-Venue-Flow - öffne einfach das Debug-Fenster und nutze "Copy Owner ID JSON", während du in deiner Venue stehst, und schick es an sunnysofficial auf Discord.</value></data>
   <data name="SetupFeatMap" xml:space="preserve"><value>Karte</value></data>
   <data name="SetupFeatMapDesc" xml:space="preserve"><value>Interaktive Housing-Karten mit Etagen-Tabs und Zoom</value></data>
   <data name="SetupFeatDir" xml:space="preserve"><value>Verzeichnis</value></data>
@@ -220,8 +313,10 @@
   <data name="SetupFeatEventsDesc" xml:space="preserve"><value>Live Events von Partake.gg mit Serverzeit</value></data>
   <data name="SetupFeat3D" xml:space="preserve"><value>3D Marker</value></data>
   <data name="SetupFeat3DDesc" xml:space="preserve"><value>Pictomancy World-Space Marker an Service-Standorten</value></data>
+  <data name="SetupFeatNotify" xml:space="preserve"><value>Benachrichtigungen</value></data>
+  <data name="SetupFeatNotifyDesc" xml:space="preserve"><value>In-Game-Hinweise für Venues, Favoriten, Events u.v.m.</value></data>
   <data name="SetupFeatOwner" xml:space="preserve"><value>Owner-Tools</value></data>
-  <data name="SetupFeatOwnerDesc" xml:space="preserve"><value>Venue einreichen via Google Formular oder Discord</value></data>
+  <data name="SetupFeatOwnerDesc" xml:space="preserve"><value>Venue einreichen oder aktualisieren, geschützt durch Owner-ID-Verifizierung</value></data>
   <data name="SetupFeatUpdate" xml:space="preserve"><value>Auto-Update</value></data>
   <data name="SetupFeatUpdateDesc" xml:space="preserve"><value>Config synchronisiert sich stündlich von GitHub via ETag</value></data>
   <data name="SetupQuickSettings" xml:space="preserve"><value>Schnelleinstellungen</value></data>

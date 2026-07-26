@@ -1,4 +1,4 @@
-{
+﻿{
   "venues": [
     {
       "venueId": "neonnights",
@@ -6,6 +6,7 @@
       "address": "Light - Raiden - The Goblet - Ward 29 - Plot 35",
       "datacenter": "Light",
       "houseSize": "L",
+      "nsfw": false,
       "ward": 29,
       "plot": 35,
       "teamId": 708,
@@ -42,7 +43,7 @@
             },
             {
               "type": "downstairs",
-              "label": "To Cellar",
+              "label": "To Dancefloor",
               "icon": "",
               "x": -11.49,
               "y": -10.57,
@@ -59,7 +60,7 @@
           "services": [
             {
               "type": "upstairs",
-              "label": "To Ground",
+              "label": "To Entrance",
               "icon": "",
               "x": -18.44,
               "y": -5.66,
@@ -68,7 +69,7 @@
             },
             {
               "type": "bar",
-              "label": "Main Bar",
+              "label": "Neon Bar",
               "icon": "",
               "x": -2.65,
               "y": -7.53,
@@ -77,7 +78,7 @@
             },
             {
               "type": "gambling",
-              "label": "Gambler",
+              "label": "Neon Gambler",
               "icon": "",
               "x": 8.46,
               "y": -7.07,
@@ -95,6 +96,9 @@
             }
           ]
         }
+      ],
+      "ownerIdHashes": [
+        "01769c659a164a227675c9cc10df98d934dd555ce7c99f83ec2b76d3e10f2021"
       ]
     },
     {
@@ -103,6 +107,7 @@
       "address": "Light - Raiden - Lavender Beds - Ward 8 - Plot 3",
       "datacenter": "Light",
       "houseSize": "L",
+      "nsfw": true,
       "ward": 8,
       "plot": 3,
       "teamId": 769,
@@ -163,6 +168,7 @@
       "address": "Light - Raiden - Mist - Ward 11 - Plot 5",
       "datacenter": "Light",
       "houseSize": "L",
+      "nsfw": false,
       "ward": 11,
       "plot": 5,
       "teamId": 1412,
@@ -305,6 +311,7 @@
       "address": "Light - Zodiark - Lavender Beds - Ward 17 - Plot 58",
       "datacenter": "Light",
       "houseSize": "L",
+      "nsfw": false,
       "ward": 17,
       "plot": 58,
       "teamId": 1421,
@@ -384,6 +391,7 @@
       "address": "Light - Raiden - The Goblet - Ward 11 - Plot 30",
       "datacenter": "Light",
       "houseSize": "L",
+      "nsfw": false,
       "ward": 11,
       "plot": 30,
       "teamId": 413,
@@ -463,6 +471,7 @@
       "address": "Light - Raiden - Lavender Beds - Ward 8 - Plot 58",
       "datacenter": "Light",
       "houseSize": "L",
+      "nsfw": false,
       "ward": 8,
       "plot": 58,
       "teamId": 699,
@@ -533,6 +542,7 @@
       "address": "Light - Raiden - The Goblet - Ward 14 - Plot 60",
       "datacenter": "Light",
       "houseSize": "L",
+      "nsfw": false,
       "ward": 14,
       "plot": 60,
       "teamId": 1527,
@@ -603,6 +613,7 @@
       "address": "Materia - Sophia - Empyreum - Ward 2 - Plot 30",
       "datacenter": "Materia",
       "houseSize": "L",
+      "nsfw": false,
       "ward": 2,
       "plot": 30,
       "teamId": 0,
@@ -700,6 +711,7 @@
       "address": "Light - Twintania - The Goblet - Ward 20 - Plot 5",
       "datacenter": "Light",
       "houseSize": "L",
+      "nsfw": false,
       "ward": 20,
       "plot": 5,
       "teamId": 1460,
@@ -760,6 +772,7 @@
       "address": "Light - Zodiark - Lavender Beds - Ward 2 - Plot 1",
       "datacenter": "Light",
       "houseSize": "M",
+      "nsfw": false,
       "ward": 2,
       "plot": 1,
       "teamId": 1599,
@@ -848,6 +861,7 @@
       "address": "Primal - Exodus - Mist - Ward 17 - Plot 14",
       "datacenter": "Primal",
       "houseSize": "M",
+      "nsfw": false,
       "ward": 17,
       "plot": 14,
       "teamId": 1605,
@@ -936,6 +950,7 @@
       "address": "Light - Phoenix - Mist - Ward 25 - Plot 45",
       "datacenter": "Light",
       "houseSize": "L",
+      "nsfw": false,
       "ward": 25,
       "plot": 45,
       "teamId": 1120,
@@ -1015,6 +1030,7 @@
       "address": "Light - Lich - Mist - Ward 21 - Plot 32",
       "datacenter": "Light",
       "houseSize": "L",
+      "nsfw": false,
       "ward": 21,
       "plot": 32,
       "teamId": 714,
@@ -1105,6 +1121,88 @@
           ]
         }
       ]
+    },
+    {
+      "venueId": "shivergentlemenslounge",
+      "name": "Shiver Gentlemen's Lounge",
+      "address": "Light - Alpha - Empyreum - Ward 6 - Plot 12",
+      "datacenter": "Light",
+      "houseSize": "L",
+      "nsfw": true,
+      "ward": 6,
+      "plot": 12,
+      "teamId": 0,
+      "availableFloors": [
+        "ground",
+        "cellar"
+      ],
+      "colors": {
+        "primary": "#6013b4",
+        "accent": "#f5f5f6",
+        "secondary": "#080808"
+      },
+      "links": {
+        "discord": "https://discord.gg/Z36zPVGvVh",
+        "partake": "",
+        "ffxivvenues": "https://ffxivvenues.com/venue/pxhfvW9vrPkz",
+        "website": ""
+      },
+      "floors": [
+        {
+          "floor": "ground",
+          "yMin": -3.5,
+          "yMax": 6.5,
+          "mapId": 0,
+          "services": [
+            {
+              "type": "gambling",
+              "label": "Blackjack",
+              "icon": "",
+              "x": -0.0,
+              "y": -14.7,
+              "z": 5.5,
+              "description": ""
+            },
+            {
+              "type": "dj_booth",
+              "label": "Dj music",
+              "icon": "",
+              "x": 8.1,
+              "y": 6.7,
+              "z": 1.7,
+              "description": ""
+            },
+            {
+              "type": "bar",
+              "label": "Main Bar",
+              "icon": "",
+              "x": 9.1,
+              "y": -7.5,
+              "z": 0.0,
+              "description": ""
+            }
+          ]
+        },
+        {
+          "floor": "cellar",
+          "yMin": -10,
+          "yMax": -3.5,
+          "mapId": 0,
+          "services": [
+            {
+              "type": "bath",
+              "label": "Relaxation Nook",
+              "icon": "",
+              "x": -13.9,
+              "y": -3.2,
+              "z": -6.7,
+              "description": ""
+            }
+          ]
+        }
+      ],
+      "ownerIdHashes": [],
+      "description": "A 18+ Club + FC, for Gentlemen of all genders! Parties on Friday nights!"
     }
   ]
 }

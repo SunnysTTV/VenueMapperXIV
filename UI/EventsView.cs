@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Numerics;
+using Dalamud.Interface;
 using Dalamud.Bindings.ImGui;
 using VenueMapper.Models;
 using VenueMapper.Services;
@@ -13,20 +14,21 @@ public class EventsView
     private readonly PartakeApiService api;
     private List<Venue> venues = new();
     private List<Venue> teamedVenues = new();
+    private HashSet<string> hiddenVenueIds = new();
 
     public EventsView(PartakeApiService api)
     {
         this.api = api;
     }
 
-    public void SetVenues(List<Venue> v)
+    public void SetVenues(List<Venue> v, HashSet<string> hiddenVenueIds)
     {
-        if (ReferenceEquals(venues, v)) return;
         venues = v;
+        this.hiddenVenueIds = hiddenVenueIds;
         teamedVenues = v.Where(ve => ve.TeamId > 0).ToList();
     }
 
-    public void Draw()
+    public void Draw(ref bool showHidden)
     {
         var dl   = ImGui.GetWindowDrawList();
         var winP = ImGui.GetWindowPos();
@@ -44,9 +46,33 @@ public class EventsView
         var title = Lang.UpcomingEvents;
         ImGui.SetCursorPosX(Math.Max(0f, (winW - ImGui.CalcTextSize(title).X) / 2f));
         ImGui.TextColored(UIConstants.Secondary, title);
+
+        var toggleGlyph = (showHidden ? FontAwesomeIcon.Eye : FontAwesomeIcon.EyeSlash).ToIconString();
+        var iconFont = UiBuilder.IconFont;
+        ImGui.PushFont(iconFont);
+        var toggleSz = ImGui.CalcTextSize(toggleGlyph);
+        ImGui.PopFont();
+        ImGui.SetCursorPos(new Vector2(winW - toggleSz.X - 16, ImGui.GetCursorPosY() - toggleSz.Y - 4));
+        ImGui.PushStyleColor(ImGuiCol.Button, showHidden
+            ? UIConstants.WithAlpha(UIConstants.Glow, 0.3f)
+            : UIConstants.WithAlpha(UIConstants.CardBackground, 0.9f));
+        ImGui.PushStyleColor(ImGuiCol.ButtonHovered, UIConstants.WithAlpha(UIConstants.Glow, 0.4f));
+        ImGui.PushStyleColor(ImGuiCol.ButtonActive, UIConstants.WithAlpha(UIConstants.Glow, 0.5f));
+        ImGui.PushFont(iconFont);
+        if (ImGui.Button($"{toggleGlyph}##showHiddenEvents", new Vector2(toggleSz.X + 12, 0)))
+            showHidden = !showHidden;
+        ImGui.PopFont();
+        ImGui.PopStyleColor(3);
+        if (ImGui.IsItemHovered())
+            ImGui.SetTooltip(Lang.ShowHidden);
+
         ImGui.Spacing();
 
-        if (teamedVenues.Count == 0)
+        var visibleVenues = showHidden
+            ? teamedVenues
+            : teamedVenues.Where(ve => !hiddenVenueIds.Contains(ve.VenueId)).ToList();
+
+        if (visibleVenues.Count == 0)
         {
             ImGui.TextColored(UIConstants.WithAlpha(UIConstants.TextSecondary, 0.4f), Lang.NoEvents);
             return;
@@ -55,7 +81,7 @@ public class EventsView
         var anyLoading = false;
         var allEvents = new List<(VenueEvent Evt, Venue Venue)>();
 
-        foreach (var venue in teamedVenues)
+        foreach (var venue in visibleVenues)
         {
             _ = api.FetchTeamAsync(venue.TeamId);
 
@@ -93,13 +119,14 @@ public class EventsView
         else
         {
             foreach (var (evt, venue) in allEvents.OrderBy(e => e.Evt.StartTime))
-                DrawEventCard(dl, evt, venue.Colors, venue.Address, venue.Name);
+                DrawEventCard(dl, evt, venue.Colors, venue.Address, venue.Name,
+                    hiddenVenueIds.Contains(venue.VenueId));
         }
 
         ImGui.Spacing();
     }
 
-    private static void DrawEventCard(ImDrawListPtr dl, VenueEvent evt, VenueColors? colors = null, string? venueAddress = null, string? venueName = null)
+    private static void DrawEventCard(ImDrawListPtr dl, VenueEvent evt, VenueColors? colors = null, string? venueAddress = null, string? venueName = null, bool isHidden = false)
     {
         var avW = ImGui.GetContentRegionAvail().X;
         var cardMin = ImGui.GetCursorScreenPos();
@@ -108,10 +135,10 @@ public class EventsView
         const float cardH = 72f;
         var cardMax = new Vector2(cardMin.X + avW, cardMin.Y + cardH);
 
-        var primary   = colors?.PrimaryVec ?? UIConstants.Primary;     // border + date bg
-        var accent    = colors?.AccentVec ?? UIConstants.Glow;         // date text + title hover + link
-        var secondary = colors?.SecondaryVec ?? UIConstants.Secondary; // pulse animation
-        var gold      = new Vector4(1f, 0.84f, 0f, 1f);               // EVENT badge
+        var primary   = UIConstants.ApplyOverride(colors?.PrimaryVec ?? UIConstants.Primary);
+        var accent    = UIConstants.ApplyOverride(colors?.AccentVec ?? UIConstants.Glow);
+        var secondary = UIConstants.ApplyOverride(colors?.SecondaryVec ?? UIConstants.Secondary);
+        var gold      = new Vector4(1f, 0.84f, 0f, 1f);
 
         dl.AddRectFilled(cardMin, cardMax,
             ImGui.ColorConvertFloat4ToU32(UIConstants.WithAlpha(UIConstants.CardBackground, 0.75f)));
@@ -253,6 +280,10 @@ public class EventsView
                 ImGui.ColorConvertFloat4ToU32(UIConstants.WithAlpha(UIConstants.TextPrimary, 0.6f)),
                 venueName);
         }
+
+        if (isHidden)
+            dl.AddRectFilled(cardMin, cardMax,
+                ImGui.ColorConvertFloat4ToU32(UIConstants.WithAlpha(UIConstants.Background, 0.55f)));
     }
 
     private static string StripEmoji(string text)

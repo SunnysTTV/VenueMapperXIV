@@ -33,6 +33,9 @@ public static class Lang
     public static string AddFavorite   => G("AddFavorite");
     public static string RemoveFavorite=> G("RemoveFavorite");
     public static string CopyAddress   => G("CopyAddress");
+    public static string HideVenue     => G("HideVenue");
+    public static string UnhideVenue   => G("UnhideVenue");
+    public static string ShowHidden    => G("ShowHidden");
     public static string RightClickHint=> G("RightClickHint");
 
     public static string Active        => G("Active");
@@ -53,6 +56,55 @@ public static class Lang
     public static string LastUpdated   => G("LastUpdated");
     public static string PullNow       => G("PullNow");
     public static string ResetCache    => G("ResetCache");
+    public static string Notifications      => G("Notifications");
+    public static string TestNotification   => G("TestNotification");
+    public static string TestNotificationText => G("TestNotificationText");
+    public static string NotificationPosition => G("NotificationPosition");
+    public static string PosTopRight        => G("PosTopRight");
+    public static string PosTopLeft         => G("PosTopLeft");
+    public static string PosBottomRight     => G("PosBottomRight");
+    public static string PosBottomLeft      => G("PosBottomLeft");
+    public static string EventReminders       => G("EventReminders");
+    public static string EventRemindersFavOnly=> G("EventRemindersFavOnly");
+    public static string EventReminderMinutesLabel => G("EventReminderMinutesLabel");
+    public static string EnableNotifications  => G("EnableNotifications");
+    public static string MiscSettings         => G("MiscSettings");
+    public static string ResetWindowPosition    => G("ResetWindowPosition");
+    public static string ResetWindowPositionTip => G("ResetWindowPositionTip");
+    public static string UnhideAllVenues        => G("UnhideAllVenues");
+    public static string UnhideAllVenuesTip(int count) => string.Format(G("UnhideAllVenuesTip"), count);
+    public static string ToastWindowReset       => G("ToastWindowReset");
+    public static string ToastAllVenuesUnhidden(int count) => string.Format(G("ToastAllVenuesUnhidden"), count);
+    public static string MaxVisibleToasts     => G("MaxVisibleToasts");
+    public static string ToastDurationLabel   => G("ToastDurationLabel");
+    public static string SuppressInCombat     => G("SuppressInCombat");
+    public static string DefaultTabLabel      => G("DefaultTabLabel");
+    public static string DefaultTabRemember   => G("DefaultTabRemember");
+    public static string BoostOpenVenues      => G("BoostOpenVenues");
+    public static string BoostOpenVenuesTip   => G("BoostOpenVenuesTip");
+
+    public static string ToastCacheCleared      => G("ToastCacheCleared");
+    public static string ToastCacheClearFailed  => G("ToastCacheClearFailed");
+    public static string ToastConfigUpdated     => G("ToastConfigUpdated");
+    public static string ToastConfigUpToDate    => G("ToastConfigUpToDate");
+    public static string ToastConfigPullFailed  => G("ToastConfigPullFailed");
+    public static string ToastLifestreamMissing => G("ToastLifestreamMissing");
+    public static string ToastTeleportingTo(string name) => string.Format(G("ToastTeleportingTo"), name);
+    public static string ToastTeleportFailed    => G("ToastTeleportFailed");
+    public static string ToastFavoriteAdded(string name)   => string.Format(G("ToastFavoriteAdded"), name);
+    public static string ToastFavoriteRemoved(string name) => string.Format(G("ToastFavoriteRemoved"), name);
+    public static string ToastAddressCopied     => G("ToastAddressCopied");
+    public static string ToastVenueHidden(string name)   => string.Format(G("ToastVenueHidden"), name);
+    public static string ToastVenueUnhidden(string name) => string.Format(G("ToastVenueUnhidden"), name);
+    public static string ToastJsonCopied           => G("ToastJsonCopied");
+    public static string ToastRequiredFieldsMissing=> G("ToastRequiredFieldsMissing");
+    public static string ToastWelcomeFirstLoad(int count) => string.Format(G("ToastWelcomeFirstLoad"), count);
+    public static string ToastUpdated(string version)     => string.Format(G("ToastUpdated"), version);
+    public static string ToastSetupComplete     => G("ToastSetupComplete");
+    public static string ToastAllEggsFound      => G("ToastAllEggsFound");
+    public static string ToastWelcomeToVenue(string name) => string.Format(G("ToastWelcomeToVenue"), name);
+    public static string ToastVenueClosed(string name)    => string.Format(G("ToastVenueClosed"), name);
+    public static string ToastEventSoon(string title, string venueName, int minutes) => string.Format(G("ToastEventSoon"), title, venueName, minutes);
 
     public static string DebugInfo     => G("DebugInfo");
     public static string TerritoryId   => G("TerritoryId");
@@ -79,6 +131,7 @@ public static class Lang
 
     public static string AutoPullCfg   => G("AutoPullCfg");
     public static string JoinSupport   => G("JoinSupport");
+    public static string GotIdeas      => G("GotIdeas");
     public static string CurRelease    => G("CurRelease");
     public static string OlderVer      => G("OlderVer");
     public static string WantVenue     => G("WantVenue");
@@ -86,9 +139,12 @@ public static class Lang
 
     public static string OwnerTitle    => G("OwnerTitle");
     public static string OwnerDesc     => G("OwnerDesc");
+    public static string UpdateVenueTitle => G("UpdateVenueTitle");
+    public static string UpdateVenueDesc  => G("UpdateVenueDesc");
     public static string VenueInfo     => G("VenueInfo");
     public static string VenueName     => G("VenueName");
     public static string YourDiscord   => G("YourDiscord");
+    public static string YourDiscordOptional => G("YourDiscordOptional");
     public static string Datacenter    => G("Datacenter");
     public static string Server        => G("Server");
     public static string HousingDist   => G("HousingDist");
@@ -104,9 +160,12 @@ public static class Lang
     public static string Export        => G("Export");
     public static string OptForm       => G("OptForm");
     public static string OptFormDesc   => G("OptFormDesc");
+    public static string OptFormDescVerified => G("OptFormDescVerified");
     public static string OpenForm      => G("OpenForm");
     public static string OptDiscord    => G("OptDiscord");
     public static string OptDiscordDesc=> G("OptDiscordDesc");
+    public static string SendUpdate     => G("SendUpdate");
+    public static string SendUpdateDesc => G("SendUpdateDesc");
     public static string CopyJsonDm    => G("CopyJsonDm");
     public static string Preview       => G("Preview");
     public static string FillRequired  => G("FillRequired");
@@ -115,9 +174,24 @@ public static class Lang
     public static string ServiceType   => G("ServiceType");
     public static string ServiceName   => G("ServiceName");
     public static string DetectPosition=> G("DetectPosition");
+    public static string ToastVenueLoaded(string name) => string.Format(G("ToastVenueLoaded"), name);
+    public static string UpdateVenue         => G("UpdateVenue");
+    public static string UpdateVenueTip      => G("UpdateVenueTip");
+    public static string OwnerVerifyTitle    => G("OwnerVerifyTitle");
+    public static string OwnerVerifyScanning => G("OwnerVerifyScanning");
+    public static string OwnerVerifyGranted  => G("OwnerVerifyGranted");
+    public static string OwnerVerifyDenied   => G("OwnerVerifyDenied");
+    public static string OwnerVerifyDeniedHint => G("OwnerVerifyDeniedHint");
     public static string VenueNameHint => G("VenueNameHint");
     public static string DiscordHint   => G("DiscordHint");
     public static string HouseSize     => G("HouseSize");
+    public static string NsfwVenue     => G("NsfwVenue");
+    public static string NsfwVenueTip  => G("NsfwVenueTip");
+    public static string NsfwUncheckedHint => G("NsfwUncheckedHint");
+    public static string RegisterOwnerId    => G("RegisterOwnerId");
+    public static string RegisterOwnerIdTip => G("RegisterOwnerIdTip");
+    public static string NsfwBadge     => G("NsfwBadge");
+    public static string SfwBadge      => G("SfwBadge");
     public static string ColorPrimary  => G("ColorPrimary");
     public static string ColorAccent   => G("ColorAccent");
     public static string ColorSecondary=> G("ColorSecondary");
@@ -139,6 +213,7 @@ public static class Lang
     public static string SvcDjBooth         => G("SvcDjBooth");
     public static string SvcVip             => G("SvcVip");
     public static string SvcBath            => G("SvcBath");
+    public static string SvcSpa             => G("SvcSpa");
     public static string SvcEvent           => G("SvcEvent");
     public static string SvcUpstairs        => G("SvcUpstairs");
     public static string SvcDownstairs      => G("SvcDownstairs");
@@ -161,6 +236,10 @@ public static class Lang
     public static string SetupLangHintEn   => G("SetupLangHintEn");
     public static string SetupLangHintDe   => G("SetupLangHintDe");
     public static string SetupKeyFeatures  => G("SetupKeyFeatures");
+    public static string SetupForcedBannerTitle => G("SetupForcedBannerTitle");
+    public static string SetupForcedBannerDesc  => G("SetupForcedBannerDesc");
+    public static string SetupOwnerIdNoteTitle => G("SetupOwnerIdNoteTitle");
+    public static string SetupOwnerIdNoteDesc  => G("SetupOwnerIdNoteDesc");
     public static string SetupFeatMap      => G("SetupFeatMap");
     public static string SetupFeatMapDesc  => G("SetupFeatMapDesc");
     public static string SetupFeatDir      => G("SetupFeatDir");
@@ -169,6 +248,8 @@ public static class Lang
     public static string SetupFeatEventsDesc => G("SetupFeatEventsDesc");
     public static string SetupFeat3D       => G("SetupFeat3D");
     public static string SetupFeat3DDesc   => G("SetupFeat3DDesc");
+    public static string SetupFeatNotify    => G("SetupFeatNotify");
+    public static string SetupFeatNotifyDesc=> G("SetupFeatNotifyDesc");
     public static string SetupFeatOwner    => G("SetupFeatOwner");
     public static string SetupFeatOwnerDesc=> G("SetupFeatOwnerDesc");
     public static string SetupFeatUpdate   => G("SetupFeatUpdate");
@@ -182,6 +263,21 @@ public static class Lang
     public static string SetupBack         => G("SetupBack");
     public static string SetupNext         => G("SetupNext");
     public static string SetupDone         => G("SetupDone");
+
+    public static string EasterEggs         => G("EasterEggs");
+    public static string EggDiscoveredOn(string date) => string.Format(G("EggDiscoveredOn"), date);
+    public static string EggUnlockedToast(string name) => string.Format(G("EggUnlockedToast"), name);
+
+    public static string EggRgbName    => G("EggRgbName");
+    public static string EggRgbHint    => G("EggRgbHint");
+    public static string EggHackerName => G("EggHackerName");
+    public static string EggHackerHint => G("EggHackerHint");
+    public static string EggSunnyName  => G("EggSunnyName");
+    public static string EggSunnyHint  => G("EggSunnyHint");
+    public static string EggWobbleName => G("EggWobbleName");
+    public static string EggWobbleHint => G("EggWobbleHint");
+    public static string EggTitleName  => G("EggTitleName");
+    public static string EggTitleHint  => G("EggTitleHint");
 
     public static string Location(int count)
         => string.Format(G(count != 1 ? "LocationMany" : "LocationOne"), count);

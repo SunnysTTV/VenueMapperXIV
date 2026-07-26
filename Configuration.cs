@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using Dalamud.Configuration;
+using VenueMapper.Services;
 
 namespace VenueMapper;
 
@@ -17,12 +18,34 @@ public class Configuration : IPluginConfiguration
 
     public HashSet<string> FavoriteVenueIds { get; set; } = new();
 
+    public HashSet<string> HiddenVenueIds { get; set; } = new();
+
+    public Dictionary<string, EasterEggState> EasterEggs { get; set; } = new();
+
+    public ToastCorner ToastPosition { get; set; } = ToastCorner.TopRight;
+    public bool NotificationsEnabled { get; set; } = true;
+    public int MaxVisibleToasts { get; set; } = 4;
+    public bool SuppressInCombat { get; set; } = true;
+    public float ToastDurationMultiplier { get; set; } = 1.0f;
+
+    public string LastSeenVersion { get; set; } = "";
+
+    public bool EventReminders { get; set; } = false;
+    public bool EventRemindersFavoritesOnly { get; set; }
+    public int EventReminderMinutes { get; set; } = 15;
+
     public string Language { get; set; } = "EN";
 
     public bool HasSeenSetup { get; set; }
+    public bool PendingForcedSetup { get; set; }
 
     public System.Numerics.Vector2? WindowPosition { get; set; }
     public System.Numerics.Vector2? WindowSize { get; set; }
+
+    public string DefaultTab { get; set; } = "remember";
+    public string? LastActiveTab { get; set; }
+
+    public bool BoostOpenVenues { get; set; } = true;
 
     public void Save()
     {

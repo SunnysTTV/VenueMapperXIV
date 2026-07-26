@@ -11,7 +11,9 @@ A Dalamud plugin for discovering and exploring FFXIV housing venues. Browse venu
 - **Venue Directory** - Browse all venues with favorites, search, datacenter and server filters
 - **Live Events** - Upcoming and active events from Partake.gg with NOW badge for running events
 - **Teleport Integration** - One-click teleport to any venue via Lifestream IPC
-- **Owner Tools** - Submit your venue with auto-captured coordinates and Google Form integration
+- **Notifications** - In-game alerts for entering venues, favorites, events and more, with combat-aware pausing
+- **Owner Tools** - Submit or update your venue with auto-captured coordinates and Google Form integration
+- **Owner ID Verification** - Lock your venue's editing to your registered Owner ID(s) so only you (or your co-owners) can update it
 - **Multi-Language** - English and Deutsch (RESX-based, Crowdin-ready)
 - **Auto-Update** - Venue config syncs from GitHub hourly via ETag polling
 
@@ -39,6 +41,8 @@ Want your venue in VenueMapper?
 4. Export via Google Form or copy JSON
 
 Your venue will appear in the directory after review.
+
+Already listed and just need to update something (like a marker position)? Use the **"Update Venue"** button in the About tab instead - it verifies you via Owner ID and pre-fills everything, so you only edit what changed.
 
 ## How It Works
 

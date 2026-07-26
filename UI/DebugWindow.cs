@@ -10,6 +10,8 @@ public class DebugWindow : Window, IDisposable
 {
     private readonly PlayerPositionTracker tracker;
     private readonly VenueMapperPlugin plugin;
+    private double hackerModeStart = -1;
+    private double hackerTitleLoopStart = -1;
 
     public DebugWindow(PlayerPositionTracker tracker, VenueMapperPlugin plugin)
         : base("VenueMapper Debug##VenueMapperDebug", ImGuiWindowFlags.AlwaysAutoResize | ImGuiWindowFlags.NoResize)
@@ -40,6 +42,40 @@ public class DebugWindow : Window, IDisposable
             : "N/A");
 
         ImGui.Spacing();
+        ImGui.Separator();
+        ImGui.Spacing();
+
+        ImGui.TextColored(UIConstants.TextSecondary, "Server:");
+        ImGui.SameLine();
+        ImGui.TextColored(UIConstants.TextPrimary,
+            string.IsNullOrEmpty(tracker.CurrentServerName) ? "N/A" : tracker.CurrentServerName);
+
+        ImGui.TextColored(UIConstants.TextSecondary, "District:");
+        ImGui.SameLine();
+        ImGui.TextColored(UIConstants.TextPrimary,
+            string.IsNullOrEmpty(tracker.CurrentHousingDistrict) ? "N/A" : tracker.CurrentHousingDistrict);
+
+        var isInGarden = tracker.IsInHousingWard && tracker.CurrentPlot >= 0;
+
+        ImGui.TextColored(UIConstants.TextSecondary, "Location:");
+        ImGui.SameLine();
+        var locationLabel = tracker.IsInsideHouse ? "Inside"
+            : isInGarden ? "Garden"
+            : "Not in Housing";
+        var locationColor = tracker.IsInsideHouse ? UIConstants.Glow
+            : isInGarden ? UIConstants.Primary
+            : UIConstants.TextPrimary;
+        ImGui.TextColored(locationColor, locationLabel);
+
+        var matchedVenue = plugin.ConfigManager.Config != null
+            ? plugin.PositionTracker.GetVenueAtCurrentPlotIncludingGarden(plugin.ConfigManager.Config)
+            : null;
+        ImGui.TextColored(UIConstants.TextSecondary, "Matched Venue:");
+        ImGui.SameLine();
+        ImGui.TextColored(matchedVenue != null ? UIConstants.Glow : UIConstants.WithAlpha(UIConstants.TextSecondary, 0.5f),
+            matchedVenue?.Name ?? "None");
+
+        ImGui.Spacing();
         ImGui.TextColored(UIConstants.TextSecondary, Lang.PlayerPos);
         ImGui.TextColored(UIConstants.TextPrimary, $"  X: {tracker.PlayerX:F2}");
         ImGui.TextColored(UIConstants.TextPrimary, $"  Y: {tracker.PlayerZ:F2}");
@@ -59,15 +95,16 @@ public class DebugWindow : Window, IDisposable
         ImGui.Separator();
         ImGui.Spacing();
 
+        var outdoorDistrict = tracker.IsInsideHouse ? null : tracker.CurrentHousingDistrict;
         var mapInfo = plugin.MapLoader.GetMapInfoByMapId(tracker.CurrentMapId)
-                      ?? plugin.MapLoader.GetMapInfo(tracker.CurrentTerritoryId);
+                      ?? plugin.MapLoader.GetMapInfo(tracker.CurrentTerritoryId, outdoorDistrict);
         ImGui.TextColored(UIConstants.TextSecondary, "Map Path:");
         ImGui.TextColored(mapInfo.Path != null ? UIConstants.Glow : UIConstants.WithAlpha(UIConstants.TextSecondary, 0.5f),
             mapInfo.Path ?? "(no map for this territory)");
 
         if (mapInfo.Path != null)
         {
-            var tex = plugin.MapLoader.GetMapTexture(tracker.CurrentTerritoryId, tracker.CurrentMapId);
+            var tex = plugin.MapLoader.GetMapTexture(tracker.CurrentTerritoryId, tracker.CurrentMapId, outdoorDistrict);
             var loaded = tex != null && tex.TryGetWrap(out var w, out _) && w != null;
             ImGui.TextColored(UIConstants.TextSecondary, "Texture:");
             ImGui.SameLine();
@@ -82,6 +119,7 @@ public class DebugWindow : Window, IDisposable
         DrawAccentButton("COPY COORDS", () =>
         {
             ImGui.SetClipboardText($"X: {tracker.PlayerX:F2}, Y: {tracker.PlayerZ:F2}, Z: {tracker.PlayerY:F2}");
+            plugin.Toasts.Show("Coordinates copied", ToastKind.Success, 1.8);
         });
 
         ImGui.SameLine();
@@ -89,7 +127,23 @@ public class DebugWindow : Window, IDisposable
         DrawAccentButton("COPY TERRITORY", () =>
         {
             ImGui.SetClipboardText(tracker.CurrentTerritoryId.ToString());
+            plugin.Toasts.Show("Territory ID copied", ToastKind.Success, 1.8);
         });
+
+        var canCopyOwnerId = matchedVenue != null;
+        if (!canCopyOwnerId) ImGui.BeginDisabled();
+        DrawAccentButton("COPY OWNER ID JSON", () =>
+        {
+            var hash = OwnerIdHelper.ComputeHash(VenueMapperPlugin.PlayerState.ContentId);
+            var json = $"{{ \"venueId\": \"{matchedVenue!.VenueId}\", \"ownerIdHash\": \"{hash}\" }}";
+            ImGui.SetClipboardText(json);
+            plugin.Toasts.Show("Owner ID JSON copied - paste it in a Discord DM to sunnysofficial", ToastKind.Success, 3.0);
+        });
+        if (!canCopyOwnerId) ImGui.EndDisabled();
+        if (ImGui.IsItemHovered(ImGuiHoveredFlags.AllowWhenDisabled))
+            ImGui.SetTooltip("Make sure you're standing inside YOUR OWN venue first -\nthis registers whichever venue is currently matched at your position.");
+
+        HackerModeOverlay.Draw(ref hackerModeStart, ref hackerTitleLoopStart, WindowName);
     }
 
     private static void DrawAccentButton(string label, Action onClick)

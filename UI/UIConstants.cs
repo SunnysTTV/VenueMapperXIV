@@ -1,23 +1,43 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Numerics;
 using Dalamud.Bindings.ImGui;
 
 namespace VenueMapper.UI;
 
+public enum ColorOverrideMode { None, Rgb, Hacker }
+
 public static class UIConstants
 {
+    public static ColorOverrideMode OverrideMode = ColorOverrideMode.None;
+    public static float RgbHue;
+    public static bool IsHackerBooting;
+
+    private static readonly Vector4 BasePrimary    = HexToVec4("#FF006E");
+    private static readonly Vector4 BaseGlow       = HexToVec4("#00F5FF");
+    private static readonly Vector4 BaseSecondary  = HexToVec4("#9D4EDD");
+    internal static readonly Vector4 HackerGreen   = new(0.15f, 1f, 0.35f, 1f);
+
     public static readonly Vector4 Background      = HexToVec4("#0a0e27");
-    public static readonly Vector4 Primary         = HexToVec4("#FF006E"); // Magenta
-    public static readonly Vector4 Glow            = HexToVec4("#00F5FF"); // Cyan
-    public static readonly Vector4 Secondary       = HexToVec4("#9D4EDD"); // Purple
     public static readonly Vector4 TextPrimary     = HexToVec4("#FFFFFF");
     public static readonly Vector4 TextSecondary   = HexToVec4("#B0B0B0");
     public static readonly Vector4 CardBackground  = HexToVec4("#1a1f3a");
 
-    public static readonly Vector4 GlowDim         = WithAlpha(Glow, 0.35f);
-    public static readonly Vector4 GlowBright      = WithAlpha(Glow, 1.0f);
-    public static readonly Vector4 PrimaryHover    = Lighten(Primary, 0.15f);
+    public static Vector4 ApplyOverride(Vector4 original) => OverrideMode switch
+    {
+        ColorOverrideMode.Rgb    => HsvToRgba(RgbHue, 0.85f, 1f),
+        ColorOverrideMode.Hacker => HackerGreen,
+        _ => original,
+    };
+
+    public static Vector4 Primary   => ApplyOverride(BasePrimary);
+    public static Vector4 Secondary => ApplyOverride(BaseSecondary);
+    public static Vector4 Glow      => ApplyOverride(BaseGlow);
+
+    public static Vector4 GlowDim         => WithAlpha(Glow, 0.35f);
+    public static Vector4 GlowBright      => WithAlpha(Glow, 1.0f);
+    public static Vector4 PrimaryHover    => Lighten(Primary, 0.15f);
 
     public static Vector4 HexToVec4(string hex)
     {
@@ -31,11 +51,50 @@ public static class UIConstants
 
     public static Vector4 WithAlpha(Vector4 color, float alpha) => new(color.X, color.Y, color.Z, alpha);
 
+    public static List<string> WrapText(string text, float wrapWidth)
+    {
+        var lines = new List<string>();
+        var current = "";
+        foreach (var word in text.Split(' '))
+        {
+            var candidate = current.Length == 0 ? word : $"{current} {word}";
+            if (current.Length > 0 && ImGui.CalcTextSize(candidate).X > wrapWidth)
+            {
+                lines.Add(current);
+                current = word;
+            }
+            else
+            {
+                current = candidate;
+            }
+        }
+        if (current.Length > 0)
+            lines.Add(current);
+        return lines;
+    }
+
     public static Vector4 Lighten(Vector4 color, float amount) => new(
         System.MathF.Min(1f, color.X + amount),
         System.MathF.Min(1f, color.Y + amount),
         System.MathF.Min(1f, color.Z + amount),
         color.W);
+
+    public static Vector4 HsvToRgba(float h, float s, float v)
+    {
+        h = (h % 1f + 1f) % 1f;
+        var i = (int)(h * 6);
+        var f = h * 6 - i;
+        float p = v * (1 - s), q = v * (1 - f * s), t2 = v * (1 - (1 - f) * s);
+        return (i % 6) switch
+        {
+            0 => new Vector4(v,  t2, p,  1f),
+            1 => new Vector4(q,  v,  p,  1f),
+            2 => new Vector4(p,  v,  t2, 1f),
+            3 => new Vector4(p,  q,  v,  1f),
+            4 => new Vector4(t2, p,  v,  1f),
+            _ => new Vector4(v,  p,  q,  1f),
+        };
+    }
 
     private static int TagOrder(string tag) => tag switch
     {
@@ -123,14 +182,13 @@ public static class UIConstants
         };
 
         const float padX = 5f;
-        const float colW = 82f; // fixed column wide enough for "IMPROVED"
+        const float colW = 82f;
 
         var textSize = ImGui.CalcTextSize(tag);
         var tagW     = textSize.X + padX * 2;
         var pos      = ImGui.GetCursorScreenPos();
         var dl       = ImGui.GetWindowDrawList();
 
-        // Center the pill within the fixed column
         var xOff = MathF.Floor((colW - tagW) / 2f);
 
         dl.AddRectFilled(

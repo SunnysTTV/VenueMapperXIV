@@ -8,6 +8,8 @@ namespace VenueMapper.UI;
 public class ChangelogWindow : Window, IDisposable
 {
     private string selectedVersion = "";
+    private double hackerModeStart = -1;
+    private double hackerTitleLoopStart = -1;
 
     public ChangelogWindow()
         : base("VenueMapper Changelog##ChangelogModal",
@@ -41,6 +43,9 @@ public class ChangelogWindow : Window, IDisposable
 
     public override void Draw()
     {
+        var hackerBooting = UIConstants.IsHackerBooting;
+        if (hackerBooting) ImGui.BeginDisabled();
+
         if (ImGui.BeginTable("##clLayout", 2, ImGuiTableFlags.BordersInnerV))
         {
             ImGui.TableSetupColumn("##clVersions", ImGuiTableColumnFlags.WidthFixed, 120);
@@ -87,8 +92,8 @@ public class ChangelogWindow : Window, IDisposable
                         selectedVersion = ver;
                     ImGui.PopStyleColor();
                 }
-                ImGui.EndChild();
             }
+            ImGui.EndChild();
 
             ImGui.TableSetColumnIndex(1);
             var isCur = ChangelogData.Versions.Length > 0 && selectedVersion == ChangelogData.Versions[0].Ver;
@@ -108,6 +113,10 @@ public class ChangelogWindow : Window, IDisposable
 
             ImGui.EndTable();
         }
+
+        if (hackerBooting) ImGui.EndDisabled();
+
+        HackerModeOverlay.Draw(ref hackerModeStart, ref hackerTitleLoopStart, WindowName);
     }
 
     public void Dispose() { }

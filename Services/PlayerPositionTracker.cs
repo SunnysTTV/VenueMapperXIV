@@ -1,8 +1,10 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Numerics;
 using Dalamud.Plugin.Services;
 using FFXIVClientStructs.FFXIV.Client.Game;
+using Lumina.Excel.Sheets;
 using VenueMapper.Models;
 
 namespace VenueMapper.Services;
@@ -11,7 +13,9 @@ public class PlayerPositionTracker
 {
     private readonly IClientState clientState;
     private readonly IObjectTable objectTable;
+    private readonly IDataManager dataManager;
     private readonly IPluginLog log;
+    private readonly Dictionary<uint, string> districtNameCache = new();
 
     public Vector3 LastPosition { get; private set; }
     public uint CurrentTerritoryId { get; private set; }
@@ -24,6 +28,7 @@ public class PlayerPositionTracker
     public float PlayerZ { get; private set; }
 
     public bool IsInsideHouse { get; private set; }
+    public bool IsInHousingWard { get; private set; }
     public string CurrentServerName { get; private set; } = "";
     public string CurrentHousingDistrict { get; private set; } = "";
 
@@ -34,11 +39,33 @@ public class PlayerPositionTracker
     private float _lastLoggedY;
     private string _lastFloor = "";
 
-    public PlayerPositionTracker(IClientState clientState, IObjectTable objectTable, IPluginLog log)
+    public PlayerPositionTracker(IClientState clientState, IObjectTable objectTable, IDataManager dataManager, IPluginLog log)
     {
         this.clientState = clientState;
         this.objectTable = objectTable;
+        this.dataManager = dataManager;
         this.log = log;
+    }
+
+    private string ResolveDistrictName(uint territoryId)
+    {
+        if (districtNameCache.TryGetValue(territoryId, out var cached))
+            return cached;
+
+        string name;
+        try
+        {
+            var row = dataManager.GetExcelSheet<TerritoryType>()?.GetRow(territoryId);
+            name = row?.PlaceName.ValueNullable?.Name.ExtractText() ?? "";
+        }
+        catch (Exception ex)
+        {
+            log.Debug($"[VenueMapper] District name lookup failed for territory {territoryId}: {ex.Message}");
+            name = "";
+        }
+
+        districtNameCache[territoryId] = name;
+        return name;
     }
 
     public void Update(VenueConfig? config = null)
@@ -74,31 +101,21 @@ public class PlayerPositionTracker
                     CurrentWard = hm->GetCurrentWard();
                     CurrentPlot = hm->GetCurrentPlot();
                     IsInsideHouse = hm->IndoorTerritory != null;
+                    IsInHousingWard = hm->IsOutside();
 
-                    // Resolve district directly from whichever territory struct is active
-                    HousingTerritory* activeTerritory =
-                        hm->IndoorTerritory  != null ? (HousingTerritory*)hm->IndoorTerritory :
-                        hm->OutdoorTerritory != null ? (HousingTerritory*)hm->OutdoorTerritory :
-                        null;
+                    var districtTerritoryId = IsInsideHouse
+                        ? HousingManager.GetOriginalHouseTerritoryTypeId()
+                        : CurrentTerritoryId;
 
-                    if (activeTerritory != null)
-                    {
-                        CurrentHousingDistrict = (int)activeTerritory->GetTerritoryType() switch
-                        {
-                            0 => "Mist",
-                            1 => "Lavender Beds",
-                            2 => "The Goblet",
-                            3 => "Shirogane",
-                            4 => "Empyreum",
-                            _ => CurrentHousingDistrict,
-                        };
-                    }
+                    CurrentHousingDistrict = ResolveDistrictName(districtTerritoryId);
                 }
                 else
                 {
                     CurrentWard = -1;
                     CurrentPlot = -1;
                     IsInsideHouse = false;
+                    IsInHousingWard = false;
+                    CurrentHousingDistrict = "";
                 }
             }
         }
@@ -107,6 +124,8 @@ public class PlayerPositionTracker
             CurrentWard = -1;
             CurrentPlot = -1;
             IsInsideHouse = false;
+            IsInHousingWard = false;
+            CurrentHousingDistrict = "";
         }
 
         if (config == null)
@@ -157,9 +176,9 @@ public class PlayerPositionTracker
             && servers.Any(s => string.Equals(s, CurrentServerName, StringComparison.OrdinalIgnoreCase));
     }
 
-    public Venue? GetCurrentVenue(VenueConfig config)
+    private Venue? FindVenueAtCurrentPlot(VenueConfig config)
     {
-        if (!IsInsideHouse || CurrentWard < 0 || CurrentPlot < 0)
+        if (CurrentWard < 0 || CurrentPlot < 0)
             return null;
 
         foreach (var venue in config.Venues)
@@ -174,6 +193,19 @@ public class PlayerPositionTracker
         }
 
         return null;
+    }
+
+    public Venue? GetCurrentVenue(VenueConfig config)
+    {
+        if (!IsInsideHouse) return null;
+        return FindVenueAtCurrentPlot(config);
+    }
+
+    public Venue? GetVenueAtCurrentPlotIncludingGarden(VenueConfig config)
+    {
+        if (!IsInsideHouse && !(IsInHousingWard && CurrentPlot >= 0))
+            return null;
+        return FindVenueAtCurrentPlot(config);
     }
 
     public Floor? GetCurrentFloor(Venue venue)

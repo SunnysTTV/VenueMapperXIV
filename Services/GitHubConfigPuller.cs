@@ -6,6 +6,14 @@ using Dalamud.Plugin.Services;
 
 namespace VenueMapper.Services;
 
+public enum PullResult
+{
+    Updated,
+    Unchanged,
+    Failed,
+    Skipped,
+}
+
 public class GitHubConfigPuller : IDisposable
 {
     private readonly HttpClient httpClient;
@@ -22,12 +30,12 @@ public class GitHubConfigPuller : IDisposable
         etagFilePath = Path.Combine(configManager.ConfigDirectory, "venues.etag");
     }
 
-    public async Task<bool> PullAsync(string url, bool force = false)
+    public async Task<PullResult> PullAsync(string url, bool force = false)
     {
         if (string.IsNullOrWhiteSpace(url))
         {
             log.Warning("VenueMapper: GitHub config URL is not set, skipping pull.");
-            return false;
+            return PullResult.Skipped;
         }
 
         try
@@ -45,13 +53,13 @@ public class GitHubConfigPuller : IDisposable
             if (response.StatusCode == System.Net.HttpStatusCode.NotModified)
             {
                 log.Information("VenueMapper: Remote config unchanged (304).");
-                return false;
+                return PullResult.Unchanged;
             }
 
             if (!response.IsSuccessStatusCode)
             {
                 log.Warning($"VenueMapper: GitHub pull failed with status {response.StatusCode}");
-                return false;
+                return PullResult.Failed;
             }
 
             var content = await response.Content.ReadAsStringAsync();
@@ -64,12 +72,12 @@ public class GitHubConfigPuller : IDisposable
             }
 
             log.Information("VenueMapper: Downloaded updated venue config.");
-            return true;
+            return PullResult.Updated;
         }
         catch (Exception ex)
         {
             log.Error(ex, "VenueMapper: Failed to pull venue config from GitHub, falling back to cache.");
-            return false;
+            return PullResult.Failed;
         }
     }
 

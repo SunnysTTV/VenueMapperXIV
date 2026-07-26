@@ -5,12 +5,17 @@ using System.Numerics;
 using Dalamud.Interface.Windowing;
 using Dalamud.Bindings.ImGui;
 using VenueMapper.Models;
+using VenueMapper.Services;
 
 namespace VenueMapper.UI;
 
 public class OwnerSubmitWindow : Window, IDisposable
 {
     private readonly VenueMapperPlugin plugin;
+    private double hackerModeStart = -1;
+    private double hackerTitleLoopStart = -1;
+
+    private string loadedVenueId = "";
 
     private string clubName = "";
     private string discordName = "";
@@ -21,6 +26,8 @@ public class OwnerSubmitWindow : Window, IDisposable
     private string plot = "";
     private int districtIndex;
     private int houseSizeIndex;
+    private bool isNsfw;
+    private bool registerOwnerId = true;
 
     private string discordLink = "";
     private string partakeLink = "";
@@ -67,22 +74,10 @@ public class OwnerSubmitWindow : Window, IDisposable
         houseSizeIndex = sizes.L.Contains(p) ? 0 : sizes.M.Contains(p) ? 1 : 2;
     }
 
-    private void AutoDetectHouseSizeFromTerritory()
-    {
-        houseSizeIndex = plugin.PositionTracker.CurrentTerritoryId switch
-        {
-            1376 => 0,
-            1250 => 1,
-            980  => 2,
-            _    => houseSizeIndex,
-        };
-    }
-
     private void AutoFillFromPosition()
     {
         var tracker = plugin.PositionTracker;
 
-        // DC + Server from current world
         var worldName = tracker.CurrentServerName;
         if (!string.IsNullOrEmpty(worldName))
         {
@@ -97,15 +92,22 @@ public class OwnerSubmitWindow : Window, IDisposable
             }
         }
 
-        // District from HousingManager
         var district = tracker.CurrentHousingDistrict;
         if (!string.IsNullOrEmpty(district))
         {
-            var idx = Array.IndexOf(Districts, district);
-            if (idx >= 0) districtIndex = idx;
+            // Subdivision/private plots resolve to names like "Private Mansion - The Goblet"
+            // rather than a bare district name, so match by containment, not equality.
+            var idx = Array.FindIndex(Districts, d => district.Contains(d, StringComparison.OrdinalIgnoreCase));
+            if (idx >= 0)
+                districtIndex = idx;
+            else
+                VenueMapperPlugin.Log.Warning($"[VenueMapper] Auto-detect: resolved district '{district}' did not match any known district name");
+        }
+        else
+        {
+            VenueMapperPlugin.Log.Warning("[VenueMapper] Auto-detect: housing district could not be resolved (empty) - territory lookup may have failed for this house/subdivision");
         }
 
-        // Ward + Plot
         if (tracker.CurrentWard >= 0 && tracker.CurrentPlot >= 0)
         {
             ward = (tracker.CurrentWard + 1).ToString();
@@ -113,28 +115,113 @@ public class OwnerSubmitWindow : Window, IDisposable
             AutoDetectHouseSizeFromPlot();
         }
 
-        // House size from territory ID (overrides plot-based if inside house)
-        AutoDetectHouseSizeFromTerritory();
     }
+
+    public bool CanLoadCurrentVenue()
+    {
+        var config = plugin.ConfigManager.Config;
+        return config != null && plugin.PositionTracker.GetVenueAtCurrentPlotIncludingGarden(config) != null;
+    }
+
+    public void LoadCurrentVenue()
+    {
+        var config = plugin.ConfigManager.Config;
+        var venue = config != null ? plugin.PositionTracker.GetVenueAtCurrentPlotIncludingGarden(config) : null;
+        if (venue == null) return;
+
+        loadedVenueId = venue.VenueId;
+        clubName = venue.Name;
+        selectedDc = venue.Datacenter;
+        selectedServer = plugin.PositionTracker.CurrentServerName;
+        ward = venue.Ward.ToString();
+        plot = venue.Plot.ToString();
+
+        var distIdx = Array.FindIndex(Districts, d => venue.Address.Contains(d, StringComparison.OrdinalIgnoreCase));
+        if (distIdx >= 0) districtIndex = distIdx;
+
+        var sizeIdx = Array.IndexOf(HouseSizeKeys, venue.HouseSize);
+        houseSizeIndex = sizeIdx >= 0 ? sizeIdx : 0;
+
+        isNsfw = venue.Nsfw;
+        description = venue.Description;
+        registerOwnerId = venue.OwnerIdHashes.Count > 0;
+
+        if (venue.Colors != null)
+        {
+            colorPrimary = venue.Colors.Primary;
+            colorAccent = venue.Colors.Accent;
+            colorSecondary = venue.Colors.Secondary;
+            colPriVec = HexToVec3(venue.Colors.Primary);
+            colAccVec = HexToVec3(venue.Colors.Accent);
+            colSecVec = HexToVec3(venue.Colors.Secondary);
+        }
+
+        if (venue.Links != null)
+        {
+            discordLink = venue.Links.Discord;
+            partakeLink = venue.Links.Partake;
+            xivVenuesLink = venue.Links.FfxivVenues;
+            websiteLink = venue.Links.Website;
+        }
+
+        services.Clear();
+        foreach (var floor in venue.Floors)
+        {
+            var floorIdx = Array.IndexOf(FloorNames, floor.Name);
+            if (floorIdx < 0) continue;
+            foreach (var svc in floor.Services)
+            {
+                var typeIdx = Array.IndexOf(ServiceTypes, svc.Type);
+                services.Add(new ServiceEntry
+                {
+                    TypeIndex = typeIdx >= 0 ? typeIdx : 0,
+                    Name = svc.Label,
+                    FloorIndex = floorIdx,
+                    Coords = new Vector3(svc.X, svc.Y, svc.Z),
+                });
+            }
+        }
+
+        plugin.Toasts.Show(Lang.ToastVenueLoaded(venue.Name), ToastKind.Success, 2.5);
+    }
+
+    private static Vector3 HexToVec3(string hex)
+    {
+        var h = (hex ?? "").TrimStart('#');
+        if (h.Length != 6 || !int.TryParse(h, System.Globalization.NumberStyles.HexNumber, null, out var c))
+            return new Vector3(1f, 1f, 1f);
+        return new Vector3((c >> 16 & 0xFF) / 255f, (c >> 8 & 0xFF) / 255f, (c & 0xFF) / 255f);
+    }
+
     private static readonly string[] ServiceTypes =
         ["bar", "dj_booth", "gambling", "entrance", "upstairs", "downstairs", "vip", "bath", "spa", "event", "stage"];
+    private static readonly string[] ServiceTypeLabels =
+        Array.ConvertAll(ServiceTypes, VenueMapWindow.ChipLabel);
     private static readonly string[] FloorNames =
         ["ground", "second", "cellar"];
+    private static readonly string[] FloorNameLabels =
+        Array.ConvertAll(FloorNames, VenueMapWindow.TranslateFloorName);
 
-    public OwnerSubmitWindow(VenueMapperPlugin plugin)
-        : base("Venue Owner Setup##OwnerSubmit",
+    private readonly bool isUpdateMode;
+
+    public OwnerSubmitWindow(VenueMapperPlugin plugin, bool isUpdateMode = false)
+        : base(isUpdateMode ? "Update Venue##OwnerUpdate" : "Venue Owner Setup##OwnerSubmit",
             ImGuiWindowFlags.NoCollapse | ImGuiWindowFlags.NoDocking | ImGuiWindowFlags.NoResize)
     {
         this.plugin = plugin;
-        Size = new Vector2(525, 600);
+        this.isUpdateMode = isUpdateMode;
+        Size = new Vector2(525, 650);
         SizeCondition = ImGuiCond.Always;
     }
 
+    private bool IdentityKnown() => isUpdateMode;
+
     public override void PreDraw()
     {
+        var accent = isUpdateMode ? UIConstants.Glow : UIConstants.Primary;
         ImGui.PushStyleColor(ImGuiCol.WindowBg, UIConstants.Background);
-        ImGui.PushStyleColor(ImGuiCol.TitleBg, UIConstants.WithAlpha(UIConstants.Primary, 0.2f));
-        ImGui.PushStyleColor(ImGuiCol.TitleBgActive, UIConstants.WithAlpha(UIConstants.Primary, 0.3f));
+        ImGui.PushStyleColor(ImGuiCol.TitleBg, UIConstants.WithAlpha(accent, 0.2f));
+        ImGui.PushStyleColor(ImGuiCol.TitleBgActive, UIConstants.WithAlpha(accent, 0.3f));
         ImGui.PushStyleColor(ImGuiCol.Border, UIConstants.WithAlpha(UIConstants.Glow, 0.5f));
         ImGui.PushStyleVar(ImGuiStyleVar.WindowBorderSize, 1.5f);
     }
@@ -147,9 +234,13 @@ public class OwnerSubmitWindow : Window, IDisposable
 
     public override void Draw()
     {
-        ImGui.TextColored(UIConstants.Primary, Lang.OwnerTitle);
+        var hackerBooting = UIConstants.IsHackerBooting;
+        if (hackerBooting) ImGui.BeginDisabled();
+
+        ImGui.TextColored(isUpdateMode ? UIConstants.Glow : UIConstants.Primary,
+            isUpdateMode ? Lang.UpdateVenueTitle : Lang.OwnerTitle);
         ImGui.TextColored(UIConstants.WithAlpha(UIConstants.TextSecondary, 0.5f),
-            Lang.OwnerDesc);
+            isUpdateMode ? Lang.UpdateVenueDesc : Lang.OwnerDesc);
         ImGui.Spacing();
 
         if (ImGui.BeginTabBar("##ownerTabs"))
@@ -182,6 +273,10 @@ public class OwnerSubmitWindow : Window, IDisposable
             ImGui.Spacing();
             ImGui.TextColored(UIConstants.Glow, $"{Lang.Copied} {copiedWhat}");
         }
+
+        if (hackerBooting) ImGui.EndDisabled();
+
+        HackerModeOverlay.Draw(ref hackerModeStart, ref hackerTitleLoopStart, WindowName);
     }
 
     private void DrawVenueInfo()
@@ -202,7 +297,7 @@ public class OwnerSubmitWindow : Window, IDisposable
         PushFieldStyle();
 
         Field(Lang.VenueName, ref clubName, Lang.VenueNameHint);
-        Field(Lang.YourDiscord, ref discordName, Lang.DiscordHint);
+        Field(IdentityKnown() ? Lang.YourDiscordOptional : Lang.YourDiscord, ref discordName, Lang.DiscordHint);
         ImGui.Spacing();
 
         ImGui.TextColored(UIConstants.TextSecondary, Lang.Datacenter);
@@ -253,6 +348,19 @@ public class OwnerSubmitWindow : Window, IDisposable
         ImGui.TextColored(UIConstants.TextSecondary, Lang.HouseSize);
         ImGui.SetNextItemWidth(-1);
         ImGui.Combo("##housesize", ref houseSizeIndex, HouseSizeLabels, HouseSizeLabels.Length);
+
+        ImGui.Spacing();
+        ImGui.PushStyleColor(ImGuiCol.CheckMark, UIConstants.Primary);
+        ImGui.Checkbox(Lang.NsfwVenue, ref isNsfw);
+        ImGui.PopStyleColor();
+        if (ImGui.IsItemHovered()) ImGui.SetTooltip(Lang.NsfwVenueTip);
+        ImGui.SameLine();
+        ImGui.TextColored(UIConstants.WithAlpha(UIConstants.TextSecondary, 0.4f), $"({Lang.NsfwUncheckedHint})");
+
+        ImGui.PushStyleColor(ImGuiCol.CheckMark, UIConstants.Glow);
+        ImGui.Checkbox(Lang.RegisterOwnerId, ref registerOwnerId);
+        ImGui.PopStyleColor();
+        if (ImGui.IsItemHovered()) ImGui.SetTooltip(Lang.RegisterOwnerIdTip);
 
         ImGui.Spacing();
         Field(Lang.Description, ref description, "");
@@ -326,13 +434,13 @@ public class OwnerSubmitWindow : Window, IDisposable
             {
                 ImGui.TextColored(UIConstants.TextSecondary, Lang.ServiceType);
                 ImGui.SetNextItemWidth(-1);
-                ImGui.Combo("##type", ref svc.TypeIndex, ServiceTypes, ServiceTypes.Length);
+                ImGui.Combo("##type", ref svc.TypeIndex, ServiceTypeLabels, ServiceTypeLabels.Length);
 
                 Field(Lang.ServiceName, ref svc.Name, Lang.ServiceNameHint);
 
                 ImGui.TextColored(UIConstants.TextSecondary, Lang.Floor);
                 ImGui.SetNextItemWidth(-1);
-                ImGui.Combo("##floor", ref svc.FloorIndex, FloorNames, FloorNames.Length);
+                ImGui.Combo("##floor", ref svc.FloorIndex, FloorNameLabels, FloorNameLabels.Length);
 
                 ImGui.TextColored(UIConstants.TextSecondary, Lang.Coordinates);
                 ImGui.SetNextItemWidth(ImGui.GetContentRegionAvail().X * 0.6f);
@@ -351,7 +459,6 @@ public class OwnerSubmitWindow : Window, IDisposable
                         > 6.5f  => 1,
                         _       => 0,
                     };
-                    AutoDetectHouseSizeFromTerritory();
                 }
                 ImGui.PopStyleColor(2);
 
@@ -390,7 +497,8 @@ public class OwnerSubmitWindow : Window, IDisposable
         ImGui.Spacing();
         ImGui.PushTextWrapPos(0);
 
-        var valid = clubName.Length > 0 && discordName.Length > 0 && selectedDc.Length > 0 && selectedServer.Length > 0 && ward.Length > 0 && plot.Length > 0;
+        var identityKnown = IdentityKnown();
+        var valid = clubName.Length > 0 && (identityKnown || discordName.Length > 0) && selectedDc.Length > 0 && selectedServer.Length > 0 && ward.Length > 0 && plot.Length > 0;
         if (!valid)
         {
             ImGui.TextColored(new Vector4(1, 0.3f, 0.3f, 0.8f), Lang.FillRequired);
@@ -399,35 +507,36 @@ public class OwnerSubmitWindow : Window, IDisposable
 
         ImGui.TextColored(UIConstants.Primary, Lang.OptForm);
         ImGui.TextColored(UIConstants.WithAlpha(UIConstants.TextSecondary, 0.5f),
-            Lang.OptFormDesc);
+            identityKnown ? Lang.OptFormDescVerified : Lang.OptFormDesc);
         ImGui.Spacing();
 
-        if (!valid) ImGui.BeginDisabled();
-
-        ImGui.PushStyleColor(ImGuiCol.Button, UIConstants.WithAlpha(new Vector4(0.2f, 0.5f, 1f, 1f), 0.25f));
-        ImGui.PushStyleColor(ImGuiCol.ButtonHovered, UIConstants.WithAlpha(new Vector4(0.2f, 0.5f, 1f, 1f), 0.45f));
-        ImGui.PushStyleColor(ImGuiCol.Text, new Vector4(0.4f, 0.7f, 1f, 1f));
+        ImGui.PushStyleColor(ImGuiCol.Button, UIConstants.WithAlpha(new Vector4(0.2f, 0.5f, 1f, 1f), valid ? 0.25f : 0.1f));
+        ImGui.PushStyleColor(ImGuiCol.ButtonHovered, UIConstants.WithAlpha(new Vector4(0.2f, 0.5f, 1f, 1f), valid ? 0.45f : 0.15f));
+        ImGui.PushStyleColor(ImGuiCol.Text, UIConstants.WithAlpha(new Vector4(0.4f, 0.7f, 1f, 1f), valid ? 1f : 0.5f));
         if (ImGui.Button(Lang.OpenForm, new Vector2(-1, 28)))
         {
-            var formUrl = GenerateGoogleFormUrl();
-            try { System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo
-                { FileName = formUrl, UseShellExecute = true }); } catch { }
-            copied = true; copiedTime = ImGui.GetTime(); copiedWhat = Lang.FormOpened;
+            if (!valid)
+            {
+                plugin.Toasts.Show(Lang.ToastRequiredFieldsMissing, ToastKind.Info, 3.0);
+            }
+            else
+            {
+                var formUrl = GenerateGoogleFormUrl();
+                try { System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo
+                    { FileName = formUrl, UseShellExecute = true }); } catch { }
+                copied = true; copiedTime = ImGui.GetTime(); copiedWhat = Lang.FormOpened;
+            }
         }
         ImGui.PopStyleColor(3);
-
-        if (!valid) ImGui.EndDisabled();
 
         ImGui.Spacing();
         ImGui.Separator();
         ImGui.Spacing();
 
-        ImGui.TextColored(UIConstants.Glow, Lang.OptDiscord);
+        ImGui.TextColored(UIConstants.Glow, identityKnown ? Lang.SendUpdate : Lang.OptDiscord);
         ImGui.TextColored(UIConstants.WithAlpha(UIConstants.TextSecondary, 0.5f),
-            Lang.OptDiscordDesc);
+            identityKnown ? Lang.SendUpdateDesc : Lang.OptDiscordDesc);
         ImGui.Spacing();
-
-        if (!valid) ImGui.BeginDisabled();
 
         var jsonCopied = copyJsonStart > 0 && (ImGui.GetTime() - copyJsonStart) < 3.0;
         if (jsonCopied)
@@ -440,18 +549,24 @@ public class OwnerSubmitWindow : Window, IDisposable
         }
         else
         {
-            ImGui.PushStyleColor(ImGuiCol.Button, UIConstants.WithAlpha(UIConstants.Primary, 0.25f));
-            ImGui.PushStyleColor(ImGuiCol.ButtonHovered, UIConstants.WithAlpha(UIConstants.Primary, 0.45f));
-            ImGui.PushStyleColor(ImGuiCol.Text, UIConstants.Primary);
+            ImGui.PushStyleColor(ImGuiCol.Button, UIConstants.WithAlpha(UIConstants.Primary, valid ? 0.25f : 0.1f));
+            ImGui.PushStyleColor(ImGuiCol.ButtonHovered, UIConstants.WithAlpha(UIConstants.Primary, valid ? 0.45f : 0.15f));
+            ImGui.PushStyleColor(ImGuiCol.Text, UIConstants.WithAlpha(UIConstants.Primary, valid ? 1f : 0.5f));
             if (ImGui.Button($"{Lang.CopyJson}##copyJson", new Vector2(-1, 28)))
             {
-                ImGui.SetClipboardText(FormatJson());
-                copyJsonStart = ImGui.GetTime();
+                if (!valid)
+                {
+                    plugin.Toasts.Show(Lang.ToastRequiredFieldsMissing, ToastKind.Info, 3.0);
+                }
+                else
+                {
+                    ImGui.SetClipboardText(FormatJson());
+                    copyJsonStart = ImGui.GetTime();
+                    plugin.Toasts.Show(Lang.ToastJsonCopied, ToastKind.Success, 2.0);
+                }
             }
             ImGui.PopStyleColor(3);
         }
-
-        if (!valid) ImGui.EndDisabled();
 
         ImGui.Spacing();
         ImGui.Separator();
@@ -464,8 +579,8 @@ public class OwnerSubmitWindow : Window, IDisposable
             ImGui.PushTextWrapPos(0);
             ImGui.TextColored(UIConstants.WithAlpha(UIConstants.TextSecondary, 0.6f), FormatJson());
             ImGui.PopTextWrapPos();
-            ImGui.EndChild();
         }
+        ImGui.EndChild();
         ImGui.PopStyleColor();
 
         ImGui.PopTextWrapPos();
@@ -497,16 +612,23 @@ public class OwnerSubmitWindow : Window, IDisposable
 
     private string FormatServicesJson()
     {
-        if (services.Count == 0) return "";
+        var ci = System.Globalization.CultureInfo.InvariantCulture;
         var sb = new System.Text.StringBuilder();
-        sb.Append("[");
+        sb.Append("{");
+        sb.Append($"\"nsfw\":{(isNsfw ? "true" : "false")},");
+        if (registerOwnerId)
+        {
+            var ownerIdHash = OwnerIdHelper.ComputeHash(VenueMapperPlugin.PlayerState.ContentId);
+            sb.Append($"\"ownerIdHash\":{Newtonsoft.Json.JsonConvert.ToString(ownerIdHash)},");
+        }
+        sb.Append("\"services\":[");
         for (var i = 0; i < services.Count; i++)
         {
             var s = services[i];
             if (i > 0) sb.Append(",");
-            sb.Append($"{{\"type\":\"{ServiceTypes[s.TypeIndex]}\",\"name\":{Newtonsoft.Json.JsonConvert.ToString(s.Name)},\"floor\":\"{FloorNames[s.FloorIndex]}\",\"x\":{s.Coords.X:F1},\"y\":{s.Coords.Y:F1},\"z\":{s.Coords.Z:F1}}}");
+            sb.Append($"{{\"type\":\"{ServiceTypes[s.TypeIndex]}\",\"name\":{Newtonsoft.Json.JsonConvert.ToString(s.Name)},\"floor\":\"{FloorNames[s.FloorIndex]}\",\"x\":{s.Coords.X.ToString("F1", ci)},\"y\":{s.Coords.Y.ToString("F1", ci)},\"z\":{s.Coords.Z.ToString("F1", ci)}}}");
         }
-        sb.Append("]");
+        sb.Append("]}");
         return sb.ToString();
     }
 
@@ -535,14 +657,28 @@ public class OwnerSubmitWindow : Window, IDisposable
 
     private string FormatJson()
     {
+        var isUpdate = loadedVenueId.Length > 0;
+        var venueId = isUpdate ? loadedVenueId : clubName.ToLowerInvariant().Replace(" ", "");
+
         var sb = new System.Text.StringBuilder();
         sb.AppendLine("{");
-        sb.AppendLine($"  \"venueId\": {J(clubName.ToLowerInvariant().Replace(" ", ""))},");
+        sb.AppendLine($"  \"type\": {J(isUpdate ? "update" : "new")},");
+        sb.AppendLine($"  \"venueId\": {J(venueId)},");
+        if (registerOwnerId)
+        {
+            var ownerIdHash = OwnerIdHelper.ComputeHash(VenueMapperPlugin.PlayerState.ContentId);
+            sb.AppendLine($"  \"ownerIdHash\": {J(ownerIdHash)},");
+        }
         sb.AppendLine($"  \"name\": {J(clubName)},");
         sb.AppendLine($"  \"address\": {J($"{selectedDc} - {selectedServer} - {Districts[districtIndex]} - Ward {ward} - Plot {plot}")},");
         sb.AppendLine($"  \"datacenter\": {J(selectedDc)},");
         sb.AppendLine($"  \"server\": {J(selectedServer)},");
         sb.AppendLine($"  \"houseSize\": {J(HouseSizeKeys[houseSizeIndex])},");
+        sb.AppendLine($"  \"ward\": {(int.TryParse(ward, System.Globalization.NumberStyles.Integer, System.Globalization.CultureInfo.InvariantCulture, out var wardNum) ? wardNum : 0)},");
+        sb.AppendLine($"  \"plot\": {(int.TryParse(plot, System.Globalization.NumberStyles.Integer, System.Globalization.CultureInfo.InvariantCulture, out var plotNum) ? plotNum : 0)},");
+        sb.AppendLine($"  \"nsfw\": {(isNsfw ? "true" : "false")},");
+        sb.AppendLine($"  \"description\": {J(description)},");
+        sb.AppendLine("  \"availableFloors\": [" + string.Join(", ", services.Select(s => FloorNames[s.FloorIndex]).Distinct().Select(J)) + "],");
         sb.AppendLine("  \"colors\": {");
         sb.AppendLine($"    \"primary\": {J(colorPrimary)},");
         sb.AppendLine($"    \"accent\": {J(colorAccent)},");
@@ -566,7 +702,8 @@ public class OwnerSubmitWindow : Window, IDisposable
             {
                 var s = svcs[si];
                 var comma = si < svcs.Count - 1 ? "," : "";
-                sb.AppendLine($"      {{ \"type\": \"{ServiceTypes[s.TypeIndex]}\", \"label\": {Newtonsoft.Json.JsonConvert.ToString(s.Name)}, \"x\": {s.Coords.X:F2}, \"y\": {s.Coords.Y:F2}, \"z\": {s.Coords.Z:F2} }}{comma}");
+                var ci = System.Globalization.CultureInfo.InvariantCulture;
+                sb.AppendLine($"      {{ \"type\": \"{ServiceTypes[s.TypeIndex]}\", \"label\": {Newtonsoft.Json.JsonConvert.ToString(s.Name)}, \"x\": {s.Coords.X.ToString("F2", ci)}, \"y\": {s.Coords.Y.ToString("F2", ci)}, \"z\": {s.Coords.Z.ToString("F2", ci)} }}{comma}");
             }
             var fcomma = fi < floorList.Count - 1 ? "," : "";
             sb.AppendLine($"    ] }}{fcomma}");

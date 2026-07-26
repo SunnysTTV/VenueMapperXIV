@@ -43,6 +43,15 @@ public class Venue
 
     [JsonProperty("floors")]
     public List<Floor> Floors { get; set; } = new();
+
+    [JsonProperty("ownerIdHashes")]
+    public List<string> OwnerIdHashes { get; set; } = new();
+
+    [JsonProperty("nsfw")]
+    public bool Nsfw { get; set; }
+
+    [JsonProperty("description")]
+    public string Description { get; set; } = string.Empty;
 }
 
 public class VenueSocialLinks
@@ -81,10 +90,13 @@ public class VenueColors
     private static Vector4 HexToVec4(string hex)
     {
         hex = (hex ?? "#00f0ff").TrimStart('#');
-        if (hex.Length < 6) hex = "00f0ff";
-        var r = int.Parse(hex[..2], NumberStyles.HexNumber) / 255f;
-        var g = int.Parse(hex[2..4], NumberStyles.HexNumber) / 255f;
-        var b = int.Parse(hex[4..6], NumberStyles.HexNumber) / 255f;
-        return new Vector4(r, g, b, 1f);
+        if (hex.Length < 6
+            || !int.TryParse(hex[..2], NumberStyles.HexNumber, CultureInfo.InvariantCulture, out var ri)
+            || !int.TryParse(hex[2..4], NumberStyles.HexNumber, CultureInfo.InvariantCulture, out var gi)
+            || !int.TryParse(hex[4..6], NumberStyles.HexNumber, CultureInfo.InvariantCulture, out var bi))
+        {
+            return new Vector4(0f, 0.94f, 1f, 1f);
+        }
+        return new Vector4(ri / 255f, gi / 255f, bi / 255f, 1f);
     }
 }

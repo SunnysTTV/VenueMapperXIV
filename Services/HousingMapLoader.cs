@@ -17,14 +17,14 @@ public class HousingMapLoader : IDisposable
 
     public record MapInfo(string? Path, short OffsetX, short OffsetY, ushort SizeFactor);
 
-    private static readonly (uint Min, uint Max, string Folder)[] HousingDistrictRanges =
-    [
-        (339,  344,  "h0a0"), // Mist
-        (345,  350,  "h0b0"), // Lavender Beds
-        (351,  356,  "h0c0"), // The Goblet
-        (655,  660,  "h0d0"), // Shirogane
-        (665,  670,  "h0e0"), // Empyreum
-    ];
+    private static readonly Dictionary<string, string> DistrictFolders = new()
+    {
+        ["Mist"]          = "h0a0",
+        ["Lavender Beds"] = "h0b0",
+        ["The Goblet"]    = "h0c0",
+        ["Shirogane"]     = "h0d0",
+        ["Empyreum"]      = "h0e0",
+    };
 
     public HousingMapLoader(IDataManager dataManager, ITextureProvider textureProvider, IPluginLog log)
     {
@@ -33,10 +33,10 @@ public class HousingMapLoader : IDisposable
         this.log = log;
     }
 
-    public ISharedImmediateTexture? GetMapTexture(uint territoryId, uint mapId = 0)
+    public ISharedImmediateTexture? GetMapTexture(uint territoryId, uint mapId = 0, string? outdoorDistrict = null)
     {
         var info = mapId > 0 ? GetMapInfoByMapId(mapId) : null;
-        info ??= GetMapInfo(territoryId);
+        info ??= GetMapInfo(territoryId, outdoorDistrict);
         if (info?.Path == null) return null;
 
         var cacheKey = $"{territoryId}_{mapId}";
@@ -84,8 +84,8 @@ public class HousingMapLoader : IDisposable
         var slash = rawId.IndexOf('/');
         if (slash > 0)
         {
-            var folder = rawId[..slash];   // "h2i3"
-            var index  = rawId[(slash + 1)..]; // "01"
+            var folder = rawId[..slash];
+            var index  = rawId[(slash + 1)..];
             return $"ui/map/{folder}/{index}/{folder}{index}_m.tex";
         }
 
@@ -125,21 +125,18 @@ public class HousingMapLoader : IDisposable
         }
     }
 
-    public MapInfo GetMapInfo(uint territoryId)
+    public MapInfo GetMapInfo(uint territoryId, string? outdoorDistrict = null)
     {
         if (infoCache.TryGetValue(territoryId, out var cached))
             return cached;
 
-        foreach (var (min, max, folder) in HousingDistrictRanges)
+        if (!string.IsNullOrEmpty(outdoorDistrict) && DistrictFolders.TryGetValue(outdoorDistrict, out var folder))
         {
-            if (territoryId >= min && territoryId <= max)
-            {
-                var houPath = $"bgcommon/hou/{folder}/s0_0_0.tex";
-                log.Debug($"[MapLoader] Territory {territoryId} -> bgcommon/hou path: {houPath}");
-                var result = new MapInfo(houPath, 0, 0, 100);
-                infoCache[territoryId] = result;
-                return result;
-            }
+            var houPath = $"bgcommon/hou/{folder}/s0_0_0.tex";
+            log.Debug($"[MapLoader] District {outdoorDistrict} -> bgcommon/hou path: {houPath}");
+            var result = new MapInfo(houPath, 0, 0, 100);
+            infoCache[territoryId] = result;
+            return result;
         }
 
         try

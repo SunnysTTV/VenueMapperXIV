@@ -35,7 +35,11 @@ public class VenueMapWindow : Window, IDisposable
     private bool selectEvtTab;
     private bool selectMapTab;
     private bool selectSettingsTab;
+    private bool selectEggTab;
+    private bool selectAbtTab;
+    private string lastActiveTab = "map";
     private string searchText = string.Empty;
+    private bool showHidden;
     private readonly HashSet<string> selectedDcs = new();
     private readonly HashSet<string> selectedServers = new();
     private readonly EventsView eventsView;
@@ -43,15 +47,83 @@ public class VenueMapWindow : Window, IDisposable
     private readonly Dictionary<string, double> copyAnimStart = new();
     private readonly Dictionary<string, double> tpAnimStart = new();
 
+    private static readonly Random EggRng = new();
+    private bool pendingWobbleOpen;
+    private double wobbleOpenStart = -1;
+    private double wobbleCloseStart = -1;
+    private Vector2 wobbleOpenAnchor;
+    private Vector2 wobbleCloseAnchor;
+    private int wobbleOpenVariant;
+    private int wobbleCloseVariant;
+    private bool suppressCloseWobble;
+    private const double WobbleOpenDuration = 0.35;
+    private const double WobbleCloseDuration = 0.45;
+    private const int WobbleVariantCount = 9;
+    private const string DefaultTitle = "Venue Map";
+
+    private int titleClickCount;
+    private DateTime lastTitleClickTime = DateTime.MinValue;
+    private Vector2? pendingTitlePinPos;
+    private bool titlePinHeld;
+    private Vector2? pendingResetPos;
+    private Vector2? pendingResetSize;
+
+    private static readonly Vector2 DefaultWindowPos = new(100, 100);
+    private static readonly Vector2 DefaultWindowSize = new(560, 700);
+
+    public void ResetWindowPosition()
+    {
+        pendingResetPos = DefaultWindowPos;
+        pendingResetSize = DefaultWindowSize;
+        plugin.Configuration.WindowPosition = null;
+        plugin.Configuration.WindowSize = null;
+        plugin.Configuration.Save();
+    }
+
+    private static readonly string[] RandomTitlePool =
+    [
+        "Club Chaos Manager 9000",
+        "Venue Vibes (TM)",
+        "Not A Bug, A Feature Mapper",
+        "Where Am I Even",
+        "Certified Club Whisperer",
+        "VenueMapper (Trust Me Bro Edition)",
+        "Definitely Not Spyware",
+        "Ward Wanderer 3000",
+        "Plot Twist Finder",
+        "Professional Lurker.exe",
+        "Emergency Dance Floor Locator",
+        "The Grand Opening Never Ends",
+        "Certified Housing Goblin",
+        "VenueMapper But Cooler",
+        "Totally Legit Housing Tool",
+        "Serial Plot Enthusiast",
+        "Aetheryte Adjacent",
+        "Map? I Barely Know Her",
+        "The Venue Whisperer's Apprentice",
+        "404: Subtlety Not Found",
+    ];
+
+    private static readonly string[] SunnyLinePool =
+    [
+        "Home sweet home, Sunny.",
+        "The walls remember who built them.",
+        "Nice to see the owner drop by.",
+        "This place recognizes its architect.",
+    ];
+
+    public string PickSunnyLine() => SunnyLinePool[EggRng.Next(SunnyLinePool.Length)];
+
     public VenueMapWindow(VenueMapperPlugin plugin)
         : base("Venue Map##VenueMapper",
             ImGuiWindowFlags.NoScrollbar | ImGuiWindowFlags.NoScrollWithMouse)
     {
         this.plugin = plugin;
         this.eventsView = new EventsView(plugin.PartakeApi);
-        Size = new Vector2(560, 640);
+        lastActiveTab = plugin.Configuration.LastActiveTab ?? "map";
+        Size = new Vector2(560, 700);
         SizeCondition = ImGuiCond.FirstUseEver;
-        SizeConstraints = new WindowSizeConstraints { MinimumSize = new Vector2(450, 600) };
+        SizeConstraints = new WindowSizeConstraints { MinimumSize = new Vector2(450, 660) };
 
         TitleBarButtons =
         [
@@ -88,7 +160,9 @@ public class VenueMapWindow : Window, IDisposable
         ImGui.PushStyleColor(ImGuiCol.TitleBg,       UIConstants.WithAlpha(UIConstants.Primary, 0.18f));
         ImGui.PushStyleColor(ImGuiCol.TitleBgActive, UIConstants.WithAlpha(UIConstants.Primary, 0.28f));
         ImGui.PushStyleColor(ImGuiCol.Border,        UIConstants.WithAlpha(UIConstants.Glow, 0.55f));
-        ImGui.PushStyleVar(ImGuiStyleVar.WindowBorderSize, 1.5f);
+
+        var rgbActive = plugin.EasterEggManager.IsRgbOverloadActive;
+        ImGui.PushStyleVar(ImGuiStyleVar.WindowBorderSize, rgbActive ? 3f : 1.5f);
         ImGui.PushStyleVar(ImGuiStyleVar.WindowPadding, new Vector2(10, 8));
         ImGui.PushStyleVar(ImGuiStyleVar.WindowRounding, 0f);
     }
@@ -103,17 +177,209 @@ public class VenueMapWindow : Window, IDisposable
     public void HideDirectory() { selectMapTab = true; }
     public void ShowEvents() { selectEvtTab = true; }
     public void ShowSettings() { selectSettingsTab = true; }
+    public void ShowEasterEggs() { selectEggTab = true; }
+
+    public void TriggerWobblePreview() => pendingWobbleOpen = true;
+
+    public void TriggerRandomTitlePreview()
+    {
+        pendingTitlePinPos = ImGui.GetWindowPos();
+        WindowName = RandomTitlePool[EggRng.Next(RandomTitlePool.Length)] + "##VenueMapper";
+    }
+
+    public override void OnOpen()
+    {
+        var eggs = plugin.EasterEggManager;
+
+        if (eggs.IsEnabled(EasterEggIds.WindowWobble) && EggRng.Next(30) == 0)
+            pendingWobbleOpen = true;
+
+        if (eggs.IsEnabled(EasterEggIds.RandomTitle))
+        {
+            WindowName = RandomTitlePool[EggRng.Next(RandomTitlePool.Length)] + "##VenueMapper";
+        }
+        else if (!eggs.IsDiscovered(EasterEggIds.RandomTitle) && EggRng.Next(30) == 0)
+        {
+            eggs.Unlock(EasterEggIds.RandomTitle);
+            WindowName = RandomTitlePool[EggRng.Next(RandomTitlePool.Length)] + "##VenueMapper";
+        }
+        else
+        {
+            WindowName = DefaultTitle + "##VenueMapper";
+        }
+
+        var defaultTab = plugin.Configuration.DefaultTab;
+        var effectiveTab = defaultTab == "remember" ? lastActiveTab : defaultTab;
+
+        if (effectiveTab == "map")
+        {
+            var cfg = plugin.ConfigManager.Config;
+            var inVenueNow = cfg != null && plugin.PositionTracker.GetCurrentVenue(cfg) != null;
+            if (!inVenueNow) effectiveTab = "dir";
+        }
+
+        switch (effectiveTab)
+        {
+            case "dir": selectDirTab = true; break;
+            case "evt": selectEvtTab = true; break;
+            case "set": selectSettingsTab = true; break;
+            case "egg": selectEggTab = true; break;
+            case "abt": selectAbtTab = true; break;
+            default: selectMapTab = true; break;
+        }
+    }
+
+    private void SetActiveTab(string tab)
+    {
+        if (lastActiveTab == tab) return;
+        lastActiveTab = tab;
+        if (plugin.Configuration.DefaultTab != "remember") return;
+        plugin.Configuration.LastActiveTab = tab;
+        plugin.Configuration.Save();
+    }
+
+    private void CheckTitleClick()
+    {
+        if (!ImGui.IsMouseClicked(ImGuiMouseButton.Left)) return;
+
+        var winPos = ImGui.GetWindowPos();
+        var winWidth = ImGui.GetWindowSize().X;
+        var titleBarHeight = ImGui.GetFrameHeight();
+        var mouse = ImGui.GetMousePos();
+
+        var inTitleBar = mouse.X >= winPos.X && mouse.X <= winPos.X + winWidth
+            && mouse.Y >= winPos.Y && mouse.Y <= winPos.Y + titleBarHeight;
+        if (!inTitleBar) return;
+
+        if ((DateTime.Now - lastTitleClickTime).TotalSeconds > 2.5)
+            titleClickCount = 0;
+        titleClickCount++;
+        lastTitleClickTime = DateTime.Now;
+
+        if (titleClickCount < 5) return;
+        titleClickCount = 0;
+
+        plugin.EasterEggManager.Unlock(EasterEggIds.RandomTitle);
+        TriggerRandomTitlePreview();
+    }
 
     public override void OnClose()
     {
+        var eggs = plugin.EasterEggManager;
+        if (!suppressCloseWobble && wobbleCloseStart < 0 &&
+            eggs.IsEnabled(EasterEggIds.WindowWobble) && EggRng.Next(30) == 0)
+        {
+            IsOpen = true;
+            wobbleCloseStart = ImGui.GetTime();
+            wobbleCloseAnchor = ImGui.GetWindowPos();
+            wobbleCloseVariant = EggRng.Next(WobbleVariantCount);
+            return;
+        }
+
+        suppressCloseWobble = false;
         _wasClosed = true;
         plugin.Configuration.WindowPosition = ImGui.GetWindowPos();
         plugin.Configuration.WindowSize = ImGui.GetWindowSize();
         plugin.Configuration.Save();
     }
 
+    private static Vector2 WobbleOffset(int variant, float t, float amplitude)
+    {
+        var decay = 1f - t;
+        return variant switch
+        {
+            0 => new Vector2(0f, MathF.Sin(t * MathF.PI * 2.5f) * decay * amplitude),
+            1 => new Vector2(MathF.Sin(t * MathF.PI * 6f) * decay * amplitude, 0f),
+            2 => new Vector2(
+                    MathF.Sin(t * MathF.PI * 4f) * decay * amplitude * 0.7f,
+                    MathF.Cos(t * MathF.PI * 3f) * decay * amplitude * 0.5f),
+            3 => new Vector2(0f, MathF.Sin(t * MathF.PI * 3f) * decay * decay * amplitude * 1.6f),
+            4 => new Vector2(MathF.Sin(t * MathF.PI * 8f) * decay * decay * amplitude, 0f),
+            5 => new Vector2(
+                    MathF.Sin(t * MathF.PI * 2f) * decay * amplitude,
+                    MathF.Sin(t * MathF.PI * 4f) * decay * amplitude * 0.6f),
+            6 => new Vector2(0f, -MathF.Abs(MathF.Sin(t * MathF.PI * 3.5f)) * decay * amplitude * 1.4f),
+            7 => new Vector2(
+                    MathF.Cos(t * MathF.PI * 5f) * decay * amplitude * 0.8f,
+                    MathF.Sin(t * MathF.PI * 5f) * decay * amplitude * 0.8f),
+            _ => new Vector2(
+                    MathF.Sin(t * MathF.PI * 6f) * decay * amplitude * 0.5f,
+                    MathF.Sin(t * MathF.PI * 2.5f) * decay * amplitude),
+        };
+    }
+
+    private void ApplyWobble()
+    {
+        if (pendingWobbleOpen)
+        {
+            wobbleOpenStart = ImGui.GetTime();
+            wobbleOpenAnchor = ImGui.GetWindowPos();
+            wobbleOpenVariant = EggRng.Next(WobbleVariantCount);
+            pendingWobbleOpen = false;
+        }
+
+        if (wobbleOpenStart >= 0)
+        {
+            var elapsed = ImGui.GetTime() - wobbleOpenStart;
+            if (elapsed < WobbleOpenDuration)
+            {
+                var t = (float)(elapsed / WobbleOpenDuration);
+                ImGui.SetWindowPos(wobbleOpenAnchor + WobbleOffset(wobbleOpenVariant, t, 16f));
+            }
+            else
+            {
+                ImGui.SetWindowPos(wobbleOpenAnchor);
+                wobbleOpenStart = -1;
+            }
+        }
+
+        if (wobbleCloseStart >= 0)
+        {
+            var elapsed = ImGui.GetTime() - wobbleCloseStart;
+            if (elapsed < WobbleCloseDuration)
+            {
+                var t = (float)(elapsed / WobbleCloseDuration);
+                ImGui.SetWindowPos(wobbleCloseAnchor + WobbleOffset(wobbleCloseVariant, t, 12f));
+            }
+            else
+            {
+                ImGui.SetWindowPos(wobbleCloseAnchor);
+                wobbleCloseStart = -1;
+                suppressCloseWobble = true;
+                IsOpen = false;
+            }
+        }
+    }
+
     public override void Draw()
     {
+        if (pendingTitlePinPos.HasValue)
+        {
+            Position = pendingTitlePinPos.Value;
+            PositionCondition = ImGuiCond.Always;
+            pendingTitlePinPos = null;
+            titlePinHeld = true;
+        }
+        else if (pendingResetPos.HasValue)
+        {
+            Position = pendingResetPos.Value;
+            PositionCondition = ImGuiCond.Always;
+            Size = pendingResetSize;
+            SizeCondition = ImGuiCond.Always;
+            pendingResetPos = null;
+            pendingResetSize = null;
+            titlePinHeld = true;
+        }
+        else if (titlePinHeld)
+        {
+            Position = null;
+            Size = null;
+            titlePinHeld = false;
+        }
+
+        ApplyWobble();
+        plugin.KonamiDetector.Update(ImGui.IsWindowFocused(ImGuiFocusedFlags.RootAndChildWindows));
+
         var config = plugin.ConfigManager.Config;
         if (config == null || config.Venues.Count == 0)
         {
@@ -132,8 +398,12 @@ public class VenueMapWindow : Window, IDisposable
         var dirF = selectDirTab ? ImGuiTabItemFlags.SetSelected : ImGuiTabItemFlags.None;
         var evtF = selectEvtTab ? ImGuiTabItemFlags.SetSelected : ImGuiTabItemFlags.None;
         var setF = selectSettingsTab ? ImGuiTabItemFlags.SetSelected : ImGuiTabItemFlags.None;
-        var abtF = ImGuiTabItemFlags.None;
-        selectMapTab = selectDirTab = selectEvtTab = selectSettingsTab = false;
+        var eggF = selectEggTab ? ImGuiTabItemFlags.SetSelected : ImGuiTabItemFlags.None;
+        var abtF = selectAbtTab ? ImGuiTabItemFlags.SetSelected : ImGuiTabItemFlags.None;
+        selectMapTab = selectDirTab = selectEvtTab = selectSettingsTab = selectEggTab = selectAbtTab = false;
+
+        var hackerBooting = plugin.EasterEggManager.IsHackerModeBooting;
+        if (hackerBooting) ImGui.BeginDisabled();
 
         if (ImGui.BeginTabBar("##mainTabs"))
         {
@@ -154,33 +424,45 @@ public class VenueMapWindow : Window, IDisposable
             }
             else if (ImGui.BeginTabItem($"{Lang.Map}##tab_map", mapF))
             {
+                SetActiveTab("map");
                 DrawMapOrDirectory(config);
                 ImGui.EndTabItem();
             }
 
             if (ImGui.BeginTabItem($"{Lang.Directory}##tab_dir", dirF))
             {
+                SetActiveTab("dir");
                 DrawDirectoryTab(config);
                 ImGui.EndTabItem();
             }
 
             if (ImGui.BeginTabItem($"{Lang.Events}##tab_evt", evtF))
             {
-                eventsView.SetVenues(config.Venues);
+                SetActiveTab("evt");
+                eventsView.SetVenues(config.Venues, plugin.Configuration.HiddenVenueIds);
                 if (ImGui.BeginChild("##eventsScroll", new Vector2(-1, -1)))
-                    eventsView.Draw();
+                    eventsView.Draw(ref showHidden);
                 ImGui.EndChild();
                 ImGui.EndTabItem();
             }
 
             if (ImGui.BeginTabItem($"{Lang.Settings}##tab_set", setF))
             {
+                SetActiveTab("set");
                 plugin.SettingsWindow.DrawSettingsTab();
+                ImGui.EndTabItem();
+            }
+
+            if (ImGui.BeginTabItem($"{Lang.EasterEggs}##tab_egg", eggF))
+            {
+                SetActiveTab("egg");
+                plugin.SettingsWindow.DrawEasterEggsTab();
                 ImGui.EndTabItem();
             }
 
             if (ImGui.BeginTabItem($"{Lang.About}##tab_abt", abtF))
             {
+                SetActiveTab("abt");
                 plugin.SettingsWindow.DrawAboutTab();
                 ImGui.EndTabItem();
             }
@@ -188,7 +470,55 @@ public class VenueMapWindow : Window, IDisposable
             ImGui.EndTabBar();
         }
 
+        if (hackerBooting) ImGui.EndDisabled();
+
         ImGui.PopStyleColor(4);
+
+        if (!hackerBooting) CheckTitleClick();
+
+        HackerModeOverlay.Draw(ref hackerModeStart, ref hackerTitleLoopStart, WindowName);
+    }
+
+    private double hackerModeStart = -1;
+    private double hackerTitleLoopStart = -1;
+
+    private readonly Dictionary<string, (bool isOpen, double checkedAt)> openNowCache = new();
+    private const double OpenNowCacheSeconds = 5.0;
+
+    private bool IsVenueOpenCached(Venue v)
+    {
+        var now = ImGui.GetTime();
+        if (openNowCache.TryGetValue(v.VenueId, out var cached) && now - cached.checkedAt < OpenNowCacheSeconds)
+            return cached.isOpen;
+
+        var isOpen = IsVenueOpenNow(v);
+        openNowCache[v.VenueId] = (isOpen, now);
+        return isOpen;
+    }
+
+    private bool IsVenueOpenNow(Venue v)
+    {
+        var xivId = ExtractXivVenuesId(v.Links?.FfxivVenues);
+        if (xivId != null)
+        {
+            plugin.XivVenues.RequestSchedule(xivId);
+            var sched = plugin.XivVenues.GetSchedule(xivId);
+            if (sched != null) return sched.IsOpenNow;
+        }
+
+        if (v.TeamId > 0)
+        {
+            _ = plugin.PartakeApi.FetchTeamAsync(v.TeamId);
+            var events = plugin.PartakeApi.GetEvents(v.TeamId);
+            if (events.Count > 0)
+            {
+                var evt = events[0];
+                var now = DateTime.UtcNow;
+                if (evt.StartTime <= now && evt.EndTime >= now) return true;
+            }
+        }
+
+        return false;
     }
 
     private void DrawDirectoryTab(VenueConfig config)
@@ -199,6 +529,8 @@ public class VenueMapWindow : Window, IDisposable
         ImGui.Spacing();
 
         var filtered = config.Venues.AsEnumerable();
+        if (!showHidden)
+            filtered = filtered.Where(v => !plugin.Configuration.HiddenVenueIds.Contains(v.VenueId));
         if (!string.IsNullOrEmpty(searchText))
             filtered = filtered.Where(v =>
                 v.Name.Contains(searchText, StringComparison.OrdinalIgnoreCase) ||
@@ -209,6 +541,7 @@ public class VenueMapWindow : Window, IDisposable
             filtered = filtered.Where(v => selectedServers.Any(s =>
                 v.Address.Contains(s, StringComparison.OrdinalIgnoreCase)));
 
+        var boostOpen = plugin.Configuration.BoostOpenVenues;
         var venues = filtered
             .OrderBy(v =>
             {
@@ -216,6 +549,7 @@ public class VenueMapWindow : Window, IDisposable
                 if (favAnimStart.TryGetValue(v.VenueId, out var t) && ImGui.GetTime() - t < 3.0) return 1;
                 return 0;
             })
+            .ThenBy(v => boostOpen && IsVenueOpenCached(v) ? 0 : 1)
             .ToList();
 
         if (ImGui.BeginChild("##venueScroll", new Vector2(-1, -1)))
@@ -373,15 +707,33 @@ public class VenueMapWindow : Window, IDisposable
         ImGui.PushStyleVar(ImGuiStyleVar.FrameBorderSize, 1f);
         ImGui.PushStyleVar(ImGuiStyleVar.FrameRounding, 3f);
 
-        var hasServerFilter = selectedDcs.Count > 0;
-        var searchW = hasServerFilter ? 0.30f : 0.55f;
-        var dcW = hasServerFilter ? 0.30f : 0.40f;
+        var toggleGlyph = (showHidden ? FontAwesomeIcon.Eye : FontAwesomeIcon.EyeSlash).ToIconString();
+        var iconFont = UiBuilder.IconFont;
+        ImGui.PushFont(iconFont);
+        var toggleW = ImGui.CalcTextSize(toggleGlyph).X + 12f;
+        ImGui.PopFont();
 
-        ImGui.SetNextItemWidth(avW * searchW);
+        ImGui.SetNextItemWidth(avW - toggleW - 4);
         ImGui.InputTextWithHint("##venueSearch", Lang.Search, ref searchText, 128);
 
         ImGui.SameLine(0, 4);
-        ImGui.SetNextItemWidth(avW * dcW);
+        ImGui.PushStyleColor(ImGuiCol.Button, showHidden
+            ? UIConstants.WithAlpha(UIConstants.Glow, 0.3f)
+            : UIConstants.WithAlpha(UIConstants.CardBackground, 0.9f));
+        ImGui.PushStyleColor(ImGuiCol.ButtonHovered, UIConstants.WithAlpha(UIConstants.Glow, 0.4f));
+        ImGui.PushStyleColor(ImGuiCol.ButtonActive, UIConstants.WithAlpha(UIConstants.Glow, 0.5f));
+        ImGui.PushFont(iconFont);
+        if (ImGui.Button($"{toggleGlyph}##showHidden", new Vector2(toggleW, 0)))
+            showHidden = !showHidden;
+        ImGui.PopFont();
+        ImGui.PopStyleColor(3);
+        if (ImGui.IsItemHovered())
+            ImGui.SetTooltip(Lang.ShowHidden);
+
+        var hasServerFilter = selectedDcs.Count > 0;
+        var dcW = hasServerFilter ? 0.5f : 1.0f;
+
+        ImGui.SetNextItemWidth(avW * dcW - (hasServerFilter ? 2f : 0f));
         var dcLabel = selectedDcs.Count == 0 ? Lang.AllDc : string.Join(", ", selectedDcs);
         if (ImGui.BeginCombo("##dcFilter", dcLabel))
         {
@@ -411,7 +763,7 @@ public class VenueMapWindow : Window, IDisposable
         if (hasServerFilter)
         {
             ImGui.SameLine(0, 4);
-            ImGui.SetNextItemWidth(avW * 0.35f);
+            ImGui.SetNextItemWidth(avW * 0.5f - 2f);
             var srvLabel = selectedServers.Count == 0 ? Lang.AllServers : string.Join(", ", selectedServers);
             if (ImGui.BeginCombo("##srvFilter", srvLabel))
             {
@@ -550,6 +902,7 @@ public class VenueMapWindow : Window, IDisposable
             var maxTextW = cardW - padX * 2 - 12;
 
             var isFav = plugin.Configuration.FavoriteVenueIds.Contains(v.VenueId);
+            var isHiddenVenue = plugin.Configuration.HiddenVenueIds.Contains(v.VenueId);
             var favAnimActive = favAnimStart.ContainsKey(v.VenueId);
             var rightX = cardMax.X - 4;
             var badgeCY = cardMin.Y + rowH * 0.5f;
@@ -709,7 +1062,11 @@ public class VenueMapWindow : Window, IDisposable
 
             var colors = v.Colors;
             uint nameCol;
-            if (colors != null)
+            if (UIConstants.OverrideMode != ColorOverrideMode.None)
+            {
+                nameCol = ImGui.ColorConvertFloat4ToU32(UIConstants.ApplyOverride(UIConstants.Primary));
+            }
+            else if (colors != null)
             {
                 var t = (float)(ImGui.GetTime() % 6.0) / 6.0f;
                 nameCol = t < 0.33f
@@ -722,7 +1079,25 @@ public class VenueMapWindow : Window, IDisposable
             {
                 nameCol = ImGui.ColorConvertFloat4ToU32(hovered ? UIConstants.Primary : UIConstants.TextPrimary);
             }
-            dl.AddText(new Vector2(nameX, cardMin.Y + padY), nameCol, v.Name.ToUpperInvariant());
+            var upperName = v.Name.ToUpperInvariant();
+            dl.AddText(new Vector2(nameX, cardMin.Y + padY), nameCol, upperName);
+
+            {
+                var nameSz = ImGui.CalcTextSize(upperName);
+                const float badgeScale = 0.75f;
+                var badgeText = v.Nsfw ? Lang.NsfwBadge : Lang.SfwBadge;
+                var badgeFont = ImGui.GetFont();
+                var badgeFontSize = ImGui.GetFontSize() * badgeScale;
+                var badgeTextSz = ImGui.CalcTextSize(badgeText) * badgeScale;
+                var badgePad = new Vector2(4, 1);
+                var badgeH = badgeTextSz.Y + badgePad.Y * 2;
+                var badgeMin = new Vector2(nameX + nameSz.X + 8, cardMin.Y + padY + (lineH - badgeH) / 2f);
+                var badgeMax = badgeMin + new Vector2(badgeTextSz.X + badgePad.X * 2, badgeH);
+                var badgeCol = v.Nsfw ? new Vector4(0.95f, 0.35f, 0.55f, 1f) : new Vector4(0.4f, 0.85f, 0.55f, 1f);
+                dl.AddRectFilled(badgeMin, badgeMax, ImGui.ColorConvertFloat4ToU32(UIConstants.WithAlpha(badgeCol, 0.18f)), 3f);
+                dl.AddText(badgeFont, badgeFontSize, new Vector2(badgeMin.X + badgePad.X, badgeMin.Y + badgePad.Y),
+                    ImGui.ColorConvertFloat4ToU32(UIConstants.WithAlpha(badgeCol, 0.85f)), badgeText);
+            }
 
             var addrCol = ImGui.ColorConvertFloat4ToU32(
                 hovered ? UIConstants.Glow : UIConstants.WithAlpha(UIConstants.TextSecondary, 0.7f));
@@ -764,8 +1139,18 @@ public class VenueMapWindow : Window, IDisposable
 
                 if (ImGui.Button(btnLabel, new Vector2(btnW, btnH)) && !tpActive)
                 {
-                    plugin.Lifestream.NavigateTo(v.Address);
-                    tpAnimStart[v.VenueId] = ImGui.GetTime();
+                    if (!plugin.Lifestream.IsLoaded)
+                    {
+                        plugin.Toasts.Show(Lang.ToastLifestreamMissing, ToastKind.Info, 3.5);
+                    }
+                    else
+                    {
+                        var teleportOk = plugin.Lifestream.NavigateTo(v.Address);
+                        plugin.Toasts.Show(
+                            teleportOk ? Lang.ToastTeleportingTo(v.Name) : Lang.ToastTeleportFailed,
+                            teleportOk ? ToastKind.Success : ToastKind.Info, 2.5);
+                        tpAnimStart[v.VenueId] = ImGui.GetTime();
+                    }
                 }
                 btnHovered = ImGui.IsItemHovered();
 
@@ -825,11 +1210,13 @@ public class VenueMapWindow : Window, IDisposable
                     {
                         plugin.Configuration.FavoriteVenueIds.Remove(v.VenueId);
                         favAnimStart.Remove(v.VenueId);
+                        plugin.Toasts.Show(Lang.ToastFavoriteRemoved(v.Name), ToastKind.Info, 2.0);
                     }
                     else
                     {
                         plugin.Configuration.FavoriteVenueIds.Add(v.VenueId);
                         favAnimStart[v.VenueId] = ImGui.GetTime();
+                        plugin.Toasts.Show(Lang.ToastFavoriteAdded(v.Name), ToastKind.Success, 2.0);
                     }
                     plugin.Configuration.Save();
                 }
@@ -837,9 +1224,28 @@ public class VenueMapWindow : Window, IDisposable
                 {
                     ImGui.SetClipboardText($"{v.Name} // {v.Address}");
                     copyAnimStart[v.VenueId] = ImGui.GetTime();
+                    plugin.Toasts.Show(Lang.ToastAddressCopied, ToastKind.Success, 2.0);
+                }
+                if (ImGui.MenuItem(isHiddenVenue ? Lang.UnhideVenue : Lang.HideVenue))
+                {
+                    if (isHiddenVenue)
+                    {
+                        plugin.Configuration.HiddenVenueIds.Remove(v.VenueId);
+                        plugin.Toasts.Show(Lang.ToastVenueUnhidden(v.Name), ToastKind.Info, 2.0);
+                    }
+                    else
+                    {
+                        plugin.Configuration.HiddenVenueIds.Add(v.VenueId);
+                        plugin.Toasts.Show(Lang.ToastVenueHidden(v.Name), ToastKind.Info, 2.0);
+                    }
+                    plugin.Configuration.Save();
                 }
                 ImGui.EndPopup();
             }
+
+            if (isHiddenVenue)
+                dl.AddRectFilled(cardMin, cardMax,
+                    ImGui.ColorConvertFloat4ToU32(UIConstants.WithAlpha(UIConstants.Background, 0.55f)));
 
             if (hovered)
             {
@@ -1074,6 +1480,9 @@ public class VenueMapWindow : Window, IDisposable
 
     private void DrawMapPanel(Venue venue, Floor floor, uint territoryId, uint mapId = 0)
     {
+        var tracker = plugin.PositionTracker;
+        var outdoorDistrict = tracker.IsInsideHouse ? null : tracker.CurrentHousingDistrict;
+
         var filters = plugin.Configuration.ServiceFilters;
         var visible = floor.Services
             .Where(s => !filters.TryGetValue(s.Type, out var v) || v)
@@ -1091,7 +1500,7 @@ public class VenueMapWindow : Window, IDisposable
         var mapSz = Math.Max(Math.Min(avW, avH), 160f);
 
         var mapInfo = mapId > 0 ? plugin.MapLoader.GetMapInfoByMapId(mapId) : null;
-        mapInfo ??= plugin.MapLoader.GetMapInfo(territoryId);
+        mapInfo ??= plugin.MapLoader.GetMapInfo(territoryId, outdoorDistrict);
         var sizeFactor = mapInfo?.SizeFactor > 0 ? mapInfo.SizeFactor : (ushort)200;
         var offsetX    = mapInfo?.OffsetX ?? (short)0;
         var offsetY    = mapInfo?.OffsetY ?? (short)0;
@@ -1136,7 +1545,7 @@ public class VenueMapWindow : Window, IDisposable
         dl.PushClipRect(mapMin, mapMax, true);
 
         bool hasTexture = false;
-        var mapTex = plugin.MapLoader.GetMapTexture(territoryId, mapId);
+        var mapTex = plugin.MapLoader.GetMapTexture(territoryId, mapId, outdoorDistrict);
         if (mapTex != null && mapTex.TryGetWrap(out IDalamudTextureWrap? wrap, out _) && wrap != null)
         {
             dl.AddImage(wrap.Handle, mapMin, mapMax, uv0, uv1);
@@ -1160,7 +1569,6 @@ public class VenueMapWindow : Window, IDisposable
             if (isHovered) { hoveredSvc = svc; hoveredPos = screenPos; }
         }
 
-        var tracker = plugin.PositionTracker;
         if (tracker.CurrentTerritoryId == territoryId)
         {
             var pU = HousingMapLoader.WorldToUV(tracker.PlayerX, offsetX, sizeFactor);
@@ -1405,14 +1813,14 @@ public class VenueMapWindow : Window, IDisposable
         if (changed) plugin.Configuration.Save();
     }
 
-    private static string? ExtractXivVenuesId(string? url)
+    internal static string? ExtractXivVenuesId(string? url)
     {
         if (string.IsNullOrEmpty(url) || !url.Contains("ffxivvenues.com/venue/")) return null;
         var idx = url.LastIndexOf('/');
         return idx >= 0 && idx < url.Length - 1 ? url[(idx + 1)..] : null;
     }
 
-    private static string ChipLabel(string type) => type switch
+    internal static string ChipLabel(string type) => type switch
     {
         "entrance"   => Lang.SvcEntrance,
         "bar"        => Lang.SvcBar,
@@ -1421,7 +1829,7 @@ public class VenueMapWindow : Window, IDisposable
         "dj_booth"   => Lang.SvcDjBooth,
         "vip"        => Lang.SvcVip,
         "bath"       => Lang.SvcBath,
-        "spa"        => Lang.SvcBath,
+        "spa"        => Lang.SvcSpa,
         "event"      => Lang.SvcEvent,
         "upstairs"   => Lang.SvcUpstairs,
         "downstairs" => Lang.SvcDownstairs,
@@ -1483,22 +1891,7 @@ public class VenueMapWindow : Window, IDisposable
 
     public void Dispose() { }
 
-    private static Vector4 HsvToRgba(float h, float s, float v)
-    {
-        h = (h % 1f + 1f) % 1f;
-        var i = (int)(h * 6);
-        var f = h * 6 - i;
-        float p = v * (1 - s), q = v * (1 - f * s), t2 = v * (1 - (1 - f) * s);
-        return (i % 6) switch
-        {
-            0 => new Vector4(v,  t2, p,  1f),
-            1 => new Vector4(q,  v,  p,  1f),
-            2 => new Vector4(p,  v,  t2, 1f),
-            3 => new Vector4(p,  q,  v,  1f),
-            4 => new Vector4(t2, p,  v,  1f),
-            _ => new Vector4(v,  p,  q,  1f),
-        };
-    }
+    private static Vector4 HsvToRgba(float h, float s, float v) => UIConstants.HsvToRgba(h, s, v);
 
     private static uint LerpColor(Vector4 from, Vector4 to, float t)
     {
@@ -1510,7 +1903,7 @@ public class VenueMapWindow : Window, IDisposable
         return ImGui.ColorConvertFloat4ToU32(c);
     }
 
-    private static string TranslateFloorName(string name) => name.ToLowerInvariant() switch
+    internal static string TranslateFloorName(string name) => name.ToLowerInvariant() switch
     {
         "ground" => Lang.FloorGround,
         "second" => Lang.FloorSecond,
