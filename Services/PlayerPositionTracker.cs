@@ -176,6 +176,17 @@ public class PlayerPositionTracker
             && servers.Any(s => string.Equals(s, CurrentServerName, StringComparison.OrdinalIgnoreCase));
     }
 
+    // Datacenter alone isn't enough to disambiguate - ward/plot numbers repeat identically across
+    // every server, so two venues in the same datacenter but different servers could otherwise match
+    // each other. Falls back to true (no extra filtering) if a venue hasn't been backfilled with a
+    // server value yet, so this never regresses existing data.
+    private bool IsOnVenueServer(Venue venue)
+    {
+        if (string.IsNullOrEmpty(venue.Server) || string.IsNullOrEmpty(CurrentServerName))
+            return true;
+        return string.Equals(venue.Server, CurrentServerName, StringComparison.OrdinalIgnoreCase);
+    }
+
     private Venue? FindVenueAtCurrentPlot(VenueConfig config)
     {
         if (CurrentWard < 0 || CurrentPlot < 0)
@@ -184,6 +195,9 @@ public class PlayerPositionTracker
         foreach (var venue in config.Venues)
         {
             if (!IsInVenueDatacenter(venue))
+                continue;
+
+            if (!IsOnVenueServer(venue))
                 continue;
 
             if (venue.Ward > 0 && venue.Plot > 0

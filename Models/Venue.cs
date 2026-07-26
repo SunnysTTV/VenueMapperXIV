@@ -20,6 +20,9 @@ public class Venue
     [JsonProperty("datacenter")]
     public string Datacenter { get; set; } = string.Empty;
 
+    [JsonProperty("server")]
+    public string Server { get; set; } = string.Empty;
+
     [JsonProperty("houseSize")]
     public string HouseSize { get; set; } = "L";
 

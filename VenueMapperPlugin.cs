@@ -100,13 +100,17 @@ public sealed class VenueMapperPlugin : IDalamudPlugin
         else if (Configuration.LastSeenVersion != ChangelogData.PluginVersion)
         {
             pendingUpdateToast = true;
-            // v0.5.8 added a lot of new settings (notifications, owner verification, etc.) -
-            // show the setup wizard once more so existing users don't miss them.
+            // Only versions listed in ChangelogData.ForcedSetupVersions force the wizard - small
+            // hotfixes (e.g. a v0.5.8.1 patch) still show the normal "updated to vX" toast, but
+            // don't drag existing users through the whole wizard again for no reason.
             // PendingForcedSetup is persisted (not just an in-memory flag) so the forced,
             // unskippable wizard still triggers correctly even if the plugin reloads or the
             // game restarts before the user finishes it - it only clears once Finish() runs.
-            Configuration.HasSeenSetup = false;
-            Configuration.PendingForcedSetup = true;
+            if (ChangelogData.ForcedSetupVersions.Contains(ChangelogData.PluginVersion))
+            {
+                Configuration.HasSeenSetup = false;
+                Configuration.PendingForcedSetup = true;
+            }
         }
 
         if (Configuration.LastSeenVersion != ChangelogData.PluginVersion)

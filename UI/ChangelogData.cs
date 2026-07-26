@@ -15,12 +15,22 @@ public static class ChangelogData
         get
         {
             var v = Assembly.GetExecutingAssembly().GetName().Version;
-            return v != null ? (v.Revision > 0 ? $"v{v.Major}.{v.Minor}.{v.Build}.{v.Revision}" : $"v{v.Major}.{v.Minor}.{v.Build}") : "v0.5.8";
+            return v != null ? (v.Revision > 0 ? $"v{v.Major}.{v.Minor}.{v.Build}.{v.Revision}" : $"v{v.Major}.{v.Minor}.{v.Build}") : "v0.5.8.1";
         }
     }
 
+    // Versions big enough to warrant forcing the setup wizard on existing users (new settings,
+    // major features, etc.). Hotfixes/patch versions should NOT be added here - they'll still show
+    // the normal "updated to vX" toast, just without re-forcing the whole wizard. Add a new entry
+    // here whenever a future release is big enough to need it.
+    public static readonly HashSet<string> ForcedSetupVersions = new()
+    {
+        "v0.5.8",
+    };
+
     public static readonly (string Ver, string Date)[] Versions =
     [
+        ("v0.5.8.1", "Jul 26, 2026"),
         ("v0.5.8",   "Jul 23, 2026"),
         ("v0.5.7.1", "Jul 11, 2026"),
         ("v0.5.7",   "Jul 11, 2026"),
@@ -38,6 +48,13 @@ public static class ChangelogData
 
     public static readonly Dictionary<string, ChangelogSection[]> Changelogs = new()
     {
+        ["v0.5.8.1"] =
+        [
+            new(null, null,
+            [
+                new("FIXED", "A critical issue", "Ein kritisches Problem"),
+            ]),
+        ],
         ["v0.5.8"] =
         [
             new("Notifications", "Benachrichtigungen",

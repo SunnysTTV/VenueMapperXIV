@@ -132,7 +132,7 @@ public class OwnerSubmitWindow : Window, IDisposable
         loadedVenueId = venue.VenueId;
         clubName = venue.Name;
         selectedDc = venue.Datacenter;
-        selectedServer = plugin.PositionTracker.CurrentServerName;
+        selectedServer = !string.IsNullOrEmpty(venue.Server) ? venue.Server : plugin.PositionTracker.CurrentServerName;
         ward = venue.Ward.ToString();
         plot = venue.Plot.ToString();
 
