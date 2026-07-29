@@ -1311,6 +1311,91 @@
         "2b2f5f440c231409f8057c8d8cfde3a706929d13af5fd9e0f4dd76b80e7c9cbc"
       ],
       "description": "A tropical hideaway on the shores of Mist. LGBTQ+"
+    },
+    {
+      "venueId": "flux",
+      "name": "Flux",
+      "address": "Chaos - Phantom - Shirogane - Ward 10 - Plot 46",
+      "datacenter": "Chaos",
+      "server": "Phantom",
+      "houseSize": "L",
+      "nsfw": false,
+      "ward": 10,
+      "plot": 46,
+      "teamId": 1467,
+      "availableFloors": [
+        "ground"
+      ],
+      "colors": {
+        "primary": "#ff04ef",
+        "accent": "#00f0ff",
+        "secondary": "#fd84ff"
+      },
+      "links": {
+        "discord": "https://discord.gg/fluxnights",
+        "partake": "https://www.partake.gg/teams/1467",
+        "ffxivvenues": "https://ffxivvenues.com/venue/D4Pc0KQkKjGN",
+        "website": ""
+      },
+      "floors": [
+        {
+          "floor": "ground",
+          "yMin": -3.5,
+          "yMax": 6.5,
+          "mapId": 0,
+          "services": [
+            {
+              "type": "bar",
+              "label": "Gay Bar",
+              "icon": "",
+              "x": -0.29,
+              "y": -9.38,
+              "z": 5.26,
+              "description": ""
+            },
+            {
+              "type": "dj_booth",
+              "label": "DJ",
+              "icon": "",
+              "x": 0.08,
+              "y": -2.84,
+              "z": 2.15,
+              "description": ""
+            },
+            {
+              "type": "gambling",
+              "label": "Gamba",
+              "icon": "",
+              "x": 12.74,
+              "y": 0.08,
+              "z": 0.55,
+              "description": ""
+            },
+            {
+              "type": "entrance",
+              "label": "Entrance",
+              "icon": "",
+              "x": 0.02,
+              "y": 11.01,
+              "z": 0.00,
+              "description": ""
+            },
+            {
+              "type": "stage",
+              "label": "Photo Area",
+              "icon": "",
+              "x": -10.23,
+              "y": 0.37,
+              "z": 2.95,
+              "description": ""
+            }
+          ]
+        }
+      ],
+      "ownerIdHashes": [
+        "b79fd296dcc581fa165a1b8e3376858a4844959df941c3928099dc14d80f0f28"
+      ],
+      "description": ""
     }
   ]
 }
