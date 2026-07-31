@@ -1148,7 +1148,7 @@
       "teamId": 0,
       "availableFloors": [
         "ground",
-        "cellar"
+        "second"
       ],
       "colors": {
         "primary": "#6013b4",
@@ -1198,24 +1198,26 @@
           ]
         },
         {
-          "floor": "cellar",
-          "yMin": -10,
-          "yMax": -3.5,
+          "floor": "second",
+          "yMin": 6.5,
+          "yMax": 14,
           "mapId": 0,
           "services": [
             {
               "type": "bath",
-              "label": "Relaxation Nook",
+              "label": "Baths",
               "icon": "",
-              "x": -13.9,
-              "y": -3.2,
-              "z": -6.7,
+              "x": 16.91,
+              "y": -0.62,
+              "z": 7.96,
               "description": ""
             }
           ]
         }
       ],
-      "ownerIdHashes": [],
+      "ownerIdHashes": [
+        "88bc9161e3694eb0cdd6dabf40bbf217ae86295e6c166f683f83823431221ecd"
+      ],
       "description": "A 18+ Club + FC, for Gentlemen of all genders! Parties on Friday nights!"
     },
     {
