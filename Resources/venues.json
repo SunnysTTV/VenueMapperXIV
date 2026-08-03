@@ -1443,6 +1443,100 @@
         "b79fd296dcc581fa165a1b8e3376858a4844959df941c3928099dc14d80f0f28"
       ],
       "description": ""
+    },
+    {
+      "venueId": "lunareclipse",
+      "name": "Lunar Eclipse",
+      "address": "Chaos - Louisoix - Mist - Ward 21 - Plot 45",
+      "datacenter": "Chaos",
+      "server": "Louisoix",
+      "houseSize": "L",
+      "nsfw": false,
+      "ward": 21,
+      "plot": 45,
+      "teamId": 1367,
+      "availableFloors": [
+        "ground",
+        "cellar"
+      ],
+      "colors": {
+        "primary": "#572c62",
+        "accent": "#4f61b8",
+        "secondary": "#3b643f"
+      },
+      "links": {
+        "discord": "https://discord.gg/YBvMQ7fkGj",
+        "partake": "https://partake.gg/teams/1367",
+        "ffxivvenues": "https://ffxivvenues.com/#7Ny11VQ5yD3s",
+        "website": "https://www.instagram.com/lunareclipse.ffxiv/"
+      },
+      "floors": [
+        {
+          "floor": "ground",
+          "yMin": -3.5,
+          "yMax": 6.5,
+          "mapId": 0,
+          "services": [
+            {
+              "type": "entrance",
+              "label": "Entrance",
+              "icon": "",
+              "x": -0.7,
+              "y": 7.5,
+              "z": 0.0,
+              "description": ""
+            }
+          ]
+        },
+        {
+          "floor": "cellar",
+          "yMin": -10,
+          "yMax": -3.5,
+          "mapId": 0,
+          "services": [
+            {
+              "type": "bar",
+              "label": "Bar",
+              "icon": "",
+              "x": -9.8,
+              "y": 4.3,
+              "z": -7.0,
+              "description": ""
+            },
+            {
+              "type": "dj_booth",
+              "label": "DJ Booth",
+              "icon": "",
+              "x": 6.7,
+              "y": 1.4,
+              "z": -7.0,
+              "description": ""
+            },
+            {
+              "type": "gambling",
+              "label": "Gambling",
+              "icon": "",
+              "x": 0.3,
+              "y": -3.9,
+              "z": -6.0,
+              "description": ""
+            },
+            {
+              "type": "downstairs",
+              "label": "Downstairs",
+              "icon": "",
+              "x": -4.1,
+              "y": 9.3,
+              "z": -5.6,
+              "description": ""
+            }
+          ]
+        }
+      ],
+      "ownerIdHashes": [
+        "f9c0c4c1468502d3e0f4478eeea6b5e8c3ac2427242c31b3ee41a12987ebf725"
+      ],
+      "description": "Our Motto: \"As long as our guests having fun, we have fun.\""
     }
   ]
 }
