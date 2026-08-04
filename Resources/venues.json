@@ -1546,7 +1546,7 @@
       "datacenter": "Light",
       "server": "Raiden",
       "houseSize": "L",
-      "nsfw": false,
+      "nsfw": true,
       "ward": 18,
       "plot": 30,
       "teamId": 750,
@@ -1555,7 +1555,7 @@
         "cellar"
       ],
       "colors": {
-        "primary": "#ff006e",
+        "primary": "#faf7f8",
         "accent": "#00f0ff",
         "secondary": "#9d4edd"
       },
@@ -1598,8 +1598,8 @@
               "description": ""
             },
             {
-              "type": "stage",
-              "label": "Stage",
+              "type": "dj_booth",
+              "label": "DJ Booth",
               "icon": "",
               "x": 14.91,
               "y": 0.07,
