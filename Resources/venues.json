@@ -1551,6 +1551,7 @@
       "plot": 30,
       "teamId": 750,
       "availableFloors": [
+        "ground",
         "cellar"
       ],
       "colors": {
@@ -1565,6 +1566,13 @@
         "website": "https://minus1.carrd.co/"
       },
       "floors": [
+        {
+          "floor": "ground",
+          "yMin": -3.5,
+          "yMax": 6.5,
+          "mapId": 0,
+          "services": []
+        },
         {
           "floor": "cellar",
           "yMin": -10,
