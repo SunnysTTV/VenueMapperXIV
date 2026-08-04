@@ -1538,6 +1538,73 @@
         "9a3149f428ee8d577c7e1b0fcaa27326383fe5f1dd593545b147e5ba27dbbd92"
       ],
       "description": "Our Motto: \"As long as our guests having fun, we have fun.\""
+    },
+    {
+      "venueId": "minusone",
+      "name": "Minus One",
+      "address": "Light - Raiden - The Goblet - Ward 18 - Plot 30",
+      "datacenter": "Light",
+      "server": "Raiden",
+      "houseSize": "L",
+      "nsfw": false,
+      "ward": 18,
+      "plot": 30,
+      "teamId": 750,
+      "availableFloors": [
+        "cellar"
+      ],
+      "colors": {
+        "primary": "#ff006e",
+        "accent": "#00f0ff",
+        "secondary": "#9d4edd"
+      },
+      "links": {
+        "discord": "https://discord.gg/NqnaC6SCBy",
+        "partake": "https://www.partake.gg/teams/750",
+        "ffxivvenues": "",
+        "website": "https://minus1.carrd.co/"
+      },
+      "floors": [
+        {
+          "floor": "cellar",
+          "yMin": -10,
+          "yMax": -3.5,
+          "mapId": 0,
+          "services": [
+            {
+              "type": "bar",
+              "label": "Bar",
+              "icon": "",
+              "x": -6.81,
+              "y": 7.69,
+              "z": -6.9,
+              "description": ""
+            },
+            {
+              "type": "gambling",
+              "label": "Gambling",
+              "icon": "",
+              "x": -4.89,
+              "y": -9.9,
+              "z": -6.06,
+              "description": ""
+            },
+            {
+              "type": "stage",
+              "label": "Stage",
+              "icon": "",
+              "x": 14.91,
+              "y": 0.07,
+              "z": -6.42,
+              "description": ""
+            }
+          ]
+        }
+      ],
+      "ownerIdHashes": [
+        "2f5b565fcec95ab109559da75120406b059dc0bc88a338903361adee1a0ff606"
+      ],
+      "description": "An ice cold club for a chill time or an icy blast of a night, Bring your best dance moves to keep warm alongside our stone cold DJ's for a night of thrills and chills !!!"
     }
   ]
 }
