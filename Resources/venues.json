@@ -1395,7 +1395,7 @@
               "type": "bar",
               "label": "Gay Bar",
               "icon": "",
-              "x": -0.29,
+              "x": 0.00,
               "y": -9.38,
               "z": 5.26,
               "description": ""
@@ -1404,7 +1404,7 @@
               "type": "dj_booth",
               "label": "DJ",
               "icon": "",
-              "x": 0.08,
+              "x": 0.00,
               "y": -2.84,
               "z": 2.15,
               "description": ""
@@ -1414,7 +1414,7 @@
               "label": "Gamba",
               "icon": "",
               "x": 12.74,
-              "y": 0.08,
+              "y": 0.00,
               "z": 0.55,
               "description": ""
             },
@@ -1422,7 +1422,7 @@
               "type": "entrance",
               "label": "Entrance",
               "icon": "",
-              "x": 0.02,
+              "x": 0.00,
               "y": 11.01,
               "z": 0.00,
               "description": ""
@@ -1432,7 +1432,7 @@
               "label": "Photo Area",
               "icon": "",
               "x": -10.23,
-              "y": 0.37,
+              "y": 0.00,
               "z": 2.95,
               "description": ""
             }
