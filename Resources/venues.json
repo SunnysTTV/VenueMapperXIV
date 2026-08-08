@@ -1613,6 +1613,109 @@
         "2f5b565fcec95ab109559da75120406b059dc0bc88a338903361adee1a0ff606"
       ],
       "description": "An ice cold club for a chill time or an icy blast of a night, Bring your best dance moves to keep warm alongside our stone cold DJ's for a night of thrills and chills !!!"
+    },
+    {
+      "venueId": "cheshirecat",
+      "name": "Cheshire Cat",
+      "address": "Chaos - Moogle - The Goblet - Ward 15 - Plot 35",
+      "datacenter": "Chaos",
+      "server": "Moogle",
+      "houseSize": "L",
+      "nsfw": true,
+      "ward": 15,
+      "plot": 35,
+      "teamId": 0,
+      "availableFloors": [
+        "ground",
+        "cellar"
+      ],
+      "colors": {
+        "primary": "#ff006e",
+        "accent": "#00f0ff",
+        "secondary": "#9d4edd"
+      },
+      "links": {
+        "discord": "https://discord.gg/j6Qw2R5MEb",
+        "partake": "",
+        "ffxivvenues": "https://ffxivvenues.com/venue/22c9Py02d0Sc",
+        "website": ""
+      },
+      "floors": [
+        {
+          "floor": "ground",
+          "yMin": -3.5,
+          "yMax": 6.5,
+          "mapId": 0,
+          "services": [
+            {
+              "type": "bar",
+              "label": "Bar",
+              "icon": "",
+              "x": -6.8,
+              "y": 6.8,
+              "z": 0.0,
+              "description": ""
+            },
+            {
+              "type": "dj_booth",
+              "label": "DJ Booth",
+              "icon": "",
+              "x": -15.2,
+              "y": -5.0,
+              "z": 1.0,
+              "description": ""
+            },
+            {
+              "type": "entrance",
+              "label": "Entrance",
+              "icon": "",
+              "x": 0.6,
+              "y": 11.2,
+              "z": 0.0,
+              "description": ""
+            },
+            {
+              "type": "gambling",
+              "label": "Gambling",
+              "icon": "",
+              "x": -9.4,
+              "y": -1.7,
+              "z": 0.0,
+              "description": ""
+            },
+            {
+              "type": "event",
+              "label": "Event",
+              "icon": "",
+              "x": 14.4,
+              "y": -0.4,
+              "z": 0.1,
+              "description": ""
+            }
+          ]
+        },
+        {
+          "floor": "cellar",
+          "yMin": -10,
+          "yMax": -3.5,
+          "mapId": 0,
+          "services": [
+            {
+              "type": "downstairs",
+              "label": "Downstairs",
+              "icon": "",
+              "x": 0.1,
+              "y": 0.3,
+              "z": -7.0,
+              "description": ""
+            }
+          ]
+        }
+      ],
+      "ownerIdHashes": [
+        "48067ba860c1fb99690af173b367ce85a6b48b61b693e786f95aef77dfcf9a5f"
+      ],
+      "description": "Welcome to our most lovely and innocent BDSM-Dungeon that will make sure you'll leave with a wide grin. The Cheshire-Cat is there to catnap you into the wonderlands of safe BDSM-experiences."
     }
   ]
 }
