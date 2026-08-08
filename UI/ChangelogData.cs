@@ -19,19 +19,11 @@ public static class ChangelogData
         }
     }
 
-    // Versions big enough to warrant forcing the setup wizard on existing users (new settings,
-    // major features, etc.). Hotfixes/patch versions should NOT be added here - they'll still show
-    // the normal "updated to vX" toast, just without re-forcing the whole wizard. Add a new entry
-    // here whenever a future release is big enough to need it.
     public static readonly HashSet<string> ForcedSetupVersions = new()
     {
         "v0.5.8",
     };
 
-    // Versions big enough to deserve a short "what's new" spotlight (summarizing just what's new,
-    // centered layout matching SetupWindow's chrome) but not big enough to drag existing users
-    // through the entire setup wizard again, which doesn't even cover most of what a point
-    // release like this adds.
     public static readonly HashSet<string> HighlightVersions = new()
     {
         "v0.5.9",

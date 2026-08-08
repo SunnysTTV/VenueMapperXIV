@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Numerics;
@@ -32,10 +32,6 @@ public class PlayerPositionTracker
     public bool IsInWorkshop { get; private set; }
     public bool IsInPrivateChambers { get; private set; }
 
-    // FFXIVClientStructs' HousingManager has no dedicated flag for Private Chambers - it reuses the
-    // same IndoorTerritory pointer as a normal house interior. These are the Private Chambers
-    // TerritoryType IDs per district (Mist, Lavender Beds, Goblet, Shirogane, Empyreum), the same
-    // approach Lifestream uses since no cleaner signal exists.
     private static readonly HashSet<uint> PrivateChambersTerritoryIds = new() { 983, 384, 652, 386, 385 };
     public string CurrentServerName { get; private set; } = "";
     public string CurrentHousingDistrict { get; private set; } = "";
@@ -190,10 +186,6 @@ public class PlayerPositionTracker
             && servers.Any(s => string.Equals(s, CurrentServerName, StringComparison.OrdinalIgnoreCase));
     }
 
-    // Datacenter alone isn't enough to disambiguate - ward/plot numbers repeat identically across
-    // every server, so two venues in the same datacenter but different servers could otherwise match
-    // each other. Falls back to true (no extra filtering) if a venue hasn't been backfilled with a
-    // server value yet, so this never regresses existing data.
     private bool IsOnVenueServer(Venue venue)
     {
         if (string.IsNullOrEmpty(venue.Server) || string.IsNullOrEmpty(CurrentServerName))

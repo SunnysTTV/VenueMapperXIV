@@ -6,10 +6,6 @@ using Dalamud.Bindings.ImGui;
 
 namespace VenueMapper.UI;
 
-// A short "what's new" spotlight shown once for versions listed in ChangelogData.HighlightVersions
-// - styled the same way as SetupWindow (same chrome, same IconRow rows), but only lists what's
-// actually new in this version, not a full recap of every feature the plugin already has.
-// Unlike SetupWindow it doesn't walk through configuring anything - just points at Settings.
 public class WhatsNewWindow : Window, IDisposable
 {
     private readonly VenueMapperPlugin plugin;
@@ -21,8 +17,7 @@ public class WhatsNewWindow : Window, IDisposable
         this.plugin = plugin;
         Size = new Vector2(480, 640);
         SizeCondition = ImGuiCond.Always;
-        // Enforced like SetupWindow's forced flow - only dismissible via the "Got it" button
-        // below, which is what actually clears Configuration.PendingWhatsNew.
+
         ShowCloseButton = false;
         RespectCloseHotkey = false;
     }
@@ -40,9 +35,7 @@ public class WhatsNewWindow : Window, IDisposable
 
     public override void Draw()
     {
-        // An uncaught exception here would propagate out of Draw() and could skip PostDraw()
-        // (which pops PushWindowChrome's styles), leaking them onto the shared ImGui stack for
-        // every window drawn afterward, including other plugins'. Catch+log instead.
+
         try { DrawContent(); }
         catch (Exception ex) { VenueMapperPlugin.Log.Error(ex, "[VenueMapper] WhatsNewWindow draw failed"); }
     }
@@ -57,9 +50,6 @@ public class WhatsNewWindow : Window, IDisposable
             ImGui.Separator();
             ImGui.Spacing();
 
-            // Just what's new, summarized - no generic full-feature recap (that's what SetupWindow
-            // is for). Plain, non-interactive rows - naming what's new so users know to go look
-            // for it themselves, not live toggles to flip right here.
             CenteredText(Lang.WhatsNewFeatures, UIConstants.Glow);
             ImGui.Spacing();
 

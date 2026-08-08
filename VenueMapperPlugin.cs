@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -85,11 +85,7 @@ public sealed class VenueMapperPlugin : IDalamudPlugin
         PictomancyMarkers.Enabled = Configuration.Markers3DEnabled;
         PartakeApi   = new PartakeApiService(Log);
         XivVenues    = new XivVenuesService(Log, PluginInterface.ConfigDirectory.FullName);
-        // Starts the ~1400-venue bulk fetch right away instead of waiting for the first window
-        // that needs schedule data to trigger it - that first trigger could be a window that
-        // renders synchronously (e.g. the quick popup opening the instant you enter a venue),
-        // which would show blank status for the ~1-2s the fetch takes. Kicking it off at plugin
-        // load gives it a head start so it's very likely already cached by the time it's needed.
+
         XivVenues.RequestSchedule();
         VenueLogos   = new VenueLogoService(TextureProvider, Log);
         EasterEggManager = new EasterEggManager(Configuration, Log);
@@ -112,23 +108,14 @@ public sealed class VenueMapperPlugin : IDalamudPlugin
         }
         else if (Configuration.LastSeenVersion != ChangelogData.PluginVersion)
         {
-            // Only versions listed in ChangelogData.ForcedSetupVersions force the wizard - small
-            // hotfixes (e.g. a v0.5.8.1 patch) still show the normal "updated to vX" toast, but
-            // don't drag existing users through the whole wizard again for no reason.
-            // PendingForcedSetup is persisted (not just an in-memory flag) so the forced,
-            // unskippable wizard still triggers correctly even if the plugin reloads or the
-            // game restarts before the user finishes it - it only clears once Finish() runs.
+
             if (ChangelogData.ForcedSetupVersions.Contains(ChangelogData.PluginVersion))
             {
                 Configuration.HasSeenSetup = false;
                 Configuration.PendingForcedSetup = true;
                 pendingUpdateToast = true;
             }
-            // HighlightVersions gets the short "what's new" spotlight instead - showing both that
-            // and the plain toast would be redundant, since the spotlight already states the
-            // version. PendingWhatsNew is persisted (same reasoning as PendingForcedSetup above)
-            // so the enforced, unclosable spotlight keeps reappearing on every reload/restart
-            // until the user actually clicks "Got it" - not just a one-shot in-memory flag.
+
             else if (ChangelogData.HighlightVersions.Contains(ChangelogData.PluginVersion))
             {
                 Configuration.PendingWhatsNew = true;
@@ -273,7 +260,7 @@ public sealed class VenueMapperPlugin : IDalamudPlugin
         }
         else
         {
-            // Schedule not cached yet - the fetch was just queued, give it a moment and check again.
+
             pendingClosedCheckXivId = xivId;
             pendingClosedCheckVenueName = venue.Name;
             pendingClosedCheckAt = DateTime.Now.AddSeconds(2.5);
@@ -325,8 +312,6 @@ public sealed class VenueMapperPlugin : IDalamudPlugin
                 SetupWindow.IsOpen = true;
             }
 
-            // Persisted like PendingForcedSetup above - keeps reappearing on every reload/restart
-            // until WhatsNewWindow itself clears the flag when "Got it" is actually clicked.
             if (Configuration.PendingWhatsNew && !whatsNewShownThisSession)
             {
                 whatsNewShownThisSession = true;
@@ -372,9 +357,6 @@ public sealed class VenueMapperPlugin : IDalamudPlugin
 
             wasInVenue = isInVenue;
 
-            // Reacts live to the "Show quick popup on venue enter" toggle while already standing
-            // inside a venue - otherwise flipping it mid-visit would do nothing until the next
-            // actual enter/leave edge, which is a confusing way to test/use the setting.
             if (!quickPopupSettingInitialized)
             {
                 lastShowQuickPopupOnEnter = Configuration.ShowQuickPopupOnEnter;

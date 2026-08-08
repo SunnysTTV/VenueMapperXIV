@@ -161,16 +161,12 @@ public class VenueMapWindow : Window, IDisposable
             Size = savedSize.Value;
     }
 
-
     public override void PreDraw()
     {
         if (_wasClosed) { _fadeAlpha = 0f; _wasClosed = false; }
         _fadeAlpha = MathF.Min(1f, _fadeAlpha + ImGui.GetIO().DeltaTime * (1f / 0.30f));
         ImGui.PushStyleVar(ImGuiStyleVar.Alpha, _fadeAlpha);
 
-        // Triple-hash (not double): only the part AFTER "###" feeds ImGui's ID hash used for
-        // position/size persistence, so the Random Title easter egg can change the DISPLAYED
-        // text every open without ever changing the window's actual identity/saved position.
         WindowName = rawTitle + "###VenueMapper";
 
         ImGui.PushStyleColor(ImGuiCol.WindowBg,      UIConstants.Background);
@@ -368,15 +364,11 @@ public class VenueMapWindow : Window, IDisposable
         }
     }
 
-
     private readonly Dictionary<string, float> navTabAnim = new();
 
     private const float NavTabPadX = 10f;
     private const float NavTabGap = 6f;
 
-    // Width only ever animates toward the active state - never toward hover - so at most one tab's
-    // width is ever changing at a time (on click, not on every mouse-over). That's what keeps the
-    // layout for every other tab completely stable, after several rounds of hover-driven glitches.
     private bool DrawNavTab(string id, FontAwesomeIcon icon, string label, bool active, bool disabled = false)
     {
         var iconFont = UiBuilder.IconFont;
@@ -433,9 +425,7 @@ public class VenueMapWindow : Window, IDisposable
 
     public override void Draw()
     {
-        // An uncaught exception here would propagate out of Draw() and could skip PostDraw()
-        // (which pops PreDraw's window-chrome styles, incl. WindowRounding), leaking them onto
-        // the shared ImGui stack for every window drawn afterward, including other plugins'.
+
         try { DrawInner(); }
         catch (Exception ex) { VenueMapperPlugin.Log.Error(ex, "[VenueMapper] VenueMapWindow draw failed"); }
     }
@@ -718,7 +708,6 @@ public class VenueMapWindow : Window, IDisposable
 
         DrawFilterChips(currentVenue);
     }
-
 
     private void DrawDirectoryHeader(int count)
     {
@@ -1219,8 +1208,6 @@ public class VenueMapWindow : Window, IDisposable
             if (addrRaw.Length > 0)
                 dl.AddText(new Vector2(textX, cardMin.Y + padY + lineH + 2), addrCol, addrRaw);
 
-
-
             var hasAddr  = !string.IsNullOrEmpty(v.Address);
             var tpActive = tpAnimStart.TryGetValue(v.VenueId, out var tpT) && (ImGui.GetTime() - tpT) < 4.0;
             var btnLabel = tpActive ? $"...##{v.VenueId}_nav" : $"{Lang.Visit}##{v.VenueId}_nav";
@@ -1499,7 +1486,6 @@ public class VenueMapWindow : Window, IDisposable
         ImGui.TextColored(UIConstants.WithAlpha(UIConstants.TextSecondary, 0.35f), hint);
     }
 
-
     private void DrawHeaderBar(Venue venue, Floor? floor)
     {
         var dl   = ImGui.GetWindowDrawList();
@@ -1519,10 +1505,7 @@ public class VenueMapWindow : Window, IDisposable
         var floorStr = floor != null ? TranslateFloorName(floor.Name) : "-";
 
         ImGui.PushStyleVar(ImGuiStyleVar.CellPadding, new Vector2(4, 4));
-        // try/finally guarantees both the CellPadding pop and (if BeginTable succeeded) EndTable
-        // run even if something in the row throws - otherwise both leak onto the shared ImGui
-        // stack, corrupting every table/cell-padded widget drawn afterward, same bug class as the
-        // window-chrome leaks fixed elsewhere this session.
+
         try
         {
         if (ImGui.BeginTable("##mapHeader", 3))
@@ -1596,7 +1579,6 @@ public class VenueMapWindow : Window, IDisposable
             ImGui.ColorConvertFloat4ToU32(UIConstants.WithAlpha(UIConstants.Glow, 0.12f)), 2f);
     }
 
-
     private void DrawFloorTabs(Venue venue, ref Floor? selectedFloor)
     {
         const float gap = 6f;
@@ -1635,7 +1617,6 @@ public class VenueMapWindow : Window, IDisposable
             }
         }
     }
-
 
     private void DrawMapPanel(Venue venue, Floor floor, uint territoryId, uint mapId = 0)
     {
@@ -1897,7 +1878,6 @@ public class VenueMapWindow : Window, IDisposable
         ImGui.EndTooltip();
     }
 
-
     private void DrawFilterChips(Venue venue)
     {
         ImGui.Spacing();
@@ -1976,8 +1956,6 @@ public class VenueMapWindow : Window, IDisposable
     {
         if (string.IsNullOrEmpty(url) || !url.Contains("ffxivvenues.com")) return null;
 
-        // Some links use a hash-fragment id (ffxivvenues.com/#<id>) instead of the
-        // /venue/<id> path style - handle both.
         var hashIdx = url.IndexOf('#');
         if (hashIdx >= 0 && hashIdx < url.Length - 1) return url[(hashIdx + 1)..];
 
@@ -2028,7 +2006,6 @@ public class VenueMapWindow : Window, IDisposable
 
         return lines.Count > 0 ? lines : [addr];
     }
-
 
     private void ComputeBounds(Venue venue)
     {

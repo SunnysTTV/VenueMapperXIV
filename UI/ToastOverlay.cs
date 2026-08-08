@@ -17,9 +17,6 @@ public static class ToastOverlay
     private const float TopOffset = 60f;
     private const float ProgressBarHeight = 2.5f;
 
-    // The toast currently being hovered keeps its on-screen position pinned for as long as the
-    // hover lasts, so it doesn't jump when a neighboring toast above/below it appears or expires
-    // and the rest of the stack reflows - it only rejoins the normal flow once hover ends.
     private static ToastManager.ToastEntry? pinnedEntry;
     private static Vector2 pinnedBoxMin;
 
@@ -79,10 +76,6 @@ public static class ToastOverlay
                     : new Vector2(isRight ? edgeX + slideX - size.X : edgeX + slideX, cursorY - size.Y);
             var boxMax = boxMin + size;
 
-            // Hovering "holds" a toast open by nudging StartedAt forward in lockstep with real
-            // time each frame - elapsed (Now - StartedAt) stays pinned at whatever it was when the
-            // hover began, for as long as it continues, so the fade-out/removal-by-duration logic
-            // above (and ToastManager.Active's own duration check) both naturally stay frozen too.
             var hovered = mousePos.X >= boxMin.X && mousePos.X <= boxMax.X
                        && mousePos.Y >= boxMin.Y && mousePos.Y <= boxMax.Y;
             if (hovered)
@@ -186,10 +179,6 @@ public static class ToastOverlay
 
         dl.AddRectFilled(boxMin + new Vector2(0, 3), boxMax + new Vector2(0, 3), ImGui.ColorConvertFloat4ToU32(shadow), UIConstants.ChipRounding);
 
-        // Accent bar on the left instead of a full outline border, matching the same layered
-        // backdrop+punch-back technique used for cards elsewhere in the plugin (Directory rows,
-        // Events cards) - can't reuse UIConstants.DrawCardWithAccentBar directly since it forces
-        // the body layer fully opaque, which would break this toast's fade in/out.
         const float barWidth = 3f;
         dl.AddRectFilled(boxMin, boxMax, ImGui.ColorConvertFloat4ToU32(UIConstants.WithAlpha(accent, 0.85f * alpha)), UIConstants.ChipRounding);
         dl.AddRectFilled(new Vector2(boxMin.X + barWidth, boxMin.Y), boxMax,
@@ -210,9 +199,6 @@ public static class ToastOverlay
 
         dl.AddRect(boxMin, boxMax, ImGui.ColorConvertFloat4ToU32(UIConstants.WithAlpha(accent, 0.35f * alpha)), UIConstants.ChipRounding, ImDrawFlags.None, 1f);
 
-        // Icon scale animation: a quick "pop" past 100% that settles back to normal on appear
-        // (classic back-ease-out overshoot), plus a slow continuous pulse for kinds that want
-        // ongoing attention (Warning) or a playful feel (Egg) for as long as they're visible.
         var popScale = 1f;
         if (elapsed < FadeInTime)
         {
@@ -244,8 +230,6 @@ public static class ToastOverlay
         var msgPos = new Vector2(boxMin.X + pad.X, sepY + lineGap);
         dl.AddText(msgPos, ImGui.ColorConvertFloat4ToU32(UIConstants.WithAlpha(UIConstants.TextSecondary, alpha)), entry.Text);
 
-        // Thin countdown bar along the bottom edge, shrinking left-to-right as the toast's
-        // remaining time runs out - gives a visual sense of how long is left before it dismisses.
         var barY0 = boxMax.Y - ProgressBarHeight - 2f;
         var barY1 = boxMax.Y - 2f;
         var barX0 = boxMin.X + 2f;
@@ -256,9 +240,6 @@ public static class ToastOverlay
                 ImGui.ColorConvertFloat4ToU32(UIConstants.WithAlpha(accent, 0.7f * alpha)), 1.5f);
     }
 
-    // A handful of twinkling dots scattered over an Egg toast - positions are derived from the
-    // entry's own StartedAt so they're stable across frames (no re-randomizing every draw) without
-    // needing extra mutable state on ToastEntry.
     private static void DrawSparkle(ImDrawListPtr dl, Vector2 boxMin, Vector2 boxMax, Vector4 accent, float alpha, DateTime seedSource)
     {
         const int count = 7;

@@ -8,7 +8,6 @@ using Dalamud.Plugin.Services;
 
 namespace VenueMapper.Services;
 
-/// <summary>Downloads and caches venue logo images (Partake team icon / FFXIVVenues banner) as ImGui-drawable textures.</summary>
 public class VenueLogoService : IDisposable
 {
     private readonly HttpClient http = new();
@@ -24,7 +23,6 @@ public class VenueLogoService : IDisposable
         this.log = log;
     }
 
-    /// <summary>Returns the cached texture for this URL if ready, kicking off a background download if not. Null while loading or on failure.</summary>
     public IDalamudTextureWrap? Get(string? url)
     {
         if (string.IsNullOrEmpty(url)) return null;

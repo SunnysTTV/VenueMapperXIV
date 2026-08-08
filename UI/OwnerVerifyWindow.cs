@@ -79,9 +79,7 @@ public class OwnerVerifyWindow : Window, IDisposable
 
     public override void Draw()
     {
-        // An uncaught exception here would propagate out of Draw() and could skip PostDraw()
-        // (which pops PreDraw's window-chrome styles), leaking them onto the shared ImGui stack
-        // for every window drawn afterward, including other plugins'. Catch+log instead.
+
         try { DrawContent(); }
         catch (Exception ex) { VenueMapperPlugin.Log.Error(ex, "[VenueMapper] OwnerVerifyWindow draw failed"); }
     }

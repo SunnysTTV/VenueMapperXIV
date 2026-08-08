@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Numerics;
@@ -95,8 +95,7 @@ public class OwnerSubmitWindow : Window, IDisposable
         var district = tracker.CurrentHousingDistrict;
         if (!string.IsNullOrEmpty(district))
         {
-            // Subdivision/private plots resolve to names like "Private Mansion - The Goblet"
-            // rather than a bare district name, so match by containment, not equality.
+
             var idx = Array.FindIndex(Districts, d => district.Contains(d, StringComparison.OrdinalIgnoreCase));
             if (idx >= 0)
                 districtIndex = idx;
@@ -228,10 +227,7 @@ public class OwnerSubmitWindow : Window, IDisposable
 
     public override void Draw()
     {
-        // An uncaught exception here would propagate out of Draw() and could skip PostDraw()
-        // (which pops PushWindowChrome's styles), leaking them onto the shared ImGui stack for
-        // every window drawn afterward, including other plugins'. Catch+log instead, with
-        // finally blocks to keep every Begin/Push below balanced even if a tab's draw throws.
+
         var hackerBooting = UIConstants.IsHackerBooting;
         try
         {
@@ -638,7 +634,6 @@ public class OwnerSubmitWindow : Window, IDisposable
         sb.Append("]}");
         return sb.ToString();
     }
-
 
     private static void PushFieldStyle()
     {

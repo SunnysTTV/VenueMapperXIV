@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Linq;
 using System.Numerics;
 using System.Threading.Tasks;
@@ -35,10 +35,7 @@ public class SettingsWindow : Window, IDisposable
 
     public override void Draw()
     {
-        // An uncaught exception here would propagate out of Draw() and could skip PostDraw()
-        // (which pops PushWindowChrome's styles), leaking them onto the shared ImGui stack for
-        // every window drawn afterward, including other plugins'. Catch+log instead, with a
-        // finally to keep the ImGui state pushed below balanced even if DrawSettingsTab throws.
+
         var hackerBooting = UIConstants.IsHackerBooting;
         try
         {
@@ -85,10 +82,6 @@ public class SettingsWindow : Window, IDisposable
         ImGui.PushStyleVar(ImGuiStyleVar.FrameRounding, 6f);
         ImGui.PushStyleColor(ImGuiCol.Separator, UIConstants.WithAlpha(UIConstants.Glow, 0.25f));
 
-        // Everything below - including BeginSection's ChannelsSplit(2), which MUST be matched by
-        // EndSection's ChannelsMerge() or the drawlist is left corrupted - must run inside this
-        // try/finally. The caller (Draw()) only cleans up what it itself pushed; if anything in
-        // this ~300-line body throws, these pushes/the channel split would otherwise leak forever.
         try
         {
         ImGui.TextColored(UIConstants.Primary, Lang.Settings.ToUpperInvariant());
@@ -96,9 +89,7 @@ public class SettingsWindow : Window, IDisposable
         ImGui.Spacing();
 
         UIConstants.BeginSection();
-        // BeginSection's ChannelsSplit(2) must always be matched by EndSection's ChannelsMerge(),
-        // even if the section body below throws - otherwise the drawlist is left mid-split and
-        // corrupts rendering (or asserts) the next time BeginSection runs on it.
+
         try
         {
 
@@ -132,9 +123,6 @@ public class SettingsWindow : Window, IDisposable
         ImGui.SameLine();
         ImGui.TextColored(UIConstants.TextPrimary, Lang.Markers3D);
 
-        // Always shown, but disabled (with an explanatory tooltip) for players without a
-        // registered venue - lets owners hide 3D markers specifically while standing in their
-        // own club, without affecting any other venue.
         ImGui.SameLine(0, 12);
         if (!ownsAnyVenue) ImGui.BeginDisabled();
         var hideOwn = config.HideMarkersInOwnVenue;
@@ -299,9 +287,6 @@ public class SettingsWindow : Window, IDisposable
             }
         });
 
-        // Fixed 2-column grid instead of FlowNext - a dynamic "does it fit?" estimate isn't
-        // reliable across languages (German text overflowed the card here before), whereas a
-        // table with two stretch columns gives each label a hard, predictable half-width budget.
         void ToggleCell(string id, bool value, Action<bool> setter, string label, string tooltip, bool disabled = false, string? disabledTooltip = null)
         {
             if (disabled) ImGui.BeginDisabled();
@@ -315,9 +300,7 @@ public class SettingsWindow : Window, IDisposable
 
         if (ImGui.BeginTable("##miscToggles2col", 2))
         {
-            // Same reasoning as BeginSection/EndSection above - an unclosed BeginTable (if it
-            // returned true) leaves ImGui's table-stack state corrupted for the next frame's
-            // table calls, not just this one, if anything below throws.
+
             try
             {
             ImGui.TableSetupColumn("##c0", ImGuiTableColumnFlags.WidthStretch, 1f);
@@ -331,9 +314,6 @@ public class SettingsWindow : Window, IDisposable
             ToggleCell("##autoOpenVenue", config.AutoOpenOnVenueEnter, v => { config.AutoOpenOnVenueEnter = v; config.Save(); },
                 Lang.AutoOpenOnVenueEnter, Lang.AutoOpenOnVenueEnterTip);
 
-            // Always shown, but disabled (with an explanatory tooltip) for players without a
-            // registered venue - lets owners opt their own venue out of auto-open (e.g. while
-            // working there) without affecting other venues.
             ImGui.TableNextColumn();
             ToggleCell("##autoOpenOwnVenue", config.AutoOpenOwnVenue, v => { config.AutoOpenOwnVenue = v; config.Save(); },
                 Lang.AutoOpenOwnVenue, Lang.AutoOpenOwnVenueTip,
@@ -518,9 +498,7 @@ public class SettingsWindow : Window, IDisposable
     public void DrawAboutTab()
     {
         ImGui.PushTextWrapPos(0);
-        // Spans the header/description/link-button block below - if anything in it throws before
-        // reaching the matching PopTextWrapPos() in the finally, it leaks onto the shared ImGui
-        // stack the same way the window-chrome pushes did elsewhere this session.
+
         try
         {
 
@@ -625,7 +603,6 @@ public class SettingsWindow : Window, IDisposable
         }
     }
 
-
     private static void LinkBtn(string label, string url, Vector4 col, float w, string tooltip)
     {
         ImGui.PushStyleColor(ImGuiCol.Button, UIConstants.WithAlpha(col, 0.15f));
@@ -653,8 +630,6 @@ public class SettingsWindow : Window, IDisposable
         finally { isPulling = false; }
     }
 
-    // Cycles through every toast kind one at a time so the user can preview each style/color
-    // without them all stacking on top of each other at once.
     private static async Task TestAllToastKinds(VenueMapperPlugin plugin)
     {
         var kinds = new[] { ToastKind.Info, ToastKind.Success, ToastKind.Warning, ToastKind.Egg };

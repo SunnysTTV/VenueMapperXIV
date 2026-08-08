@@ -14,10 +14,7 @@ public class VenueQuickPopupWindow : Window, IDisposable
     private Venue? venue;
 
     public VenueQuickPopupWindow(VenueMapperPlugin plugin)
-        // The window has no title bar, so this string is never actually displayed - it's purely
-        // the ImGui ID used for position/size persistence. Must stay a fixed, non-localized
-        // constant like every other window's ID here, or the position "resets" whenever the
-        // resolved language string differs, since ImGui hashes the whole Begin() string for ID.
+
         : base("Venue Quick Info##VenueQuickPopup",
             ImGuiWindowFlags.NoCollapse | ImGuiWindowFlags.NoTitleBar | ImGuiWindowFlags.NoScrollbar
             | ImGuiWindowFlags.AlwaysAutoResize | ImGuiWindowFlags.NoResize)
@@ -34,7 +31,7 @@ public class VenueQuickPopupWindow : Window, IDisposable
     public override void PreDraw()
     {
         UIConstants.PushWindowChrome();
-        // A bit more vertical breathing room than the shared window chrome's default (10, 8).
+
         ImGui.PushStyleVar(ImGuiStyleVar.WindowPadding, new Vector2(10, 16));
     }
 
@@ -46,15 +43,11 @@ public class VenueQuickPopupWindow : Window, IDisposable
 
     public override void Draw()
     {
-        // An uncaught exception here would propagate out of Draw() and could skip PostDraw()
-        // (which pops PushWindowChrome's styles), leaking them onto the shared ImGui stack for
-        // every window drawn afterward, including other plugins'. Catch+log instead.
+
         try { DrawContent(); }
         catch (Exception ex) { VenueMapperPlugin.Log.Error(ex, "[VenueMapper] VenueQuickPopupWindow draw failed"); }
     }
 
-    // A hairline divider tinted with the accent glow, matching the reference mockup - visually
-    // thinner/quieter than a plain ImGui.Separator(), which renders far more prominently.
     private static void ThinDivider(float width)
     {
         var p = ImGui.GetCursorScreenPos();
@@ -79,7 +72,6 @@ public class VenueQuickPopupWindow : Window, IDisposable
         var closeSize = ImGui.CalcTextSize(closeGlyph).X + 8f;
         ImGui.PopFont();
 
-        // Avatar box - door glyph on a bordered card, standing in for a venue icon/logo.
         const float boxSize = 30f;
         var boxMin = ImGui.GetCursorScreenPos();
         var dl = ImGui.GetWindowDrawList();
@@ -121,9 +113,6 @@ public class VenueQuickPopupWindow : Window, IDisposable
         }
         ImGui.EndGroup();
 
-        // Force at least a small gap between the name/status group and the close button - a plain
-        // "avail - closeSize" would let the X sit flush against a long name with no breathing room,
-        // since AlwaysAutoResize only grows the window to fit whatever's actually drawn.
         const float minNameGap = 16f;
         var nameGroupEndX = boxSize + 14f + ImGui.GetItemRectSize().X;
         ImGui.SameLine(Math.Max(avail - closeSize, nameGroupEndX + minNameGap));
@@ -143,8 +132,6 @@ public class VenueQuickPopupWindow : Window, IDisposable
         ImGui.TextColored(UIConstants.WithAlpha(UIConstants.TextSecondary, 0.6f), Lang.QuickSettings.ToUpperInvariant());
         ImGui.Spacing();
 
-        // Label-left, toggle-right (right-aligned to the window edge) to match the mockup, rather
-        // than this codebase's usual toggle-then-label order used in the full Settings window.
         ImGui.TextColored(UIConstants.TextPrimary, Lang.Markers3D);
         ImGui.SameLine(avail - toggleW);
         var markers = plugin.PictomancyMarkers.Enabled;
@@ -216,7 +203,7 @@ public class VenueQuickPopupWindow : Window, IDisposable
 
         if (UIConstants.AccentButton(copyLabel, UIConstants.Primary, width: btnW))
         {
-            // Same format as the Directory right-click "Copy Address" context menu entry.
+
             ImGui.SetClipboardText($"{v.Name} // {v.Address}");
             plugin.Toasts.Show(Lang.ToastAddressCopied, ToastKind.Success, 2.0);
         }

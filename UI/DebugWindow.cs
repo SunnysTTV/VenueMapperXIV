@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Numerics;
 using Dalamud.Bindings.ImGui;
 using Dalamud.Interface.Windowing;
@@ -26,9 +26,7 @@ public class DebugWindow : Window, IDisposable
 
     public override void Draw()
     {
-        // An uncaught exception here would propagate out of Draw() and could skip PostDraw()
-        // (which pops PushWindowChrome's styles), leaking them onto the shared ImGui stack for
-        // every window drawn afterward, including other plugins'. Catch+log instead.
+
         try { DrawContent(); }
         catch (Exception ex) { VenueMapperPlugin.Log.Error(ex, "[VenueMapper] DebugWindow draw failed"); }
     }

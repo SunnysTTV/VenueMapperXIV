@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using Dalamud.Configuration;
 using VenueMapper.Services;
@@ -53,7 +53,6 @@ public class Configuration : IPluginConfiguration
     public bool AutoOpenOwnVenue { get; set; } = true;
     public bool ShowQuickPopupOnEnter { get; set; } = false;
 
-    // Accessibility - marker visibility options, independently combinable.
     public float MarkerSizeScale { get; set; } = 1.0f;
     public bool MarkerColorOverrideEnabled { get; set; } = false;
     public System.Numerics.Vector3 MarkerOverrideColor { get; set; } = new(1f, 0f, 1f);

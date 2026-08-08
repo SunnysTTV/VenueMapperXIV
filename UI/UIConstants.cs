@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Numerics;
@@ -141,7 +141,6 @@ public static class UIConstants
         }
     }
 
-    /// <summary>Draws a themed combo box styled as a raised card with a soft drop shadow. <paramref name="drawItems"/> is only invoked while the dropdown is open.</summary>
     public static void StyledCombo(string id, string preview, float width, Action drawItems)
     {
         PushComboStyles();
@@ -166,7 +165,6 @@ public static class UIConstants
         PopComboStyles();
     }
 
-    /// <summary>Array-backed variant of <see cref="StyledCombo(string,string,float,Action)"/> for simple index-selection dropdowns.</summary>
     public static bool StyledCombo(string id, string[] options, ref int index, float width)
     {
         var current = index;
@@ -185,7 +183,6 @@ public static class UIConstants
         return true;
     }
 
-    /// <summary>Thin, rounded, glow-tinted scrollbar to replace the harsh default gray one. Push before a scrollable region, pop after.</summary>
     public static void PushScrollbarStyle()
     {
         ImGui.PushStyleColor(ImGuiCol.ScrollbarBg,          WithAlpha(Background, 0f));
@@ -202,11 +199,8 @@ public static class UIConstants
         ImGui.PopStyleColor(4);
     }
 
-    /// <summary>Width of a Toggle() pill for the current frame height - mirrors Toggle()'s own sizing calc so callers can estimate layout width without duplicating the formula.</summary>
     public static float ToggleWidth() => ImGui.GetFrameHeight() * 0.78f * 1.8f;
 
-    /// <summary>Continues the next item on the current line only if <paramref name="neededWidth"/> actually fits in the remaining space - otherwise leaves the cursor alone so the next item wraps to a new line naturally. Use to make a second toggle/control sit beside the first "if there's room", adapting to whatever width the window actually has instead of a hardcoded guess.</summary>
-    /// <summary>Right-aligns the next item (of the given width) to the current line's content region right edge - use so two controls in different rows still line up in the same column.</summary>
     public static void RightAlign(float width)
     {
         var avail = ImGui.GetContentRegionAvail().X;
@@ -214,21 +208,17 @@ public static class UIConstants
             ImGui.SetCursorPosX(ImGui.GetCursorPosX() + avail - width);
     }
 
-    /// <summary>Right-aligns the next item to a specific absolute screen-space X (from <see cref="RightEdgeX"/>), rather than the current row's own remaining space - use when two controls on different rows must land at the *exact same* pixel column, since their individual "remaining space" can differ slightly depending on what precedes them on their own row.</summary>
     public static void RightAlignAbs(float width, float targetRightScreenX)
     {
         var y = ImGui.GetCursorScreenPos().Y;
         ImGui.SetCursorScreenPos(new Vector2(targetRightScreenX - width, y));
     }
 
-    /// <summary>Captures the current line's right edge in absolute screen-space X, for later use with <see cref="RightAlignAbs"/>.</summary>
     public static float RightEdgeX() => ImGui.GetCursorScreenPos().X + ImGui.GetContentRegionAvail().X;
 
     public static void FlowNext(float neededWidth, float spacing = 20f)
     {
-        // Extra safety margin on top of the caller's own estimate - CalcTextSize/toggle-width math
-        // is close but not pixel-perfect against the real rendered layout, and a borderline "yes it
-        // fits" that's wrong by a few pixels clips the item at the window edge instead of wrapping.
+
         const float safety = 16f;
         if (ImGui.GetContentRegionAvail().X >= neededWidth + spacing + safety)
             ImGui.SameLine(0, spacing);
@@ -301,7 +291,6 @@ public static class UIConstants
     private static readonly Vector2[] GlowRimOffsets = { new(1, 1), new(2, 2) };
     private static readonly float[] GlowRimAlphas = { 0.18f, 0.09f };
 
-    /// <summary>Draws a card-style background (filled panel + crisp border + soft outward glow rim) onto an arbitrary rect. Draw-list only — does not affect the ImGui cursor.</summary>
     public static void DrawCardBackground(ImDrawListPtr dl, Vector2 min, Vector2 max, float rounding = -1f, float glowAlpha = 0.35f)
     {
         var r = rounding < 0 ? CardRounding : rounding;
@@ -317,12 +306,6 @@ public static class UIConstants
         dl.AddRect(min, max, ImGui.ColorConvertFloat4ToU32(WithAlpha(Glow, glowAlpha)), r, ImDrawFlags.None, 1.2f);
     }
 
-    /// <summary>Draws a card body with a left accent stripe that follows the card's own rounded corners (rather than
-    /// either poking a square corner past the curve, or stopping short and leaving a gap before it). Draws the accent
-    /// as a full rounded backdrop, then punches the body color back over everything except the left <paramref name="barWidth"/>
-    /// strip - since both layers share the same rounding, the accent naturally tapers into the same curve as the card silhouette.
-    /// <paramref name="body"/> is forced fully opaque: the punch-back layer sits on top of the accent backdrop, not the
-    /// window background, so any alpha in it would blend with the accent color instead of replacing it (tints the whole card).</summary>
     public static void DrawCardWithAccentBar(ImDrawListPtr dl, Vector2 cardMin, Vector2 cardMax, Vector4 body, Vector4 accent, float rounding, float barWidth = 3f)
     {
         dl.AddRectFilled(cardMin, cardMax, ImGui.ColorConvertFloat4ToU32(accent), rounding);
@@ -330,7 +313,6 @@ public static class UIConstants
             ImGui.ColorConvertFloat4ToU32(WithAlpha(body, 1f)), rounding, ImDrawFlags.RoundCornersRight);
     }
 
-    /// <summary>Themed replacement for the default gray ImGui popup chrome - push before BeginPopup/BeginPopupContextItem, pop after EndPopup.</summary>
     public static void PushMenuStyle()
     {
         ImGui.PushStyleColor(ImGuiCol.PopupBg, Lighten(CardBackground, 0.10f));
@@ -350,7 +332,6 @@ public static class UIConstants
         ImGui.PopStyleColor(5);
     }
 
-    /// <summary>A small rounded-square icon button (e.g. favorite/hide/eye-toggle/delete/link). Includes hover-glow and click-pulse feedback.</summary>
     public static bool IconChip(string id, FontAwesomeIcon icon, Vector2 size, Vector4? tint = null, bool active = false)
     {
         var col = tint ?? Primary;
@@ -377,7 +358,6 @@ public static class UIConstants
     private static float sectionRightX;
     private static float sectionPad;
 
-    /// <summary>Starts a card-panel section: subsequent widgets are laid out inside padded, indented content that ends up drawn on top of a card background + glow rim added by <see cref="EndSection"/>.</summary>
     public static void BeginSection(float padding = 10f)
     {
         sectionDl = ImGui.GetWindowDrawList();
@@ -405,7 +385,6 @@ public static class UIConstants
         ImGui.Spacing();
     }
 
-    /// <summary>Codifies the shared window chrome (dark bg, glow-tinted border, square corners) used across the plugin's windows.</summary>
     public static void PushWindowChrome(Vector4? accent = null, float borderSize = 1.5f)
     {
         var acc = accent ?? Glow;
@@ -424,7 +403,6 @@ public static class UIConstants
         ImGui.PopStyleColor(4);
     }
 
-    /// <summary>Shared ghost-style accent button (tinted background, colored border/text, hover-glow + click-pulse feedback).</summary>
     public static bool AccentButton(string label, Vector4? accent = null, float width = 0, bool disabled = false)
     {
         var col = accent ?? Primary;

@@ -8,9 +8,6 @@ using VenueMapper.Services;
 
 namespace VenueMapper.UI;
 
-// Styled after ChangelogWindow (same window chrome, date-grouped list, colored tag pills before
-// each line) since a flat notification log reads the same way a changelog does - just entries
-// grouped by day instead of by version.
 public class NotificationHistoryWindow : Window, IDisposable
 {
     private readonly VenueMapperPlugin plugin;
@@ -45,9 +42,7 @@ public class NotificationHistoryWindow : Window, IDisposable
 
     public override void Draw()
     {
-        // An uncaught exception here would propagate out of Draw() and could skip PostDraw()
-        // (which pops PreDraw's window-chrome styles), leaking them onto the shared ImGui stack
-        // for every window drawn afterward, including other plugins'. Catch+log instead.
+
         try { DrawContent(); }
         catch (Exception ex) { VenueMapperPlugin.Log.Error(ex, "[VenueMapper] NotificationHistoryWindow draw failed"); }
     }
@@ -130,7 +125,6 @@ public class NotificationHistoryWindow : Window, IDisposable
         _                 => filterInfo,
     };
 
-    // Newest-first, filtered by the active kind toggles.
     private List<(string Text, ToastKind Kind, DateTime Timestamp)> BuildDisplayList(IReadOnlyList<ToastManager.HistoryEntry> history)
     {
         var display = new List<(string Text, ToastKind Kind, DateTime Timestamp)>();

@@ -43,9 +43,6 @@ public class SetupWindow : Window, IDisposable
         RefreshFromConfig();
     }
 
-    // Re-syncs all wizard fields from the live Configuration. Must be called right before the
-    // window is opened (not every frame) so a Forced re-show doesn't clobber settings the user
-    // changed after the plugin loaded - the constructor only runs once at plugin startup.
     public void RefreshFromConfig()
     {
         step = 0;
@@ -83,9 +80,7 @@ public class SetupWindow : Window, IDisposable
 
     public override void Draw()
     {
-        // An uncaught exception here would propagate out of Draw() and could skip PostDraw()
-        // (which pops PushWindowChrome's styles), leaking them onto the shared ImGui stack for
-        // every window drawn afterward, including other plugins'. Catch+log instead.
+
         var hackerBooting = UIConstants.IsHackerBooting;
         try
         {

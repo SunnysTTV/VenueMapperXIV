@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
@@ -162,12 +162,6 @@ public class PartakeApiService : IDisposable
         }
     }
 
-    /// <summary>
-    /// The events query above only learns a team's iconUrl as a side-effect of that team having
-    /// at least one upcoming/active event - teams with none never populate iconUrlByTeam that way.
-    /// This queries Partake's standalone `team(id:)` field instead, which returns iconUrl
-    /// independent of event data, so the logo shows up even for venues with no listed events.
-    /// </summary>
     public async Task FetchTeamIconAsync(int teamId)
     {
         if (iconUrlByTeam.ContainsKey(teamId)) return;

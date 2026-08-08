@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Numerics;
@@ -51,12 +51,7 @@ public class EventsView
 
         var toggleIcon = showHidden ? FontAwesomeIcon.Eye : FontAwesomeIcon.EyeSlash;
         var chipSize = new Vector2(28, ImGui.GetFrameHeight());
-        // SetCursorPos is relative to the content region (post-padding), not the raw window width
-        // used above for the header gradient - using winW here put the chip too far right, clipped
-        // against the window border. Y is pinned to the row's own start (captured before the title
-        // was drawn) rather than computed backwards from the post-title cursor position, since that
-        // subtraction assumed a chip-height-to-line-height relationship that doesn't always hold and
-        // could float the chip up past the title row entirely.
+
         var contentRight = ImGui.GetContentRegionMax().X;
         ImGui.SetCursorPos(new Vector2(contentRight - chipSize.X, titleRowY));
         if (UIConstants.IconChip("##showHiddenEvents", toggleIcon, chipSize, UIConstants.Glow, showHidden))

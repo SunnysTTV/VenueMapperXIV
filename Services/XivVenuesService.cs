@@ -10,18 +10,6 @@ using VenueMapper.UI;
 
 namespace VenueMapper.Services;
 
-// Fetches the FFXIVVenues API's full venue list in a single request and serves individual
-// venues' schedule/banner out of the resulting in-memory snapshot, instead of one HTTP request
-// per venue. Per the API's own maintainer: a plugin doing 20-30 individual per-venue calls
-// (even spread out under the rate limit) turns into thousands of requests at real install
-// scale, whereas one bulk call + in-memory LINQ lookups costs the API the same regardless of
-// how many venues the plugin ends up tracking.
-//
-// The result is also persisted to disk (like ConfigManager's venues_cache.json), so a plugin
-// reload or game restart doesn't lose the cache and force an immediate re-fetch - the 30-minute
-// TTL is measured from the persisted fetch time, not from when this service instance happened
-// to be constructed, so it's still just one real API call per 30 minutes regardless of how often
-// the plugin itself gets reloaded in between.
 public class XivVenuesService : IDisposable
 {
     private const string ListUrl = "http://api.ffxivvenues.com/v1.0/venue";
@@ -31,9 +19,6 @@ public class XivVenuesService : IDisposable
     private readonly IPluginLog log;
     private readonly string cacheFilePath;
 
-    // Swapped wholesale on refresh (never mutated in place), so reads from the render thread
-    // never observe a partially-updated snapshot - `volatile` just guarantees the swap is
-    // visible across threads promptly instead of a reader spinning on a stale cached reference.
     private volatile Dictionary<string, ScheduleInfo?> scheduleById = new();
     private volatile Dictionary<string, string?> bannerById = new();
 
@@ -65,7 +50,6 @@ public class XivVenuesService : IDisposable
         return uri;
     }
 
-    /// <summary>Kept as the entry point call sites already use per-venue - now just triggers/refreshes the shared bulk snapshot instead of queuing an individual fetch. venueId is unused (the whole list is always fetched); the parameter is optional so this also works as a plain startup prefetch call.</summary>
     public void RequestSchedule(string venueId = "")
     {
         if (fetching) return;
@@ -117,10 +101,7 @@ public class XivVenuesService : IDisposable
             if (!response.IsSuccessStatusCode)
             {
                 log.Warning($"[XIVVenues] list fetch: HTTP {response.StatusCode}");
-                // Still counts as "attempted" for cooldown purposes - without this, a failure (e.g.
-                // 429 Too Many Requests) left lastFetch unset, so every caller's next RequestSchedule()
-                // saw the TTL as still expired and immediately fired another fetch, in a tight retry
-                // loop that hammered the API dozens of times per second instead of backing off.
+
                 lastFetch = DateTime.Now;
                 return;
             }
@@ -140,16 +121,8 @@ public class XivVenuesService : IDisposable
                 if (!string.IsNullOrEmpty(bannerUri))
                     newBanners[id] = bannerUri;
 
-                // The venue's own top-level "resolution" is FFXIVVenues' server-computed answer
-                // across ALL of the venue's schedule entries combined (a venue can have more than
-                // one weekly recurrence, e.g. Mondays AND Fridays) - using schedule[0]'s resolution
-                // instead looked only at the FIRST entry, so a venue whose first-listed day wasn't
-                // the currently-active one showed the wrong status (e.g. "opens in 3 days" while a
-                // later entry in the array was actually open right now).
                 var resolution = venue["resolution"];
-                // A JSON "resolution": null still comes back as a non-C#-null JValue (Type.Null),
-                // not an absent token - indexing into it with resolution["isNow"] then throws
-                // ("Cannot access child value on JValue"), aborting the whole fetch's parsing loop.
+
                 if (resolution == null || resolution.Type != JTokenType.Object) continue;
 
                 var isNow = resolution["isNow"]?.Value<bool>() ?? false;
@@ -175,8 +148,7 @@ public class XivVenuesService : IDisposable
         catch (Exception ex)
         {
             log.Debug($"[XIVVenues] List fetch failed: {ex.Message}");
-            // Same reasoning as the HTTP-failure branch above - without this, a parse exception
-            // (e.g. an unexpected null field) would leave lastFetch unset and retry instantly.
+
             lastFetch = DateTime.Now;
         }
         finally

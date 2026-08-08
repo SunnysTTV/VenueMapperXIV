@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Numerics;
 using Dalamud.Interface.Windowing;
 using Dalamud.Bindings.ImGui;
@@ -43,9 +43,7 @@ public class ChangelogWindow : Window, IDisposable
 
     public override void Draw()
     {
-        // An uncaught exception here would propagate out of Draw() and could skip PostDraw()
-        // (which pops PreDraw's window-chrome styles), leaking them onto the shared ImGui stack
-        // for every window drawn afterward, including other plugins'. Catch+log instead.
+
         try { DrawContent(); }
         catch (Exception ex) { VenueMapperPlugin.Log.Error(ex, "[VenueMapper] ChangelogWindow draw failed"); }
     }
@@ -57,9 +55,7 @@ public class ChangelogWindow : Window, IDisposable
 
         if (ImGui.BeginTable("##clLayout", 2, ImGuiTableFlags.BordersInnerV))
         {
-            // An unclosed BeginTable/BeginChild (if either returned true) leaves ImGui's internal
-            // table/child stack corrupted for the next frame's calls, not just this one, if
-            // anything below throws - same reasoning as the other Begin/End pairs fixed earlier.
+
             try
             {
             ImGui.TableSetupColumn("##clVersions", ImGuiTableColumnFlags.WidthFixed, 120);

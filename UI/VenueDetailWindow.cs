@@ -52,10 +52,7 @@ public class VenueDetailWindow : Window, IDisposable
         ImGui.PushStyleColor(ImGuiCol.ChildBg, new Vector4(0, 0, 0, 0));
         try
         {
-            // If DrawContent throws, an uncaught exception here would propagate out of Draw()
-            // entirely - PostDraw() (which pops PushWindowChrome's WindowRounding etc.) might then
-            // never run, leaking that style onto the shared ImGui stack for every window drawn
-            // afterward, including other plugins'. Catch+log instead of letting that happen.
+
             if (ImGui.BeginChild("##venueDetailScroll", new Vector2(0, 0)))
                 DrawContent(v);
         }
@@ -81,14 +78,11 @@ public class VenueDetailWindow : Window, IDisposable
         if (v.TeamId > 0)
         {
             _ = plugin.PartakeApi.FetchTeamAsync(v.TeamId);
-            // Independent of the events fetch above - that one only learns the icon URL if the
-            // team has an event, so venues with none would otherwise never show their Partake logo.
+
             _ = plugin.PartakeApi.FetchTeamIconAsync(v.TeamId);
         }
         if (xivId != null) plugin.XivVenues.RequestSchedule(xivId);
 
-        // Prefer the Partake team icon (an actual logo); the FFXIVVenues banner is a wide promo
-        // image, not a logo, so it's only a fallback for venues without a Partake link at all.
         var logoUrl = v.TeamId > 0 ? plugin.PartakeApi.GetTeamIconUrl(v.TeamId) : null;
         logoUrl ??= xivId != null ? plugin.XivVenues.GetBannerUri(xivId) : null;
         var logoTex = plugin.VenueLogos.Get(logoUrl);
@@ -101,8 +95,7 @@ public class VenueDetailWindow : Window, IDisposable
 
         if (logoTex != null)
         {
-            // Center-crop to a square (like CSS object-fit:cover) instead of stretching non-square
-            // source images (FFXIVVenues banners are wide) into the round avatar.
+
             var texW = (float)logoTex.Width;
             var texH = (float)logoTex.Height;
             var uvMin = Vector2.Zero;
@@ -172,9 +165,7 @@ public class VenueDetailWindow : Window, IDisposable
 
         Row(Lang.Datacenter, v.Datacenter);
         Row(Lang.Server, v.Server);
-        // Address is "{Datacenter} - {Server} - {District} - Ward {N} - Plot {N}" - Datacenter/Server/
-        // Ward/Plot already have their own rows, so pull out just the district name instead of
-        // repeating the whole string.
+
         var addrParts = v.Address.Split(" - ");
         var district = addrParts.Length >= 3 ? addrParts[2] : "";
         if (!string.IsNullOrEmpty(district))
@@ -202,8 +193,7 @@ public class VenueDetailWindow : Window, IDisposable
             ImGui.SameLine(0, 8);
             if (UIConstants.AccentButton($"{Lang.CopyLifestreamAddress}##detailCopyLs", UIConstants.Primary, width: btnW))
             {
-                // Lifestream's own chat command syntax, e.g. "/li Raiden Lavender Beds 9 30" -
-                // not the same as the descriptive Address string shown above.
+
                 ImGui.SetClipboardText($"/li {v.Server} {district} {v.Ward} {v.Plot}");
                 plugin.Toasts.Show(Lang.ToastAddressCopied, ToastKind.Success, 2.0);
             }
@@ -259,8 +249,6 @@ public class VenueDetailWindow : Window, IDisposable
                 cardDl.AddText(new Vector2(textX, cardMin.Y + 6),
                     ImGui.ColorConvertFloat4ToU32(UIConstants.TextPrimary), title);
 
-                // DateTime.ToLocalTime() can throw for out-of-range values depending on the local
-                // UTC offset - keep this defensive since it's inside the shared PushWindowChrome scope.
                 string dateText;
                 try { dateText = evt.StartTime.ToLocalTime().ToString("ddd, MMM d - h:mm tt"); }
                 catch { dateText = evt.StartTime.ToString("ddd, MMM d - h:mm tt"); }
@@ -291,8 +279,7 @@ public class VenueDetailWindow : Window, IDisposable
             }
             else
             {
-                // No Partake data (no link, or none returned) - fall back to whatever FFXIVVenues
-                // already told us up in the header (statusText), rather than just showing nothing.
+
                 ImGui.TextColored(UIConstants.WithAlpha(UIConstants.TextSecondary, 0.5f), Lang.NoPartakeEvents);
                 if (statusText.Length > 0)
                     ImGui.TextColored(sched!.IsOpenNow ? UIConstants.Success : UIConstants.WithAlpha(UIConstants.TextSecondary, 0.7f), statusText);

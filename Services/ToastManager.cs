@@ -29,10 +29,6 @@ public sealed class ToastManager
         public double Duration;
         public string? Tag;
 
-        // Separate from StartedAt on purpose - StartedAt gets nudged forward every frame while
-        // hovered (to freeze the countdown), so anything that needs a stable, one-time-only value
-        // (like the Easter Egg sparkle's random seed) must use this instead, or it re-randomizes
-        // every single frame while hovered instead of staying put.
         public readonly DateTime CreatedAt = DateTime.Now;
     }
 
@@ -75,14 +71,6 @@ public sealed class ToastManager
         }
     }
 
-    // Toasts.Show() can be called from a background thread (e.g. a continuation after an
-    // await'd HTTP call that didn't resume on the main/render thread), while ToastOverlay.Draw()
-    // enumerates Active on the render thread every frame - lock + always-copy in Active prevents
-    // "Collection was modified" crashes from that race.
-    //
-    // tag: when set, any existing visible toast with the same tag is removed before adding the
-    // new one - for status-style toasts (e.g. "notifications now appear here") where only the
-    // latest should ever be on screen, instead of stacking one per change.
     public void Show(string text, ToastKind kind = ToastKind.Info, double duration = 3.0, string? tag = null)
     {
         lock (sync)
@@ -141,8 +129,6 @@ public sealed class ToastManager
         get { lock (sync) return history.ToArray(); }
     }
 
-    /// <summary>Number of toasts force-trimmed by MaxVisible overflow in the last few seconds - used
-    /// for a brief "+N more" indicator, since the trimmed toasts themselves only flash for a moment.</summary>
     public int RecentTrimCount
     {
         get
