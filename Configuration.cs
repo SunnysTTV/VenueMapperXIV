@@ -38,6 +38,7 @@ public class Configuration : IPluginConfiguration
 
     public bool HasSeenSetup { get; set; }
     public bool PendingForcedSetup { get; set; }
+    public bool PendingWhatsNew { get; set; }
 
     public System.Numerics.Vector2? WindowPosition { get; set; }
     public System.Numerics.Vector2? WindowSize { get; set; }
@@ -46,6 +47,17 @@ public class Configuration : IPluginConfiguration
     public string? LastActiveTab { get; set; }
 
     public bool BoostOpenVenues { get; set; } = true;
+    public bool Markers3DEnabled { get; set; } = true;
+    public bool HideMarkersInOwnVenue { get; set; } = false;
+    public bool AutoOpenOnVenueEnter { get; set; } = true;
+    public bool AutoOpenOwnVenue { get; set; } = true;
+    public bool ShowQuickPopupOnEnter { get; set; } = false;
+
+    // Accessibility - marker visibility options, independently combinable.
+    public float MarkerSizeScale { get; set; } = 1.0f;
+    public bool MarkerColorOverrideEnabled { get; set; } = false;
+    public System.Numerics.Vector3 MarkerOverrideColor { get; set; } = new(1f, 0f, 1f);
+    public bool MarkerStrongPulse { get; set; } = false;
 
     public void Save()
     {

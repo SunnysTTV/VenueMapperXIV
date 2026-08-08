@@ -40,6 +40,8 @@ public static class HackerModeOverlay
         var winMax = winMin + winSz;
         var green = UIConstants.HackerGreen;
 
+        dl.PushClipRect(winMin, winMax, true);
+
         if (UIConstants.IsHackerBooting)
         {
             var elapsed = ImGui.GetTime() - hackerModeStart;
@@ -81,6 +83,8 @@ public static class HackerModeOverlay
 
             dl.AddRect(winMin, winMax, ImGui.ColorConvertFloat4ToU32(UIConstants.WithAlpha(green, 0.5f)), 0f, ImDrawFlags.None, 1.5f);
         }
+
+        dl.PopClipRect();
     }
 
     internal static void DrawMatrixRain(ImDrawListPtr dl, Vector2 winMin, Vector2 winMax, Vector4 green, float baseAlpha, int colCount = 20)

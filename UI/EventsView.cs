@@ -43,26 +43,24 @@ public class EventsView
             ImGui.ColorConvertFloat4ToU32(UIConstants.WithAlpha(UIConstants.Primary, 0f)),
             ImGui.ColorConvertFloat4ToU32(UIConstants.WithAlpha(UIConstants.Secondary, 0f)));
 
+        var titleRowY = ImGui.GetCursorPosY();
+
         var title = Lang.UpcomingEvents;
         ImGui.SetCursorPosX(Math.Max(0f, (winW - ImGui.CalcTextSize(title).X) / 2f));
         ImGui.TextColored(UIConstants.Secondary, title);
 
-        var toggleGlyph = (showHidden ? FontAwesomeIcon.Eye : FontAwesomeIcon.EyeSlash).ToIconString();
-        var iconFont = UiBuilder.IconFont;
-        ImGui.PushFont(iconFont);
-        var toggleSz = ImGui.CalcTextSize(toggleGlyph);
-        ImGui.PopFont();
-        ImGui.SetCursorPos(new Vector2(winW - toggleSz.X - 16, ImGui.GetCursorPosY() - toggleSz.Y - 4));
-        ImGui.PushStyleColor(ImGuiCol.Button, showHidden
-            ? UIConstants.WithAlpha(UIConstants.Glow, 0.3f)
-            : UIConstants.WithAlpha(UIConstants.CardBackground, 0.9f));
-        ImGui.PushStyleColor(ImGuiCol.ButtonHovered, UIConstants.WithAlpha(UIConstants.Glow, 0.4f));
-        ImGui.PushStyleColor(ImGuiCol.ButtonActive, UIConstants.WithAlpha(UIConstants.Glow, 0.5f));
-        ImGui.PushFont(iconFont);
-        if (ImGui.Button($"{toggleGlyph}##showHiddenEvents", new Vector2(toggleSz.X + 12, 0)))
+        var toggleIcon = showHidden ? FontAwesomeIcon.Eye : FontAwesomeIcon.EyeSlash;
+        var chipSize = new Vector2(28, ImGui.GetFrameHeight());
+        // SetCursorPos is relative to the content region (post-padding), not the raw window width
+        // used above for the header gradient - using winW here put the chip too far right, clipped
+        // against the window border. Y is pinned to the row's own start (captured before the title
+        // was drawn) rather than computed backwards from the post-title cursor position, since that
+        // subtraction assumed a chip-height-to-line-height relationship that doesn't always hold and
+        // could float the chip up past the title row entirely.
+        var contentRight = ImGui.GetContentRegionMax().X;
+        ImGui.SetCursorPos(new Vector2(contentRight - chipSize.X, titleRowY));
+        if (UIConstants.IconChip("##showHiddenEvents", toggleIcon, chipSize, UIConstants.Glow, showHidden))
             showHidden = !showHidden;
-        ImGui.PopFont();
-        ImGui.PopStyleColor(3);
         if (ImGui.IsItemHovered())
             ImGui.SetTooltip(Lang.ShowHidden);
 
@@ -94,7 +92,7 @@ public class EventsView
             var error = api.GetError(venue.TeamId);
             if (error != null)
             {
-                ImGui.TextColored(new Vector4(1f, 0.3f, 0.3f, 0.8f), error);
+                ImGui.TextColored(UIConstants.WithAlpha(UIConstants.Danger, 0.8f), error);
                 ImGui.SameLine();
                 if (ImGui.SmallButton($"{Lang.Retry}##{venue.VenueId}"))
                     api.Invalidate(venue.TeamId);
@@ -138,13 +136,10 @@ public class EventsView
         var primary   = UIConstants.ApplyOverride(colors?.PrimaryVec ?? UIConstants.Primary);
         var accent    = UIConstants.ApplyOverride(colors?.AccentVec ?? UIConstants.Glow);
         var secondary = UIConstants.ApplyOverride(colors?.SecondaryVec ?? UIConstants.Secondary);
-        var gold      = new Vector4(1f, 0.84f, 0f, 1f);
+        var gold      = UIConstants.GoldAccent;
 
-        dl.AddRectFilled(cardMin, cardMax,
-            ImGui.ColorConvertFloat4ToU32(UIConstants.WithAlpha(UIConstants.CardBackground, 0.75f)));
-
-        dl.AddRectFilled(cardMin, new Vector2(cardMin.X + 3, cardMax.Y),
-            ImGui.ColorConvertFloat4ToU32(primary));
+        var cardBody = UIConstants.Vector4Lerp(UIConstants.Background, UIConstants.CardBackground, 0.75f);
+        UIConstants.DrawCardWithAccentBar(dl, cardMin, cardMax, cardBody, primary, UIConstants.CardRounding);
 
         ImGui.InvisibleButton($"##evt_{evt.EventId}", new Vector2(avW, cardH));
         var hovered = ImGui.IsItemHovered();
@@ -155,7 +150,16 @@ public class EventsView
         var borderCol = hovered ? primary : UIConstants.WithAlpha(primary, 0.15f + 0.1f * borderPulse);
         dl.AddRect(cardMin, cardMax,
             ImGui.ColorConvertFloat4ToU32(UIConstants.WithAlpha(borderCol, hovered ? 0.6f + 0.3f * borderPulse : borderCol.W)),
-            0f, ImDrawFlags.None, hovered ? 1.5f : 1f);
+            UIConstants.CardRounding, ImDrawFlags.None, hovered ? 1.5f : 1f);
+
+        if (!hovered)
+        {
+            dl.AddRect(
+                new Vector2(cardMin.X - 1, cardMin.Y - 1),
+                new Vector2(cardMax.X + 1, cardMax.Y + 1),
+                ImGui.ColorConvertFloat4ToU32(UIConstants.WithAlpha(UIConstants.Glow, 0.10f)),
+                UIConstants.CardRounding + 1f, ImDrawFlags.None, 1f);
+        }
 
         if (hovered)
         {
@@ -163,7 +167,7 @@ public class EventsView
                 new Vector2(cardMin.X - 1, cardMin.Y - 1),
                 new Vector2(cardMax.X + 1, cardMax.Y + 1),
                 ImGui.ColorConvertFloat4ToU32(UIConstants.WithAlpha(secondary, 0.1f + 0.15f * borderPulse)),
-                0f, ImDrawFlags.None, 2f);
+                UIConstants.CardRounding, ImDrawFlags.None, 2f);
 
             var shimPhase = (float)(ImGui.GetTime() % 2.0) / 2.0f;
             var shimX = cardMin.X + shimPhase * (avW + 40) - 20;
@@ -209,7 +213,7 @@ public class EventsView
             ImGui.ColorConvertFloat4ToU32(UIConstants.WithAlpha(accent, 0.7f)), timeStr);
 
         var isNow = evt.StartTime <= DateTime.UtcNow && evt.EndTime >= DateTime.UtcNow;
-        var nowCol = new Vector4(1f, 0.4f, 0f, 1f);
+        var nowCol = UIConstants.Warning;
 
         var badge = $" {evt.EventType} ";
         var badgeSz = ImGui.CalcTextSize(badge);
@@ -221,11 +225,11 @@ public class EventsView
         dl.AddRectFilled(
             new Vector2(badgeX - 2, cardMin.Y + 4),
             new Vector2(badgeX + badgeSz.X + 2, cardMin.Y + 4 + badgeSz.Y + 2),
-            ImGui.ColorConvertFloat4ToU32(UIConstants.WithAlpha(gold, 0.2f)));
+            ImGui.ColorConvertFloat4ToU32(UIConstants.WithAlpha(gold, 0.2f)), UIConstants.ChipRounding);
         dl.AddRect(
             new Vector2(badgeX - 2, cardMin.Y + 4),
             new Vector2(badgeX + badgeSz.X + 2, cardMin.Y + 4 + badgeSz.Y + 2),
-            ImGui.ColorConvertFloat4ToU32(UIConstants.WithAlpha(gold, 0.5f)), 0f, ImDrawFlags.None, 1f);
+            ImGui.ColorConvertFloat4ToU32(UIConstants.WithAlpha(gold, 0.5f)), UIConstants.ChipRounding, ImDrawFlags.None, 1f);
         dl.AddText(new Vector2(badgeX, cardMin.Y + 5),
             ImGui.ColorConvertFloat4ToU32(gold), badge);
 
@@ -237,11 +241,11 @@ public class EventsView
             dl.AddRectFilled(
                 new Vector2(nowX - 2, cardMin.Y + 4),
                 new Vector2(nowX + nowSz.X + 2, cardMin.Y + 4 + nowSz.Y + 2),
-                ImGui.ColorConvertFloat4ToU32(UIConstants.WithAlpha(nowCol, 0.25f)));
+                ImGui.ColorConvertFloat4ToU32(UIConstants.WithAlpha(nowCol, 0.25f)), UIConstants.ChipRounding);
             dl.AddRect(
                 new Vector2(nowX - 2, cardMin.Y + 4),
                 new Vector2(nowX + nowSz.X + 2, cardMin.Y + 4 + nowSz.Y + 2),
-                ImGui.ColorConvertFloat4ToU32(UIConstants.WithAlpha(nowCol, 0.6f * nowAlpha)), 0f, ImDrawFlags.None, 1f);
+                ImGui.ColorConvertFloat4ToU32(UIConstants.WithAlpha(nowCol, 0.6f * nowAlpha)), UIConstants.ChipRounding, ImDrawFlags.None, 1f);
             dl.AddText(new Vector2(nowX, cardMin.Y + 5),
                 ImGui.ColorConvertFloat4ToU32(UIConstants.WithAlpha(nowCol, nowAlpha)), nowBadge);
         }
@@ -283,10 +287,10 @@ public class EventsView
 
         if (isHidden)
             dl.AddRectFilled(cardMin, cardMax,
-                ImGui.ColorConvertFloat4ToU32(UIConstants.WithAlpha(UIConstants.Background, 0.55f)));
+                ImGui.ColorConvertFloat4ToU32(UIConstants.WithAlpha(UIConstants.Background, 0.55f)), UIConstants.CardRounding);
     }
 
-    private static string StripEmoji(string text)
+    internal static string StripEmoji(string text)
     {
         if (string.IsNullOrEmpty(text)) return text;
         var sb = new System.Text.StringBuilder(text.Length);

@@ -36,6 +36,8 @@ public static class Lang
     public static string HideVenue     => G("HideVenue");
     public static string UnhideVenue   => G("UnhideVenue");
     public static string ShowHidden    => G("ShowHidden");
+    public static string ShowOwnedOnly => G("ShowOwnedOnly");
+    public static string NoOwnedVenues => G("NoOwnedVenues");
     public static string RightClickHint=> G("RightClickHint");
 
     public static string Active        => G("Active");
@@ -59,6 +61,32 @@ public static class Lang
     public static string Notifications      => G("Notifications");
     public static string TestNotification   => G("TestNotification");
     public static string TestNotificationText => G("TestNotificationText");
+    public static string NotificationHistory     => G("NotificationHistory");
+    public static string NotificationHistoryDesc => G("NotificationHistoryDesc");
+    public static string ClearHistory            => G("ClearHistory");
+    public static string NoNotificationHistory   => G("NoNotificationHistory");
+    public static string Today                   => G("Today");
+    public static string Yesterday                => G("Yesterday");
+    public static string ToastPositionChanged      => G("ToastPositionChanged");
+    public static string ToastMustBeInVenue        => G("ToastMustBeInVenue");
+    public static string ToastQuickPopupDisabled   => G("ToastQuickPopupDisabled");
+    public static string WhatsNewTitle         => G("WhatsNewTitle");
+    public static string WhatsNewQuickPopup    => G("WhatsNewQuickPopup");
+    public static string WhatsNewHistory       => G("WhatsNewHistory");
+    public static string WhatsNewWarningKind   => G("WhatsNewWarningKind");
+    public static string WhatsNewWarningKindDesc => G("WhatsNewWarningKindDesc");
+    public static string WhatsNewQuickCommand  => G("WhatsNewQuickCommand");
+    public static string WhatsNewNewSettings   => G("WhatsNewNewSettings");
+    public static string WhatsNewAllFeatures   => G("WhatsNewAllFeatures");
+    public static string WhatsNewFeatures      => G("WhatsNewFeatures");
+    public static string WhatsNewVenueDetails      => G("WhatsNewVenueDetails");
+    public static string WhatsNewVenueDetailsDesc  => G("WhatsNewVenueDetailsDesc");
+    public static string WhatsNewSmartNotify       => G("WhatsNewSmartNotify");
+    public static string WhatsNewSmartNotifyDesc   => G("WhatsNewSmartNotifyDesc");
+    public static string WhatsNewCrownFilter       => G("WhatsNewCrownFilter");
+    public static string WhatsNewCrownFilterDesc   => G("WhatsNewCrownFilterDesc");
+    public static string WhatsNewGotIt         => G("WhatsNewGotIt");
+    public static string WhatsNewSeeMore       => G("WhatsNewSeeMore");
     public static string NotificationPosition => G("NotificationPosition");
     public static string PosTopRight        => G("PosTopRight");
     public static string PosTopLeft         => G("PosTopLeft");
@@ -82,6 +110,23 @@ public static class Lang
     public static string DefaultTabRemember   => G("DefaultTabRemember");
     public static string BoostOpenVenues      => G("BoostOpenVenues");
     public static string BoostOpenVenuesTip   => G("BoostOpenVenuesTip");
+    public static string AutoOpenOnVenueEnter    => G("AutoOpenOnVenueEnter");
+    public static string AutoOpenOnVenueEnterTip => G("AutoOpenOnVenueEnterTip");
+    public static string AutoOpenOwnVenue    => G("AutoOpenOwnVenue");
+    public static string AutoOpenOwnVenueTip => G("AutoOpenOwnVenueTip");
+    public static string ShowQuickPopupOnEnter    => G("ShowQuickPopupOnEnter");
+    public static string ShowQuickPopupOnEnterTip => G("ShowQuickPopupOnEnterTip");
+    public static string QuickPopupTitle => G("QuickPopupTitle");
+    public static string QuickSettings   => G("QuickSettings");
+    public static string AccessibilitySettings => G("AccessibilitySettings");
+    public static string MarkerSizeLabel => G("MarkerSizeLabel");
+    public static string MarkerSizeNormal => G("MarkerSizeNormal");
+    public static string MarkerSizeLarge => G("MarkerSizeLarge");
+    public static string MarkerSizeExtraLarge => G("MarkerSizeExtraLarge");
+    public static string MarkerStrongPulse => G("MarkerStrongPulse");
+    public static string MarkerColorOverride => G("MarkerColorOverride");
+    public static string MarkerColorOverrideTip => G("MarkerColorOverrideTip");
+    public static string MarkerColorPickerTip => G("MarkerColorPickerTip");
 
     public static string ToastCacheCleared      => G("ToastCacheCleared");
     public static string ToastCacheClearFailed  => G("ToastCacheClearFailed");
@@ -115,11 +160,21 @@ public static class Lang
     public static string MarkersOn     => G("MarkersOn");
     public static string MarkersOff    => G("MarkersOff");
     public static string Markers3D     => G("Markers3D");
+    public static string HideMarkersInOwnVenue    => G("HideMarkersInOwnVenue");
+    public static string HideMarkersInOwnVenueTip => G("HideMarkersInOwnVenueTip");
+    public static string HideMarkersInOwnVenueNeedsOwnerTip => G("HideMarkersInOwnVenueNeedsOwnerTip");
 
     public static string MapUnavailable=> G("MapUnavailable");
     public static string MapNotInVenue => G("MapNotInVenue");
     public static string ScrollZoom    => G("ScrollZoom");
     public static string TeleportVia   => G("TeleportVia");
+    public static string ViewVenueDetails => G("ViewVenueDetails");
+    public static string YouAreOwner    => G("YouAreOwner");
+    public static string CopyLifestreamAddress => G("CopyLifestreamAddress");
+    public static string VenueServices  => G("VenueServices");
+    public static string NextEvent      => G("NextEvent");
+    public static string NoPartakeEvents => G("NoPartakeEvents");
+    public static string NoScheduleInfo  => G("NoScheduleInfo");
 
     public static string Links         => G("Links");
     public static string NoLinks       => G("NoLinks");

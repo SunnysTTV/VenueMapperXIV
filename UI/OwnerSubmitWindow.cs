@@ -210,7 +210,7 @@ public class OwnerSubmitWindow : Window, IDisposable
     {
         this.plugin = plugin;
         this.isUpdateMode = isUpdateMode;
-        Size = new Vector2(525, 650);
+        Size = new Vector2(540, 666);
         SizeCondition = ImGuiCond.Always;
     }
 
@@ -218,80 +218,95 @@ public class OwnerSubmitWindow : Window, IDisposable
 
     public override void PreDraw()
     {
-        var accent = isUpdateMode ? UIConstants.Glow : UIConstants.Primary;
-        ImGui.PushStyleColor(ImGuiCol.WindowBg, UIConstants.Background);
-        ImGui.PushStyleColor(ImGuiCol.TitleBg, UIConstants.WithAlpha(accent, 0.2f));
-        ImGui.PushStyleColor(ImGuiCol.TitleBgActive, UIConstants.WithAlpha(accent, 0.3f));
-        ImGui.PushStyleColor(ImGuiCol.Border, UIConstants.WithAlpha(UIConstants.Glow, 0.5f));
-        ImGui.PushStyleVar(ImGuiStyleVar.WindowBorderSize, 1.5f);
+        UIConstants.PushWindowChrome(isUpdateMode ? UIConstants.Glow : UIConstants.Primary);
     }
 
     public override void PostDraw()
     {
-        ImGui.PopStyleVar();
-        ImGui.PopStyleColor(4);
+        UIConstants.PopWindowChrome();
     }
 
     public override void Draw()
     {
+        // An uncaught exception here would propagate out of Draw() and could skip PostDraw()
+        // (which pops PushWindowChrome's styles), leaking them onto the shared ImGui stack for
+        // every window drawn afterward, including other plugins'. Catch+log instead, with
+        // finally blocks to keep every Begin/Push below balanced even if a tab's draw throws.
         var hackerBooting = UIConstants.IsHackerBooting;
-        if (hackerBooting) ImGui.BeginDisabled();
-
-        ImGui.TextColored(isUpdateMode ? UIConstants.Glow : UIConstants.Primary,
-            isUpdateMode ? Lang.UpdateVenueTitle : Lang.OwnerTitle);
-        ImGui.TextColored(UIConstants.WithAlpha(UIConstants.TextSecondary, 0.5f),
-            isUpdateMode ? Lang.UpdateVenueDesc : Lang.OwnerDesc);
-        ImGui.Spacing();
-
-        if (ImGui.BeginTabBar("##ownerTabs"))
+        try
         {
-            if (ImGui.BeginTabItem(Lang.VenueInfo))
+            if (hackerBooting) ImGui.BeginDisabled();
+            try
             {
-                DrawVenueInfo();
-                ImGui.EndTabItem();
-            }
-            if (ImGui.BeginTabItem($"{Lang.Links}##tab_links"))
-            {
-                DrawLinks();
-                ImGui.EndTabItem();
-            }
-            if (ImGui.BeginTabItem("Services##tab_svc"))
-            {
-                DrawServices();
-                ImGui.EndTabItem();
-            }
-            if (ImGui.BeginTabItem(Lang.Export))
-            {
-                DrawExport();
-                ImGui.EndTabItem();
-            }
-            ImGui.EndTabBar();
-        }
+                ImGui.TextColored(isUpdateMode ? UIConstants.Glow : UIConstants.Primary,
+                    isUpdateMode ? Lang.UpdateVenueTitle : Lang.OwnerTitle);
+                ImGui.SameLine(0, 8);
+                ImGui.TextColored(UIConstants.WithAlpha(UIConstants.TextSecondary, 0.45f),
+                    isUpdateMode ? Lang.UpdateVenueDesc : Lang.OwnerDesc);
+                ImGui.Spacing();
 
-        if (copied && ImGui.GetTime() - copiedTime < 3.0)
+                var showCopied = copied && ImGui.GetTime() - copiedTime < 3.0;
+                var bottomReserve = showCopied ? ImGui.GetTextLineHeightWithSpacing() + 4f : 0f;
+
+                if (ImGui.BeginTabBar("##ownerTabs"))
+                {
+                    void ScrollTab(string label, Action draw)
+                    {
+                        if (!ImGui.BeginTabItem(label)) return;
+                        UIConstants.PushScrollbarStyle();
+                        ImGui.PushStyleColor(ImGuiCol.ChildBg, new Vector4(0, 0, 0, 0));
+                        try
+                        {
+                            if (ImGui.BeginChild($"##scroll_{label}", new Vector2(0, -bottomReserve)))
+                                draw();
+                        }
+                        finally
+                        {
+                            ImGui.EndChild();
+                            ImGui.PopStyleColor();
+                            UIConstants.PopScrollbarStyle();
+                            ImGui.EndTabItem();
+                        }
+                    }
+
+                    try
+                    {
+                        ScrollTab(Lang.VenueInfo, DrawVenueInfo);
+                        ScrollTab($"{Lang.Links}##tab_links", DrawLinks);
+                        ScrollTab("Services##tab_svc", DrawServices);
+                        ScrollTab(Lang.Export, DrawExport);
+                    }
+                    finally
+                    {
+                        ImGui.EndTabBar();
+                    }
+                }
+
+                if (copied && ImGui.GetTime() - copiedTime < 3.0)
+                {
+                    ImGui.Spacing();
+                    ImGui.TextColored(UIConstants.Glow, $"{Lang.Copied} {copiedWhat}");
+                }
+            }
+            finally
+            {
+                if (hackerBooting) ImGui.EndDisabled();
+            }
+
+            HackerModeOverlay.Draw(ref hackerModeStart, ref hackerTitleLoopStart, WindowName);
+        }
+        catch (Exception ex)
         {
-            ImGui.Spacing();
-            ImGui.TextColored(UIConstants.Glow, $"{Lang.Copied} {copiedWhat}");
+            VenueMapperPlugin.Log.Error(ex, "[VenueMapper] OwnerSubmitWindow draw failed");
         }
-
-        if (hackerBooting) ImGui.EndDisabled();
-
-        HackerModeOverlay.Draw(ref hackerModeStart, ref hackerTitleLoopStart, WindowName);
     }
 
     private void DrawVenueInfo()
     {
         ImGui.Spacing();
 
-        ImGui.PushStyleColor(ImGuiCol.Button, UIConstants.WithAlpha(UIConstants.Glow, 0.15f));
-        ImGui.PushStyleColor(ImGuiCol.ButtonHovered, UIConstants.WithAlpha(UIConstants.Glow, 0.28f));
-        ImGui.PushStyleColor(ImGuiCol.Text, UIConstants.Glow);
-        ImGui.PushStyleVar(ImGuiStyleVar.FrameBorderSize, 1f);
-        ImGui.PushStyleColor(ImGuiCol.Border, UIConstants.WithAlpha(UIConstants.Glow, 0.4f));
-        if (ImGui.Button($"{Lang.DetectPosition}##autopos", new Vector2(-1, 28)))
+        if (UIConstants.AccentButton($"{Lang.DetectPosition}##autopos", UIConstants.Glow, width: -1))
             AutoFillFromPosition();
-        ImGui.PopStyleColor(4);
-        ImGui.PopStyleVar();
         ImGui.Spacing();
 
         PushFieldStyle();
@@ -301,8 +316,8 @@ public class OwnerSubmitWindow : Window, IDisposable
         ImGui.Spacing();
 
         ImGui.TextColored(UIConstants.TextSecondary, Lang.Datacenter);
-        ImGui.SetNextItemWidth(-1);
-        if (ImGui.BeginCombo("##dc", selectedDc.Length > 0 ? selectedDc : Lang.SelectHint))
+        var dcWidth = ImGui.GetContentRegionAvail().X;
+        UIConstants.StyledCombo("##dc", selectedDc.Length > 0 ? selectedDc : Lang.SelectHint, dcWidth, () =>
         {
             foreach (var dc in ServerData.AllDatacenters)
             {
@@ -313,25 +328,22 @@ public class OwnerSubmitWindow : Window, IDisposable
                     selectedServer = servers.Length > 0 ? servers[0] : "";
                 }
             }
-            ImGui.EndCombo();
-        }
+        });
 
         ImGui.TextColored(UIConstants.TextSecondary, Lang.Server);
-        ImGui.SetNextItemWidth(-1);
+        var srvWidth = ImGui.GetContentRegionAvail().X;
         var dcServers = ServerData.GetServers(selectedDc);
-        if (ImGui.BeginCombo("##server", selectedServer.Length > 0 ? selectedServer : Lang.SelectHint))
+        UIConstants.StyledCombo("##server", selectedServer.Length > 0 ? selectedServer : Lang.SelectHint, srvWidth, () =>
         {
             foreach (var srv in dcServers)
             {
                 if (ImGui.Selectable(srv, srv == selectedServer))
                     selectedServer = srv;
             }
-            ImGui.EndCombo();
-        }
+        });
 
         ImGui.TextColored(UIConstants.TextSecondary, Lang.HousingDist);
-        ImGui.SetNextItemWidth(-1);
-        if (ImGui.Combo("##district", ref districtIndex, Districts, Districts.Length))
+        if (UIConstants.StyledCombo("##district", Districts, ref districtIndex, ImGui.GetContentRegionAvail().X))
             AutoDetectHouseSizeFromPlot();
 
         var halfW = (ImGui.GetContentRegionAvail().X - 8) / 2f;
@@ -346,21 +358,20 @@ public class OwnerSubmitWindow : Window, IDisposable
             AutoDetectHouseSizeFromPlot();
 
         ImGui.TextColored(UIConstants.TextSecondary, Lang.HouseSize);
-        ImGui.SetNextItemWidth(-1);
-        ImGui.Combo("##housesize", ref houseSizeIndex, HouseSizeLabels, HouseSizeLabels.Length);
+        UIConstants.StyledCombo("##housesize", HouseSizeLabels, ref houseSizeIndex, ImGui.GetContentRegionAvail().X);
 
         ImGui.Spacing();
-        ImGui.PushStyleColor(ImGuiCol.CheckMark, UIConstants.Primary);
-        ImGui.Checkbox(Lang.NsfwVenue, ref isNsfw);
-        ImGui.PopStyleColor();
+        UIConstants.Toggle("##nsfwVenue", ref isNsfw);
         if (ImGui.IsItemHovered()) ImGui.SetTooltip(Lang.NsfwVenueTip);
+        ImGui.SameLine();
+        ImGui.TextColored(UIConstants.TextPrimary, Lang.NsfwVenue);
         ImGui.SameLine();
         ImGui.TextColored(UIConstants.WithAlpha(UIConstants.TextSecondary, 0.4f), $"({Lang.NsfwUncheckedHint})");
 
-        ImGui.PushStyleColor(ImGuiCol.CheckMark, UIConstants.Glow);
-        ImGui.Checkbox(Lang.RegisterOwnerId, ref registerOwnerId);
-        ImGui.PopStyleColor();
+        UIConstants.Toggle("##registerOwnerId", ref registerOwnerId);
         if (ImGui.IsItemHovered()) ImGui.SetTooltip(Lang.RegisterOwnerIdTip);
+        ImGui.SameLine();
+        ImGui.TextColored(UIConstants.TextPrimary, Lang.RegisterOwnerId);
 
         ImGui.Spacing();
         Field(Lang.Description, ref description, "");
@@ -411,12 +422,8 @@ public class OwnerSubmitWindow : Window, IDisposable
     {
         ImGui.Spacing();
 
-        ImGui.PushStyleColor(ImGuiCol.Button, UIConstants.WithAlpha(UIConstants.Glow, 0.15f));
-        ImGui.PushStyleColor(ImGuiCol.ButtonHovered, UIConstants.WithAlpha(UIConstants.Glow, 0.3f));
-        ImGui.PushStyleColor(ImGuiCol.Text, UIConstants.Glow);
-        if (ImGui.Button(Lang.AddService, new Vector2(-1, 24)))
+        if (UIConstants.AccentButton(Lang.AddService, UIConstants.Glow, width: -1))
             services.Add(new ServiceEntry());
-        ImGui.PopStyleColor(3);
 
         ImGui.TextColored(UIConstants.WithAlpha(UIConstants.TextSecondary, 0.4f),
             Lang.CoordsTip);
@@ -424,32 +431,33 @@ public class OwnerSubmitWindow : Window, IDisposable
         ImGui.Spacing();
 
         PushFieldStyle();
+        ImGui.PushStyleColor(ImGuiCol.Header,        UIConstants.WithAlpha(UIConstants.Primary, 0.18f));
+        ImGui.PushStyleColor(ImGuiCol.HeaderHovered,  UIConstants.WithAlpha(UIConstants.Primary, 0.28f));
+        ImGui.PushStyleColor(ImGuiCol.HeaderActive,   UIConstants.WithAlpha(UIConstants.Primary, 0.38f));
+        ImGui.PushStyleVar(ImGuiStyleVar.FrameRounding, UIConstants.ChipRounding);
         for (var i = 0; i < services.Count; i++)
         {
             var svc = services[i];
             ImGui.PushID(i);
 
             var label = svc.Name.Length > 0 ? svc.Name : $"Service #{i + 1}";
-            if (ImGui.CollapsingHeader(label, ImGuiTreeNodeFlags.DefaultOpen))
+            if (ImGui.CollapsingHeader(label, ImGuiTreeNodeFlags.DefaultOpen | ImGuiTreeNodeFlags.FramePadding))
             {
+                ImGui.Indent(4f);
                 ImGui.TextColored(UIConstants.TextSecondary, Lang.ServiceType);
-                ImGui.SetNextItemWidth(-1);
-                ImGui.Combo("##type", ref svc.TypeIndex, ServiceTypeLabels, ServiceTypeLabels.Length);
+                UIConstants.StyledCombo("##type", ServiceTypeLabels, ref svc.TypeIndex, ImGui.GetContentRegionAvail().X);
 
                 Field(Lang.ServiceName, ref svc.Name, Lang.ServiceNameHint);
 
                 ImGui.TextColored(UIConstants.TextSecondary, Lang.Floor);
-                ImGui.SetNextItemWidth(-1);
-                ImGui.Combo("##floor", ref svc.FloorIndex, FloorNameLabels, FloorNameLabels.Length);
+                UIConstants.StyledCombo("##floor", FloorNameLabels, ref svc.FloorIndex, ImGui.GetContentRegionAvail().X);
 
                 ImGui.TextColored(UIConstants.TextSecondary, Lang.Coordinates);
                 ImGui.SetNextItemWidth(ImGui.GetContentRegionAvail().X * 0.6f);
                 ImGui.DragFloat3("##coords", ref svc.Coords, 0.1f);
                 ImGui.SameLine();
 
-                ImGui.PushStyleColor(ImGuiCol.Button, UIConstants.WithAlpha(UIConstants.Glow, 0.15f));
-                ImGui.PushStyleColor(ImGuiCol.Text, UIConstants.Glow);
-                if (ImGui.Button(Lang.UseMyPos))
+                if (UIConstants.AccentButton(Lang.UseMyPos, UIConstants.Glow))
                 {
                     var pos = plugin.PositionTracker.LastPosition;
                     svc.Coords = new Vector3(pos.X, pos.Z, pos.Y);
@@ -460,18 +468,17 @@ public class OwnerSubmitWindow : Window, IDisposable
                         _       => 0,
                     };
                 }
-                ImGui.PopStyleColor(2);
 
-                ImGui.PushStyleColor(ImGuiCol.Button, UIConstants.WithAlpha(new Vector4(1, 0.2f, 0.2f, 1), 0.2f));
-                ImGui.PushStyleColor(ImGuiCol.Text, new Vector4(1, 0.4f, 0.4f, 1));
-                if (ImGui.Button($"{Lang.Delete}##del", new Vector2(-1, 20)))
+                if (UIConstants.AccentButton($"{Lang.Delete}##del", UIConstants.Danger, width: -1))
                     services.RemoveAt(i);
-                ImGui.PopStyleColor(2);
+                ImGui.Unindent(4f);
             }
 
             ImGui.PopID();
             ImGui.Spacing();
         }
+        ImGui.PopStyleVar();
+        ImGui.PopStyleColor(3);
         PopFieldStyle();
     }
 
@@ -501,7 +508,7 @@ public class OwnerSubmitWindow : Window, IDisposable
         var valid = clubName.Length > 0 && (identityKnown || discordName.Length > 0) && selectedDc.Length > 0 && selectedServer.Length > 0 && ward.Length > 0 && plot.Length > 0;
         if (!valid)
         {
-            ImGui.TextColored(new Vector4(1, 0.3f, 0.3f, 0.8f), Lang.FillRequired);
+            ImGui.TextColored(UIConstants.WithAlpha(UIConstants.Danger, 0.8f), Lang.FillRequired);
             ImGui.Spacing();
         }
 
@@ -510,14 +517,12 @@ public class OwnerSubmitWindow : Window, IDisposable
             identityKnown ? Lang.OptFormDescVerified : Lang.OptFormDesc);
         ImGui.Spacing();
 
-        ImGui.PushStyleColor(ImGuiCol.Button, UIConstants.WithAlpha(new Vector4(0.2f, 0.5f, 1f, 1f), valid ? 0.25f : 0.1f));
-        ImGui.PushStyleColor(ImGuiCol.ButtonHovered, UIConstants.WithAlpha(new Vector4(0.2f, 0.5f, 1f, 1f), valid ? 0.45f : 0.15f));
-        ImGui.PushStyleColor(ImGuiCol.Text, UIConstants.WithAlpha(new Vector4(0.4f, 0.7f, 1f, 1f), valid ? 1f : 0.5f));
-        if (ImGui.Button(Lang.OpenForm, new Vector2(-1, 28)))
+        var formBlue = new Vector4(0.2f, 0.5f, 1f, 1f);
+        if (UIConstants.AccentButton(Lang.OpenForm, formBlue, width: -1))
         {
             if (!valid)
             {
-                plugin.Toasts.Show(Lang.ToastRequiredFieldsMissing, ToastKind.Info, 3.0);
+                plugin.Toasts.Show(Lang.ToastRequiredFieldsMissing, ToastKind.Warning, 3.0);
             }
             else
             {
@@ -527,7 +532,6 @@ public class OwnerSubmitWindow : Window, IDisposable
                 copied = true; copiedTime = ImGui.GetTime(); copiedWhat = Lang.FormOpened;
             }
         }
-        ImGui.PopStyleColor(3);
 
         ImGui.Spacing();
         ImGui.Separator();
@@ -541,31 +545,20 @@ public class OwnerSubmitWindow : Window, IDisposable
         var jsonCopied = copyJsonStart > 0 && (ImGui.GetTime() - copyJsonStart) < 3.0;
         if (jsonCopied)
         {
-            ImGui.PushStyleColor(ImGuiCol.Button, UIConstants.WithAlpha(new Vector4(0.2f, 1f, 0.5f, 1f), 0.25f));
-            ImGui.PushStyleColor(ImGuiCol.ButtonHovered, UIConstants.WithAlpha(new Vector4(0.2f, 1f, 0.5f, 1f), 0.35f));
-            ImGui.PushStyleColor(ImGuiCol.Text, new Vector4(0.2f, 1f, 0.5f, 1f));
-            ImGui.Button($"{Lang.Copied}##copyJson", new Vector2(-1, 28));
-            ImGui.PopStyleColor(3);
+            UIConstants.AccentButton($"{Lang.Copied}##copyJson", UIConstants.Success, width: -1, disabled: true);
         }
-        else
+        else if (UIConstants.AccentButton($"{Lang.CopyJson}##copyJson", UIConstants.Primary, width: -1))
         {
-            ImGui.PushStyleColor(ImGuiCol.Button, UIConstants.WithAlpha(UIConstants.Primary, valid ? 0.25f : 0.1f));
-            ImGui.PushStyleColor(ImGuiCol.ButtonHovered, UIConstants.WithAlpha(UIConstants.Primary, valid ? 0.45f : 0.15f));
-            ImGui.PushStyleColor(ImGuiCol.Text, UIConstants.WithAlpha(UIConstants.Primary, valid ? 1f : 0.5f));
-            if (ImGui.Button($"{Lang.CopyJson}##copyJson", new Vector2(-1, 28)))
+            if (!valid)
             {
-                if (!valid)
-                {
-                    plugin.Toasts.Show(Lang.ToastRequiredFieldsMissing, ToastKind.Info, 3.0);
-                }
-                else
-                {
-                    ImGui.SetClipboardText(FormatJson());
-                    copyJsonStart = ImGui.GetTime();
-                    plugin.Toasts.Show(Lang.ToastJsonCopied, ToastKind.Success, 2.0);
-                }
+                plugin.Toasts.Show(Lang.ToastRequiredFieldsMissing, ToastKind.Warning, 3.0);
             }
-            ImGui.PopStyleColor(3);
+            else
+            {
+                ImGui.SetClipboardText(FormatJson());
+                copyJsonStart = ImGui.GetTime();
+                plugin.Toasts.Show(Lang.ToastJsonCopied, ToastKind.Success, 2.0);
+            }
         }
 
         ImGui.Spacing();
@@ -574,14 +567,28 @@ public class OwnerSubmitWindow : Window, IDisposable
 
         ImGui.TextColored(UIConstants.WithAlpha(UIConstants.TextSecondary, 0.5f), Lang.Preview);
         ImGui.PushStyleColor(ImGuiCol.ChildBg, UIConstants.WithAlpha(UIConstants.CardBackground, 0.3f));
-        if (ImGui.BeginChild("##preview", new Vector2(-1, 140), true))
+        UIConstants.PushScrollbarStyle();
+        try
         {
-            ImGui.PushTextWrapPos(0);
-            ImGui.TextColored(UIConstants.WithAlpha(UIConstants.TextSecondary, 0.6f), FormatJson());
-            ImGui.PopTextWrapPos();
+            if (ImGui.BeginChild("##preview", new Vector2(-1, 140), true))
+            {
+                ImGui.PushTextWrapPos(0);
+                try
+                {
+                    ImGui.TextColored(UIConstants.WithAlpha(UIConstants.TextSecondary, 0.6f), FormatJson());
+                }
+                finally
+                {
+                    ImGui.PopTextWrapPos();
+                }
+            }
         }
-        ImGui.EndChild();
-        ImGui.PopStyleColor();
+        finally
+        {
+            ImGui.EndChild();
+            UIConstants.PopScrollbarStyle();
+            ImGui.PopStyleColor();
+        }
 
         ImGui.PopTextWrapPos();
     }

@@ -21,7 +21,19 @@ public class DebugWindow : Window, IDisposable
         IsOpen = false;
     }
 
+    public override void PreDraw() => UIConstants.PushWindowChrome();
+    public override void PostDraw() => UIConstants.PopWindowChrome();
+
     public override void Draw()
+    {
+        // An uncaught exception here would propagate out of Draw() and could skip PostDraw()
+        // (which pops PushWindowChrome's styles), leaking them onto the shared ImGui stack for
+        // every window drawn afterward, including other plugins'. Catch+log instead.
+        try { DrawContent(); }
+        catch (Exception ex) { VenueMapperPlugin.Log.Error(ex, "[VenueMapper] DebugWindow draw failed"); }
+    }
+
+    private void DrawContent()
     {
         ImGui.TextColored(UIConstants.Primary, Lang.DebugInfo);
         ImGui.Separator();
@@ -148,19 +160,20 @@ public class DebugWindow : Window, IDisposable
 
     private static void DrawAccentButton(string label, Action onClick)
     {
-        ImGui.PushStyleColor(ImGuiCol.Button, UIConstants.Primary);
-        ImGui.PushStyleColor(ImGuiCol.ButtonHovered, UIConstants.PrimaryHover);
-        ImGui.PushStyleColor(ImGuiCol.ButtonActive, UIConstants.Primary);
-        ImGui.PushStyleColor(ImGuiCol.Text, UIConstants.TextPrimary);
-        ImGui.PushStyleColor(ImGuiCol.Border, UIConstants.Glow);
+        ImGui.PushStyleColor(ImGuiCol.Button, UIConstants.WithAlpha(UIConstants.Primary, 0.2f));
+        ImGui.PushStyleColor(ImGuiCol.ButtonHovered, UIConstants.WithAlpha(UIConstants.Primary, 0.35f));
+        ImGui.PushStyleColor(ImGuiCol.ButtonActive, UIConstants.WithAlpha(UIConstants.Primary, 0.5f));
+        ImGui.PushStyleColor(ImGuiCol.Border, UIConstants.WithAlpha(UIConstants.Primary, 0.6f));
+        ImGui.PushStyleColor(ImGuiCol.Text, UIConstants.Primary);
         ImGui.PushStyleVar(ImGuiStyleVar.FrameBorderSize, 1f);
+        ImGui.PushStyleVar(ImGuiStyleVar.FrameRounding, 6f);
+        ImGui.PushStyleVar(ImGuiStyleVar.FramePadding, new Vector2(14, ImGui.GetStyle().FramePadding.Y));
 
-        if (ImGui.Button(label, new Vector2(150, 30)))
-        {
-            onClick();
-        }
+        var clicked = ImGui.Button(label, new Vector2(0, ImGui.GetFrameHeight()));
+        if (clicked) onClick();
+        UIConstants.DrawHoverPulseOverlay(label, ImGui.IsItemHovered(), clicked, UIConstants.Primary);
 
-        ImGui.PopStyleVar();
+        ImGui.PopStyleVar(3);
         ImGui.PopStyleColor(5);
     }
 

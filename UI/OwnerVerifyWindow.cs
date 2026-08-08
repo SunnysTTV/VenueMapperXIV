@@ -61,7 +61,7 @@ public class OwnerVerifyWindow : Window, IDisposable
     {
         Size = new Vector2(ContentW + Pad * 2f, ContentHeight() + Pad * 2f);
 
-        ImGui.PushStyleColor(ImGuiCol.WindowBg, new Vector4(0.02f, 0.02f, 0.05f, 0.55f));
+        ImGui.PushStyleColor(ImGuiCol.WindowBg, UIConstants.WithAlpha(UIConstants.Background, 0.55f));
         ImGui.PushStyleVar(ImGuiStyleVar.WindowBorderSize, 0f);
         ImGui.PushStyleVar(ImGuiStyleVar.WindowRounding, 24f);
         ImGui.PushStyleVar(ImGuiStyleVar.WindowPadding, new Vector2(Pad, Pad));
@@ -78,6 +78,15 @@ public class OwnerVerifyWindow : Window, IDisposable
     }
 
     public override void Draw()
+    {
+        // An uncaught exception here would propagate out of Draw() and could skip PostDraw()
+        // (which pops PreDraw's window-chrome styles), leaking them onto the shared ImGui stack
+        // for every window drawn afterward, including other plugins'. Catch+log instead.
+        try { DrawContent(); }
+        catch (Exception ex) { VenueMapperPlugin.Log.Error(ex, "[VenueMapper] OwnerVerifyWindow draw failed"); }
+    }
+
+    private void DrawContent()
     {
         var elapsed = (float)(ImGui.GetTime() - phaseStart);
 
@@ -161,7 +170,7 @@ public class OwnerVerifyWindow : Window, IDisposable
 
     private static void DrawResult(float elapsed, bool granted)
     {
-        var color = granted ? new Vector4(0.35f, 0.9f, 0.5f, 1f) : new Vector4(0.95f, 0.3f, 0.3f, 1f);
+        var color = granted ? UIConstants.Success : UIConstants.Danger;
         var icon = granted ? FontAwesomeIcon.Check : FontAwesomeIcon.Times;
         var shake = granted ? BounceOffset(elapsed) : ShakeOffset(elapsed);
         DrawScanRing(elapsed, color, scanning: false, icon: icon, shakeOffset: shake);

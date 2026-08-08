@@ -29,6 +29,14 @@ public class PlayerPositionTracker
 
     public bool IsInsideHouse { get; private set; }
     public bool IsInHousingWard { get; private set; }
+    public bool IsInWorkshop { get; private set; }
+    public bool IsInPrivateChambers { get; private set; }
+
+    // FFXIVClientStructs' HousingManager has no dedicated flag for Private Chambers - it reuses the
+    // same IndoorTerritory pointer as a normal house interior. These are the Private Chambers
+    // TerritoryType IDs per district (Mist, Lavender Beds, Goblet, Shirogane, Empyreum), the same
+    // approach Lifestream uses since no cleaner signal exists.
+    private static readonly HashSet<uint> PrivateChambersTerritoryIds = new() { 983, 384, 652, 386, 385 };
     public string CurrentServerName { get; private set; } = "";
     public string CurrentHousingDistrict { get; private set; } = "";
 
@@ -102,6 +110,8 @@ public class PlayerPositionTracker
                     CurrentPlot = hm->GetCurrentPlot();
                     IsInsideHouse = hm->IndoorTerritory != null;
                     IsInHousingWard = hm->IsOutside();
+                    IsInWorkshop = hm->IsInWorkshop();
+                    IsInPrivateChambers = PrivateChambersTerritoryIds.Contains(CurrentTerritoryId);
 
                     var districtTerritoryId = IsInsideHouse
                         ? HousingManager.GetOriginalHouseTerritoryTypeId()
@@ -115,6 +125,8 @@ public class PlayerPositionTracker
                     CurrentPlot = -1;
                     IsInsideHouse = false;
                     IsInHousingWard = false;
+                    IsInWorkshop = false;
+                    IsInPrivateChambers = false;
                     CurrentHousingDistrict = "";
                 }
             }
@@ -125,6 +137,8 @@ public class PlayerPositionTracker
             CurrentPlot = -1;
             IsInsideHouse = false;
             IsInHousingWard = false;
+            IsInWorkshop = false;
+            IsInPrivateChambers = false;
             CurrentHousingDistrict = "";
         }
 
@@ -211,12 +225,14 @@ public class PlayerPositionTracker
 
     public Venue? GetCurrentVenue(VenueConfig config)
     {
+        if (IsInWorkshop || IsInPrivateChambers) return null;
         if (!IsInsideHouse) return null;
         return FindVenueAtCurrentPlot(config);
     }
 
     public Venue? GetVenueAtCurrentPlotIncludingGarden(VenueConfig config)
     {
+        if (IsInWorkshop || IsInPrivateChambers) return null;
         if (!IsInsideHouse && !(IsInHousingWard && CurrentPlot >= 0))
             return null;
         return FindVenueAtCurrentPlot(config);

@@ -38,8 +38,10 @@ public class VenueMapWindow : Window, IDisposable
     private bool selectEggTab;
     private bool selectAbtTab;
     private string lastActiveTab = "map";
+    private string currentTab = "map";
     private string searchText = string.Empty;
     private bool showHidden;
+    private bool showOwnedOnly;
     private readonly HashSet<string> selectedDcs = new();
     private readonly HashSet<string> selectedServers = new();
     private readonly EventsView eventsView;
@@ -60,6 +62,7 @@ public class VenueMapWindow : Window, IDisposable
     private const double WobbleCloseDuration = 0.45;
     private const int WobbleVariantCount = 9;
     private const string DefaultTitle = "Venue Map";
+    private string rawTitle = DefaultTitle;
 
     private int titleClickCount;
     private DateTime lastTitleClickTime = DateTime.MinValue;
@@ -69,7 +72,7 @@ public class VenueMapWindow : Window, IDisposable
     private Vector2? pendingResetSize;
 
     private static readonly Vector2 DefaultWindowPos = new(100, 100);
-    private static readonly Vector2 DefaultWindowSize = new(560, 700);
+    private static readonly Vector2 DefaultWindowSize = new(450, 700);
 
     public void ResetWindowPosition()
     {
@@ -115,15 +118,16 @@ public class VenueMapWindow : Window, IDisposable
     public string PickSunnyLine() => SunnyLinePool[EggRng.Next(SunnyLinePool.Length)];
 
     public VenueMapWindow(VenueMapperPlugin plugin)
-        : base("Venue Map##VenueMapper",
+        : base("Venue Map###VenueMapper",
             ImGuiWindowFlags.NoScrollbar | ImGuiWindowFlags.NoScrollWithMouse)
     {
         this.plugin = plugin;
         this.eventsView = new EventsView(plugin.PartakeApi);
         lastActiveTab = plugin.Configuration.LastActiveTab ?? "map";
-        Size = new Vector2(560, 700);
+        currentTab = plugin.Configuration.DefaultTab == "remember" ? lastActiveTab : (plugin.Configuration.DefaultTab ?? "map");
+        Size = DefaultWindowSize;
         SizeCondition = ImGuiCond.FirstUseEver;
-        SizeConstraints = new WindowSizeConstraints { MinimumSize = new Vector2(450, 660) };
+        SizeConstraints = new WindowSizeConstraints { MinimumSize = DefaultWindowSize };
 
         TitleBarButtons =
         [
@@ -134,6 +138,14 @@ public class VenueMapWindow : Window, IDisposable
                 Click = _ => plugin.ChangelogWindow.Open(),
                 ShowTooltip = () => ImGui.SetTooltip("View older versions"),
                 Priority = 0,
+            },
+            new Dalamud.Interface.Windowing.TitleBarButton
+            {
+                Icon = Dalamud.Interface.FontAwesomeIcon.Bell,
+                IconOffset = new Vector2(2, 1),
+                Click = _ => plugin.NotificationHistoryWindow.Open(),
+                ShowTooltip = () => ImGui.SetTooltip(Lang.NotificationHistory),
+                Priority = 1,
             },
         ];
 
@@ -156,15 +168,20 @@ public class VenueMapWindow : Window, IDisposable
         _fadeAlpha = MathF.Min(1f, _fadeAlpha + ImGui.GetIO().DeltaTime * (1f / 0.30f));
         ImGui.PushStyleVar(ImGuiStyleVar.Alpha, _fadeAlpha);
 
+        // Triple-hash (not double): only the part AFTER "###" feeds ImGui's ID hash used for
+        // position/size persistence, so the Random Title easter egg can change the DISPLAYED
+        // text every open without ever changing the window's actual identity/saved position.
+        WindowName = rawTitle + "###VenueMapper";
+
         ImGui.PushStyleColor(ImGuiCol.WindowBg,      UIConstants.Background);
-        ImGui.PushStyleColor(ImGuiCol.TitleBg,       UIConstants.WithAlpha(UIConstants.Primary, 0.18f));
-        ImGui.PushStyleColor(ImGuiCol.TitleBgActive, UIConstants.WithAlpha(UIConstants.Primary, 0.28f));
+        ImGui.PushStyleColor(ImGuiCol.TitleBg,       UIConstants.Background);
+        ImGui.PushStyleColor(ImGuiCol.TitleBgActive, UIConstants.CardBackground);
         ImGui.PushStyleColor(ImGuiCol.Border,        UIConstants.WithAlpha(UIConstants.Glow, 0.55f));
 
         var rgbActive = plugin.EasterEggManager.IsRgbOverloadActive;
         ImGui.PushStyleVar(ImGuiStyleVar.WindowBorderSize, rgbActive ? 3f : 1.5f);
         ImGui.PushStyleVar(ImGuiStyleVar.WindowPadding, new Vector2(10, 8));
-        ImGui.PushStyleVar(ImGuiStyleVar.WindowRounding, 0f);
+        ImGui.PushStyleVar(ImGuiStyleVar.WindowRounding, 8f);
     }
 
     public override void PostDraw()
@@ -184,7 +201,7 @@ public class VenueMapWindow : Window, IDisposable
     public void TriggerRandomTitlePreview()
     {
         pendingTitlePinPos = ImGui.GetWindowPos();
-        WindowName = RandomTitlePool[EggRng.Next(RandomTitlePool.Length)] + "##VenueMapper";
+        rawTitle = RandomTitlePool[EggRng.Next(RandomTitlePool.Length)];
     }
 
     public override void OnOpen()
@@ -196,16 +213,16 @@ public class VenueMapWindow : Window, IDisposable
 
         if (eggs.IsEnabled(EasterEggIds.RandomTitle))
         {
-            WindowName = RandomTitlePool[EggRng.Next(RandomTitlePool.Length)] + "##VenueMapper";
+            rawTitle = RandomTitlePool[EggRng.Next(RandomTitlePool.Length)];
         }
         else if (!eggs.IsDiscovered(EasterEggIds.RandomTitle) && EggRng.Next(30) == 0)
         {
             eggs.Unlock(EasterEggIds.RandomTitle);
-            WindowName = RandomTitlePool[EggRng.Next(RandomTitlePool.Length)] + "##VenueMapper";
+            rawTitle = RandomTitlePool[EggRng.Next(RandomTitlePool.Length)];
         }
         else
         {
-            WindowName = DefaultTitle + "##VenueMapper";
+            rawTitle = DefaultTitle;
         }
 
         var defaultTab = plugin.Configuration.DefaultTab;
@@ -351,7 +368,79 @@ public class VenueMapWindow : Window, IDisposable
         }
     }
 
+
+    private readonly Dictionary<string, float> navTabAnim = new();
+
+    private const float NavTabPadX = 10f;
+    private const float NavTabGap = 6f;
+
+    // Width only ever animates toward the active state - never toward hover - so at most one tab's
+    // width is ever changing at a time (on click, not on every mouse-over). That's what keeps the
+    // layout for every other tab completely stable, after several rounds of hover-driven glitches.
+    private bool DrawNavTab(string id, FontAwesomeIcon icon, string label, bool active, bool disabled = false)
+    {
+        var iconFont = UiBuilder.IconFont;
+        var iconStr = icon.ToIconString();
+        ImGui.PushFont(iconFont);
+        var iconSz = ImGui.CalcTextSize(iconStr);
+        ImGui.PopFont();
+        var labelSz = ImGui.CalcTextSize(label);
+
+        var height = ImGui.GetFrameHeight() + 6f;
+        var collapsedW = iconSz.X + NavTabPadX * 2;
+        var expandedW = iconSz.X + NavTabGap + labelSz.X + NavTabPadX * 2;
+
+        navTabAnim.TryGetValue(id, out var t);
+        var target = active ? 1f : 0f;
+        var dt = ImGui.GetIO().DeltaTime;
+        t += (target - t) * MathF.Min(1f, dt * 14f);
+        navTabAnim[id] = t;
+
+        var w = collapsedW + (expandedW - collapsedW) * t;
+        var pos = ImGui.GetCursorScreenPos();
+
+        if (disabled) ImGui.BeginDisabled();
+        ImGui.InvisibleButton($"##navtab_{id}", new Vector2(w, height));
+        var hovered = ImGui.IsItemHovered(ImGuiHoveredFlags.AllowWhenDisabled);
+        var clicked = !disabled && ImGui.IsItemClicked();
+        if (disabled) ImGui.EndDisabled();
+
+        var dl = ImGui.GetWindowDrawList();
+
+        if (active)
+            dl.AddRectFilled(pos, pos + new Vector2(w, height),
+                ImGui.ColorConvertFloat4ToU32(UIConstants.WithAlpha(UIConstants.Primary, 0.3f)), UIConstants.ChipRounding);
+        else if (hovered && !disabled)
+            dl.AddRectFilled(pos, pos + new Vector2(w, height),
+                ImGui.ColorConvertFloat4ToU32(UIConstants.WithAlpha(UIConstants.Primary, 0.15f)), UIConstants.ChipRounding);
+
+        var col = disabled ? UIConstants.WithAlpha(UIConstants.TextSecondary, 0.5f)
+                : active ? UIConstants.TextPrimary : UIConstants.TextSecondary;
+
+        var iconX = pos.X + NavTabPadX;
+        var iconY = pos.Y + (height - iconSz.Y) * 0.5f;
+        dl.AddText(iconFont, iconFont.FontSize, new Vector2(iconX, iconY), ImGui.ColorConvertFloat4ToU32(col), iconStr);
+
+        if (t > 0.05f)
+        {
+            var labelX = iconX + iconSz.X + NavTabGap;
+            var labelY = pos.Y + (height - labelSz.Y) * 0.5f;
+            dl.AddText(new Vector2(labelX, labelY), ImGui.ColorConvertFloat4ToU32(UIConstants.WithAlpha(col, t)), label);
+        }
+
+        return clicked;
+    }
+
     public override void Draw()
+    {
+        // An uncaught exception here would propagate out of Draw() and could skip PostDraw()
+        // (which pops PreDraw's window-chrome styles, incl. WindowRounding), leaking them onto
+        // the shared ImGui stack for every window drawn afterward, including other plugins'.
+        try { DrawInner(); }
+        catch (Exception ex) { VenueMapperPlugin.Log.Error(ex, "[VenueMapper] VenueMapWindow draw failed"); }
+    }
+
+    private void DrawInner()
     {
         if (pendingTitlePinPos.HasValue)
         {
@@ -389,94 +478,94 @@ public class VenueMapWindow : Window, IDisposable
 
         var inVenue = plugin.PositionTracker.GetCurrentVenue(config) != null;
 
-        ImGui.PushStyleColor(ImGuiCol.Tab,        UIConstants.WithAlpha(UIConstants.CardBackground, 0.8f));
-        ImGui.PushStyleColor(ImGuiCol.TabActive,   UIConstants.WithAlpha(UIConstants.Primary, 0.3f));
-        ImGui.PushStyleColor(ImGuiCol.TabHovered,  UIConstants.WithAlpha(UIConstants.Primary, 0.2f));
-        ImGui.PushStyleColor(ImGuiCol.TabUnfocusedActive, UIConstants.WithAlpha(UIConstants.Primary, 0.15f));
-
-        var mapF = selectMapTab ? ImGuiTabItemFlags.SetSelected : ImGuiTabItemFlags.None;
-        var dirF = selectDirTab ? ImGuiTabItemFlags.SetSelected : ImGuiTabItemFlags.None;
-        var evtF = selectEvtTab ? ImGuiTabItemFlags.SetSelected : ImGuiTabItemFlags.None;
-        var setF = selectSettingsTab ? ImGuiTabItemFlags.SetSelected : ImGuiTabItemFlags.None;
-        var eggF = selectEggTab ? ImGuiTabItemFlags.SetSelected : ImGuiTabItemFlags.None;
-        var abtF = selectAbtTab ? ImGuiTabItemFlags.SetSelected : ImGuiTabItemFlags.None;
+        if (selectMapTab) currentTab = "map";
+        if (selectDirTab) currentTab = "dir";
+        if (selectEvtTab) currentTab = "evt";
+        if (selectSettingsTab) currentTab = "set";
+        if (selectEggTab) currentTab = "egg";
+        if (selectAbtTab) currentTab = "abt";
         selectMapTab = selectDirTab = selectEvtTab = selectSettingsTab = selectEggTab = selectAbtTab = false;
+
+        if (currentTab == "map" && !inVenue) currentTab = "dir";
 
         var hackerBooting = plugin.EasterEggManager.IsHackerModeBooting;
         if (hackerBooting) ImGui.BeginDisabled();
 
-        if (ImGui.BeginTabBar("##mainTabs"))
+        var navTabs = new (string Id, FontAwesomeIcon Icon, string Label, bool Disabled)[]
         {
-            if (!inVenue)
+            ("map", FontAwesomeIcon.Map, Lang.Map, !inVenue),
+            ("dir", FontAwesomeIcon.List, Lang.Directory, false),
+            ("evt", FontAwesomeIcon.CalendarAlt, Lang.Events, false),
+            ("set", FontAwesomeIcon.Cog, Lang.Settings, false),
+            ("egg", FontAwesomeIcon.Certificate, Lang.EasterEggs, false),
+            ("abt", FontAwesomeIcon.InfoCircle, Lang.About, false),
+        };
+
+        for (var i = 0; i < navTabs.Length; i++)
+        {
+            var (id, icon, label, disabled) = navTabs[i];
+            var isActive = id == currentTab;
+
+            if (DrawNavTab(id, icon, label, isActive, disabled))
+                currentTab = id;
+
+            if (id == "map" && !inVenue && ImGui.IsItemHovered(ImGuiHoveredFlags.AllowWhenDisabled))
             {
-                ImGui.BeginDisabled();
-                ImGui.TabItemButton($"{Lang.Map}##tab_map_disabled");
-                ImGui.EndDisabled();
-                if (ImGui.IsItemHovered(ImGuiHoveredFlags.AllowWhenDisabled))
-                {
-                    ImGui.BeginTooltip();
-                    ImGui.PushTextWrapPos(250f);
-                    ImGui.TextColored(UIConstants.Primary, Lang.MapUnavailable);
-                    ImGui.TextUnformatted(Lang.MapNotInVenue);
-                    ImGui.PopTextWrapPos();
-                    ImGui.EndTooltip();
-                }
+                ImGui.BeginTooltip();
+                ImGui.PushTextWrapPos(250f);
+                ImGui.TextColored(UIConstants.Primary, Lang.MapUnavailable);
+                ImGui.TextUnformatted(Lang.MapNotInVenue);
+                ImGui.PopTextWrapPos();
+                ImGui.EndTooltip();
             }
-            else if (ImGui.BeginTabItem($"{Lang.Map}##tab_map", mapF))
-            {
-                SetActiveTab("map");
+
+            if (i < navTabs.Length - 1)
+                ImGui.SameLine(0, 4);
+        }
+
+        ImGui.Spacing();
+        ImGui.Separator();
+        ImGui.Spacing();
+
+        SetActiveTab(currentTab);
+        switch (currentTab)
+        {
+            case "map":
                 DrawMapOrDirectory(config);
-                ImGui.EndTabItem();
-            }
-
-            if (ImGui.BeginTabItem($"{Lang.Directory}##tab_dir", dirF))
-            {
-                SetActiveTab("dir");
+                break;
+            case "dir":
                 DrawDirectoryTab(config);
-                ImGui.EndTabItem();
-            }
-
-            if (ImGui.BeginTabItem($"{Lang.Events}##tab_evt", evtF))
-            {
-                SetActiveTab("evt");
+                break;
+            case "evt":
                 eventsView.SetVenues(config.Venues, plugin.Configuration.HiddenVenueIds);
-                if (ImGui.BeginChild("##eventsScroll", new Vector2(-1, -1)))
-                    eventsView.Draw(ref showHidden);
-                ImGui.EndChild();
-                ImGui.EndTabItem();
-            }
-
-            if (ImGui.BeginTabItem($"{Lang.Settings}##tab_set", setF))
-            {
-                SetActiveTab("set");
+                UIConstants.PushScrollbarStyle();
+                try
+                {
+                    if (ImGui.BeginChild("##eventsScroll", new Vector2(-1, -1)))
+                        eventsView.Draw(ref showHidden);
+                }
+                finally
+                {
+                    ImGui.EndChild();
+                    UIConstants.PopScrollbarStyle();
+                }
+                break;
+            case "set":
                 plugin.SettingsWindow.DrawSettingsTab();
-                ImGui.EndTabItem();
-            }
-
-            if (ImGui.BeginTabItem($"{Lang.EasterEggs}##tab_egg", eggF))
-            {
-                SetActiveTab("egg");
+                break;
+            case "egg":
                 plugin.SettingsWindow.DrawEasterEggsTab();
-                ImGui.EndTabItem();
-            }
-
-            if (ImGui.BeginTabItem($"{Lang.About}##tab_abt", abtF))
-            {
-                SetActiveTab("abt");
+                break;
+            case "abt":
                 plugin.SettingsWindow.DrawAboutTab();
-                ImGui.EndTabItem();
-            }
-
-            ImGui.EndTabBar();
+                break;
         }
 
         if (hackerBooting) ImGui.EndDisabled();
 
-        ImGui.PopStyleColor(4);
-
         if (!hackerBooting) CheckTitleClick();
 
-        HackerModeOverlay.Draw(ref hackerModeStart, ref hackerTitleLoopStart, WindowName);
+        HackerModeOverlay.Draw(ref hackerModeStart, ref hackerTitleLoopStart, rawTitle);
     }
 
     private double hackerModeStart = -1;
@@ -531,6 +620,11 @@ public class VenueMapWindow : Window, IDisposable
         var filtered = config.Venues.AsEnumerable();
         if (!showHidden)
             filtered = filtered.Where(v => !plugin.Configuration.HiddenVenueIds.Contains(v.VenueId));
+        if (showOwnedOnly)
+        {
+            var myHash = OwnerIdHelper.ComputeHash(VenueMapperPlugin.PlayerState.ContentId);
+            filtered = filtered.Where(v => v.OwnerIdHashes.Contains(myHash));
+        }
         if (!string.IsNullOrEmpty(searchText))
             filtered = filtered.Where(v =>
                 v.Name.Contains(searchText, StringComparison.OrdinalIgnoreCase) ||
@@ -552,9 +646,22 @@ public class VenueMapWindow : Window, IDisposable
             .ThenBy(v => boostOpen && IsVenueOpenCached(v) ? 0 : 1)
             .ToList();
 
-        if (ImGui.BeginChild("##venueScroll", new Vector2(-1, -1)))
-            DrawVenueDirectory(venues);
-        ImGui.EndChild();
+        UIConstants.PushScrollbarStyle();
+        try
+        {
+            if (ImGui.BeginChild("##venueScroll", new Vector2(-1, -1)))
+            {
+                if (showOwnedOnly && venues.Count == 0)
+                    ImGui.TextColored(UIConstants.WithAlpha(UIConstants.TextSecondary, 0.5f), Lang.NoOwnedVenues);
+                else
+                    DrawVenueDirectory(venues);
+            }
+        }
+        finally
+        {
+            ImGui.EndChild();
+            UIConstants.PopScrollbarStyle();
+        }
     }
 
     private void DrawMapOrDirectory(VenueConfig config)
@@ -705,15 +812,17 @@ public class VenueMapWindow : Window, IDisposable
         ImGui.PushStyleColor(ImGuiCol.FrameBg, UIConstants.WithAlpha(UIConstants.CardBackground, 0.9f));
         ImGui.PushStyleColor(ImGuiCol.Border, UIConstants.GlowDim);
         ImGui.PushStyleVar(ImGuiStyleVar.FrameBorderSize, 1f);
-        ImGui.PushStyleVar(ImGuiStyleVar.FrameRounding, 3f);
+        ImGui.PushStyleVar(ImGuiStyleVar.FrameRounding, UIConstants.ChipRounding);
 
         var toggleGlyph = (showHidden ? FontAwesomeIcon.Eye : FontAwesomeIcon.EyeSlash).ToIconString();
+        var crownGlyph = FontAwesomeIcon.Crown.ToIconString();
         var iconFont = UiBuilder.IconFont;
         ImGui.PushFont(iconFont);
         var toggleW = ImGui.CalcTextSize(toggleGlyph).X + 12f;
+        var crownW = ImGui.CalcTextSize(crownGlyph).X + 12f;
         ImGui.PopFont();
 
-        ImGui.SetNextItemWidth(avW - toggleW - 4);
+        ImGui.SetNextItemWidth(avW - toggleW - crownW - 8);
         ImGui.InputTextWithHint("##venueSearch", Lang.Search, ref searchText, 128);
 
         ImGui.SameLine(0, 4);
@@ -730,12 +839,26 @@ public class VenueMapWindow : Window, IDisposable
         if (ImGui.IsItemHovered())
             ImGui.SetTooltip(Lang.ShowHidden);
 
+        ImGui.SameLine(0, 4);
+        ImGui.PushStyleColor(ImGuiCol.Button, showOwnedOnly
+            ? UIConstants.WithAlpha(UIConstants.GoldAccent, 0.3f)
+            : UIConstants.WithAlpha(UIConstants.CardBackground, 0.9f));
+        ImGui.PushStyleColor(ImGuiCol.ButtonHovered, UIConstants.WithAlpha(UIConstants.GoldAccent, 0.4f));
+        ImGui.PushStyleColor(ImGuiCol.ButtonActive, UIConstants.WithAlpha(UIConstants.GoldAccent, 0.5f));
+        ImGui.PushStyleColor(ImGuiCol.Text, showOwnedOnly ? UIConstants.GoldAccent : UIConstants.TextPrimary);
+        ImGui.PushFont(iconFont);
+        if (ImGui.Button($"{crownGlyph}##showOwnedOnly", new Vector2(crownW, 0)))
+            showOwnedOnly = !showOwnedOnly;
+        ImGui.PopFont();
+        ImGui.PopStyleColor(4);
+        if (ImGui.IsItemHovered())
+            ImGui.SetTooltip(Lang.ShowOwnedOnly);
+
         var hasServerFilter = selectedDcs.Count > 0;
         var dcW = hasServerFilter ? 0.5f : 1.0f;
 
-        ImGui.SetNextItemWidth(avW * dcW - (hasServerFilter ? 2f : 0f));
         var dcLabel = selectedDcs.Count == 0 ? Lang.AllDc : string.Join(", ", selectedDcs);
-        if (ImGui.BeginCombo("##dcFilter", dcLabel))
+        UIConstants.StyledCombo("##dcFilter", dcLabel, avW * dcW - (hasServerFilter ? 2f : 0f), () =>
         {
             if (ImGui.Selectable(Lang.AllDc, selectedDcs.Count == 0))
             {
@@ -757,15 +880,13 @@ public class VenueMapWindow : Window, IDisposable
                     }
                 }
             }
-            ImGui.EndCombo();
-        }
+        });
 
         if (hasServerFilter)
         {
             ImGui.SameLine(0, 4);
-            ImGui.SetNextItemWidth(avW * 0.5f - 2f);
             var srvLabel = selectedServers.Count == 0 ? Lang.AllServers : string.Join(", ", selectedServers);
-            if (ImGui.BeginCombo("##srvFilter", srvLabel))
+            UIConstants.StyledCombo("##srvFilter", srvLabel, avW * 0.5f - 2f, () =>
             {
                 if (ImGui.Selectable(Lang.AllServers, selectedServers.Count == 0))
                     selectedServers.Clear();
@@ -784,8 +905,7 @@ public class VenueMapWindow : Window, IDisposable
                     }
                     ImGui.Separator();
                 }
-                ImGui.EndCombo();
-            }
+            });
         }
 
         ImGui.PopStyleVar(2);
@@ -863,33 +983,28 @@ public class VenueMapWindow : Window, IDisposable
             var cardMax = new Vector2(cardMin.X + cardW, cardMin.Y + rowH);
 
             var bgCol = hovered
-                ? UIConstants.WithAlpha(UIConstants.CardBackground, 1f)
-                : UIConstants.WithAlpha(UIConstants.CardBackground, 0.75f);
-            dl.AddRectFilled(cardMin, cardMax, ImGui.ColorConvertFloat4ToU32(bgCol));
-
+                ? UIConstants.CardBackground
+                : UIConstants.Vector4Lerp(UIConstants.Background, UIConstants.CardBackground, 0.75f);
             var accentCol = hovered ? UIConstants.Primary : UIConstants.Secondary;
-            dl.AddRectFilled(
-                cardMin,
-                new Vector2(cardMin.X + 3, cardMax.Y),
-                ImGui.ColorConvertFloat4ToU32(accentCol));
+            UIConstants.DrawCardWithAccentBar(dl, cardMin, cardMax, bgCol, accentCol, UIConstants.ChipRounding);
 
             if (hovered)
             {
                 var glowPulse = (MathF.Sin((float)ImGui.GetTime() * 3f) + 1f) / 2f;
                 dl.AddRect(cardMin, cardMax,
                     ImGui.ColorConvertFloat4ToU32(UIConstants.WithAlpha(UIConstants.Glow, 0.35f + 0.35f * glowPulse)),
-                    0f, ImDrawFlags.None, 1.5f);
+                    UIConstants.ChipRounding, ImDrawFlags.None, 1.5f);
                 dl.AddRect(
                     new Vector2(cardMin.X - 2, cardMin.Y - 2),
                     new Vector2(cardMax.X + 2, cardMax.Y + 2),
                     ImGui.ColorConvertFloat4ToU32(UIConstants.WithAlpha(UIConstants.Glow, 0.06f + 0.12f * glowPulse)),
-                    0f, ImDrawFlags.None, 2f);
+                    UIConstants.ChipRounding + 2f, ImDrawFlags.None, 2f);
             }
             else
             {
                 dl.AddRect(cardMin, cardMax,
                     ImGui.ColorConvertFloat4ToU32(UIConstants.WithAlpha(UIConstants.Glow, 0.2f)),
-                    0f, ImDrawFlags.None, 1f);
+                    UIConstants.ChipRounding, ImDrawFlags.None, 1f);
             }
 
             var tracker = plugin.PositionTracker;
@@ -946,9 +1061,9 @@ public class VenueMapWindow : Window, IDisposable
                 var badgeMin = new Vector2(rightX, badgeY);
                 var badgeMax = new Vector2(rightX + badgeSz.X + 4, badgeMin.Y + badgeSz.Y + 2);
                 dl.AddRectFilled(badgeMin, badgeMax,
-                    ImGui.ColorConvertFloat4ToU32(UIConstants.WithAlpha(new Vector4(0.1f, 1f, 0.5f, 1f), 0.25f)));
+                    ImGui.ColorConvertFloat4ToU32(UIConstants.WithAlpha(new Vector4(0.1f, 1f, 0.5f, 1f), 0.25f)), UIConstants.ChipRounding);
                 dl.AddRect(badgeMin, badgeMax,
-                    ImGui.ColorConvertFloat4ToU32(new Vector4(0.2f, 1f, 0.55f, 0.7f)), 0f, ImDrawFlags.None, 1f);
+                    ImGui.ColorConvertFloat4ToU32(new Vector4(0.2f, 1f, 0.55f, 0.7f)), UIConstants.ChipRounding, ImDrawFlags.None, 1f);
                 dl.AddText(new Vector2(badgeMin.X + 2, badgeMin.Y + 1),
                     ImGui.ColorConvertFloat4ToU32(new Vector4(0.2f, 1f, 0.55f, 1f)), badge);
                 rightX -= 4;
@@ -969,7 +1084,7 @@ public class VenueMapWindow : Window, IDisposable
                     dl.AddRectFilled(
                         new Vector2(rightX - 2, schedY - 1),
                         new Vector2(rightX + schedSz.X + 4, schedY + schedSz.Y + 1),
-                        ImGui.ColorConvertFloat4ToU32(UIConstants.WithAlpha(schedCol, 0.10f + 0.06f * glowPulse)));
+                        ImGui.ColorConvertFloat4ToU32(UIConstants.WithAlpha(schedCol, 0.10f + 0.06f * glowPulse)), UIConstants.ChipRounding);
                 }
 
                 dl.AddText(new Vector2(rightX, schedY),
@@ -989,7 +1104,7 @@ public class VenueMapWindow : Window, IDisposable
                     dl.PushClipRect(cardMin, cardMax, true);
 
                     dl.AddRectFilled(cardMin, cardMax,
-                        ImGui.ColorConvertFloat4ToU32(UIConstants.WithAlpha(UIConstants.Background, 0.5f)));
+                        ImGui.ColorConvertFloat4ToU32(UIConstants.WithAlpha(UIConstants.Background, 0.5f)), UIConstants.ChipRounding);
 
                     if (progress < 0.55f)
                     {
@@ -1018,7 +1133,7 @@ public class VenueMapWindow : Window, IDisposable
                     {
                         var flashP = (progress - 0.55f) / 0.15f;
                         dl.AddRectFilled(cardMin, cardMax,
-                            ImGui.ColorConvertFloat4ToU32(new Vector4(1f, 0.9f, 0.4f, 0.6f * (1f - flashP))));
+                            ImGui.ColorConvertFloat4ToU32(new Vector4(1f, 0.9f, 0.4f, 0.6f * (1f - flashP))), UIConstants.ChipRounding);
 
                         var popScale = 1f + 0.5f * (1f - flashP);
                         var popAlpha = Math.Min(1f, flashP * 3f);
@@ -1043,7 +1158,7 @@ public class VenueMapWindow : Window, IDisposable
                     {
                         var fadeP = (progress - 0.70f) / 0.30f;
                         dl.AddRectFilled(cardMin, cardMax,
-                            ImGui.ColorConvertFloat4ToU32(new Vector4(1f, 0.84f, 0f, 0.12f * (1f - fadeP))));
+                            ImGui.ColorConvertFloat4ToU32(new Vector4(1f, 0.84f, 0f, 0.12f * (1f - fadeP))), UIConstants.ChipRounding);
 
                         var finalY = cardMin.Y + (rowH - animGlyphSz.Y * animScale2) * 0.5f;
                         dl.AddText(animIconFont, animStarSz, new Vector2(animStarX, finalY),
@@ -1114,7 +1229,7 @@ public class VenueMapWindow : Window, IDisposable
             ImGui.SameLine(0, btnGap);
             ImGui.SetCursorPosY(ImGui.GetCursorPosY());
 
-            ImGui.PushStyleVar(ImGuiStyleVar.FrameRounding, 4f);
+            ImGui.PushStyleVar(ImGuiStyleVar.FrameRounding, UIConstants.ChipRounding);
             ImGui.PushStyleVar(ImGuiStyleVar.FrameBorderSize, 1f);
             ImGui.PushStyleVar(ImGuiStyleVar.FramePadding, new Vector2(4, 4));
 
@@ -1141,14 +1256,14 @@ public class VenueMapWindow : Window, IDisposable
                 {
                     if (!plugin.Lifestream.IsLoaded)
                     {
-                        plugin.Toasts.Show(Lang.ToastLifestreamMissing, ToastKind.Info, 3.5);
+                        plugin.Toasts.Show(Lang.ToastLifestreamMissing, ToastKind.Warning, 3.5);
                     }
                     else
                     {
                         var teleportOk = plugin.Lifestream.NavigateTo(v.Address);
                         plugin.Toasts.Show(
                             teleportOk ? Lang.ToastTeleportingTo(v.Name) : Lang.ToastTeleportFailed,
-                            teleportOk ? ToastKind.Success : ToastKind.Info, 2.5);
+                            teleportOk ? ToastKind.Success : ToastKind.Warning, 2.5);
                         tpAnimStart[v.VenueId] = ImGui.GetTime();
                     }
                 }
@@ -1202,8 +1317,14 @@ public class VenueMapWindow : Window, IDisposable
 
             if (hovered && ImGui.IsMouseClicked(ImGuiMouseButton.Right))
                 ImGui.OpenPopup($"##ctx_{v.VenueId}");
+            UIConstants.PushMenuStyle();
             if (ImGui.BeginPopup($"##ctx_{v.VenueId}"))
             {
+                if (ImGui.MenuItem(Lang.ViewVenueDetails))
+                {
+                    plugin.VenueDetailWindow.Open(v);
+                    ImGui.CloseCurrentPopup();
+                }
                 if (ImGui.MenuItem(isFav ? Lang.RemoveFavorite : Lang.AddFavorite))
                 {
                     if (isFav)
@@ -1242,10 +1363,11 @@ public class VenueMapWindow : Window, IDisposable
                 }
                 ImGui.EndPopup();
             }
+            UIConstants.PopMenuStyle();
 
             if (isHiddenVenue)
                 dl.AddRectFilled(cardMin, cardMax,
-                    ImGui.ColorConvertFloat4ToU32(UIConstants.WithAlpha(UIConstants.Background, 0.55f)));
+                    ImGui.ColorConvertFloat4ToU32(UIConstants.WithAlpha(UIConstants.Background, 0.55f)), UIConstants.ChipRounding);
 
             if (hovered)
             {
@@ -1268,7 +1390,7 @@ public class VenueMapWindow : Window, IDisposable
                     var copiedAlpha = copyP < 0.1f ? copyP / 0.1f : Math.Clamp(1f - (copyP - 0.7f) / 0.3f, 0f, 1f);
 
                     dl.AddRectFilled(cardMin, cardMax,
-                        ImGui.ColorConvertFloat4ToU32(UIConstants.WithAlpha(UIConstants.Background, 0.75f * copiedAlpha)));
+                        ImGui.ColorConvertFloat4ToU32(UIConstants.WithAlpha(UIConstants.Background, 0.75f * copiedAlpha)), UIConstants.ChipRounding);
 
                     var copiedText = Lang.Copied;
                     var copiedSz = ImGui.CalcTextSize(copiedText);
@@ -1302,7 +1424,7 @@ public class VenueMapWindow : Window, IDisposable
                     var tpAlpha = tpP < 0.1f ? tpP / 0.1f : Math.Clamp(1f - (tpP - 0.6f) / 0.4f, 0f, 1f);
 
                     dl.AddRectFilled(cardMin, cardMax,
-                        ImGui.ColorConvertFloat4ToU32(UIConstants.WithAlpha(UIConstants.Background, 0.6f * tpAlpha)));
+                        ImGui.ColorConvertFloat4ToU32(UIConstants.WithAlpha(UIConstants.Background, 0.6f * tpAlpha)), UIConstants.ChipRounding);
 
                     var dots = ((int)(tpElapsed * 3f) % 4);
                     var tpText = Lang.Teleporting.TrimEnd('.') + new string('.', dots);
@@ -1345,11 +1467,13 @@ public class VenueMapWindow : Window, IDisposable
                         ImGui.PushStyleColor(ImGuiCol.Text, col);
                         ImGui.PushStyleVar(ImGuiStyleVar.FrameRounding, 10f);
                         ImGui.PushStyleVar(ImGuiStyleVar.FramePadding, new Vector2(4, 2));
-                        if (ImGui.Button($"{label}##{v.VenueId}_{label}", new Vector2(lnkW, 20)))
+                        var clicked = ImGui.Button($"{label}##{v.VenueId}_{label}", new Vector2(lnkW, 20));
+                        if (clicked)
                         {
                             try { System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo
                                 { FileName = url, UseShellExecute = true }); } catch { }
                         }
+                        UIConstants.DrawHoverPulseOverlay($"{v.VenueId}_{label}", ImGui.IsItemHovered(), clicked, col);
                         ImGui.PopStyleVar(2);
                         ImGui.PopStyleColor(4);
                         ImGui.SameLine(0, 4);
@@ -1395,6 +1519,12 @@ public class VenueMapWindow : Window, IDisposable
         var floorStr = floor != null ? TranslateFloorName(floor.Name) : "-";
 
         ImGui.PushStyleVar(ImGuiStyleVar.CellPadding, new Vector2(4, 4));
+        // try/finally guarantees both the CellPadding pop and (if BeginTable succeeded) EndTable
+        // run even if something in the row throws - otherwise both leak onto the shared ImGui
+        // stack, corrupting every table/cell-padded widget drawn afterward, same bug class as the
+        // window-chrome leaks fixed elsewhere this session.
+        try
+        {
         if (ImGui.BeginTable("##mapHeader", 3))
         {
             ImGui.TableSetupColumn("##hName",  ImGuiTableColumnFlags.WidthStretch);
@@ -1404,10 +1534,31 @@ public class VenueMapWindow : Window, IDisposable
             ImGui.TableNextRow();
 
             ImGui.TableSetColumnIndex(0);
+            var iconFont = UiBuilder.IconFont;
+            var infoGlyph = Dalamud.Interface.FontAwesomeIcon.InfoCircle.ToIconString();
+            ImGui.PushFont(iconFont);
+            var infoIconSz = ImGui.CalcTextSize(infoGlyph);
+            ImGui.PopFont();
+            const float infoGap = 5f;
+
             var nameW = ImGui.CalcTextSize(title).X;
+            var lineH = ImGui.GetTextLineHeight();
+            var totalW = infoIconSz.X + infoGap + nameW;
             var colW  = ImGui.GetColumnWidth();
-            ImGui.SetCursorPosX(ImGui.GetCursorPosX() + Math.Max(0, (colW - nameW) / 2f));
-            ImGui.TextColored(UIConstants.Primary, title);
+            ImGui.SetCursorPosX(ImGui.GetCursorPosX() + Math.Max(0, (colW - totalW) / 2f));
+
+            var namePos = ImGui.GetCursorScreenPos();
+            ImGui.InvisibleButton("##venueInfoBtn", new Vector2(totalW, lineH));
+            var nameHovered = ImGui.IsItemHovered();
+            if (ImGui.IsItemClicked()) plugin.VenueDetailWindow.Open(venue);
+            UIConstants.DrawHoverPulseOverlay("venueInfoBtn", nameHovered, false, UIConstants.Glow);
+
+            var infoCol = nameHovered ? UIConstants.Glow : UIConstants.WithAlpha(UIConstants.Primary, 0.6f);
+            var iconY = namePos.Y + (lineH - infoIconSz.Y) * 0.5f;
+            dl.AddText(iconFont, iconFont.FontSize, new Vector2(namePos.X, iconY), ImGui.ColorConvertFloat4ToU32(infoCol), infoGlyph);
+            dl.AddText(new Vector2(namePos.X + infoIconSz.X + infoGap, namePos.Y),
+                ImGui.ColorConvertFloat4ToU32(nameHovered ? UIConstants.Glow : UIConstants.Primary), title);
+            if (nameHovered) ImGui.SetTooltip(Lang.ViewVenueDetails);
 
             ImGui.TableSetColumnIndex(1);
             var floorW = ImGui.CalcTextSize(floorStr).X;
@@ -1419,12 +1570,20 @@ public class VenueMapWindow : Window, IDisposable
             ImGui.PushStyleColor(ImGuiCol.CheckMark, UIConstants.Glow);
             var markers3d = plugin.PictomancyMarkers.Enabled;
             if (ImGui.Checkbox("3D##markers", ref markers3d))
+            {
                 plugin.PictomancyMarkers.Enabled = markers3d;
+                plugin.Configuration.Markers3DEnabled = markers3d;
+                plugin.Configuration.Save();
+            }
             ImGui.PopStyleColor();
 
             ImGui.EndTable();
         }
-        ImGui.PopStyleVar();
+        }
+        finally
+        {
+            ImGui.PopStyleVar();
+        }
 
         var lineY = ImGui.GetCursorScreenPos().Y;
         dl.AddLine(
@@ -1759,7 +1918,7 @@ public class VenueMapWindow : Window, IDisposable
         var filters = plugin.Configuration.ServiceFilters;
         var changed = false;
 
-        ImGui.PushStyleVar(ImGuiStyleVar.FrameRounding, 3f);
+        ImGui.PushStyleVar(ImGuiStyleVar.FrameRounding, UIConstants.ChipRounding);
         ImGui.PushStyleVar(ImGuiStyleVar.FrameBorderSize, 1f);
         ImGui.PushStyleVar(ImGuiStyleVar.ItemSpacing, new Vector2(4, 4));
 
@@ -1815,7 +1974,14 @@ public class VenueMapWindow : Window, IDisposable
 
     internal static string? ExtractXivVenuesId(string? url)
     {
-        if (string.IsNullOrEmpty(url) || !url.Contains("ffxivvenues.com/venue/")) return null;
+        if (string.IsNullOrEmpty(url) || !url.Contains("ffxivvenues.com")) return null;
+
+        // Some links use a hash-fragment id (ffxivvenues.com/#<id>) instead of the
+        // /venue/<id> path style - handle both.
+        var hashIdx = url.IndexOf('#');
+        if (hashIdx >= 0 && hashIdx < url.Length - 1) return url[(hashIdx + 1)..];
+
+        if (!url.Contains("ffxivvenues.com/venue/")) return null;
         var idx = url.LastIndexOf('/');
         return idx >= 0 && idx < url.Length - 1 ? url[(idx + 1)..] : null;
     }

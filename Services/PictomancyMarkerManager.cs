@@ -10,6 +10,14 @@ using VenueMapper.UI;
 
 namespace VenueMapper.Services;
 
+public class MarkerAccessibilityOptions
+{
+    public float SizeScale = 1.0f;
+    public bool ColorOverrideEnabled;
+    public Vector3 OverrideColor = new(1f, 0f, 1f);
+    public bool StrongPulse;
+}
+
 public class PictomancyMarkerManager : IDisposable
 {
     private readonly IPluginLog log;
@@ -33,9 +41,10 @@ public class PictomancyMarkerManager : IDisposable
         }
     }
 
-    public void DrawMarkers(Floor? floor, VenueColors? colors, Dictionary<string, bool>? filters = null)
+    public void DrawMarkers(Floor? floor, VenueColors? colors, Dictionary<string, bool>? filters = null, MarkerAccessibilityOptions? access = null)
     {
         if (!Enabled || ctx == null || floor == null) return;
+        access ??= new MarkerAccessibilityOptions();
 
         try
         {
@@ -50,6 +59,11 @@ public class PictomancyMarkerManager : IDisposable
             if (drawList == null) return;
 
             var time = (float)DateTime.Now.TimeOfDay.TotalSeconds;
+            var scale = access.SizeScale;
+            var pulseSpeed = access.StrongPulse ? 4f : 2f;
+            var pulseAmp = access.StrongPulse ? 0.4f : 0.25f;
+            var blackU32 = ImGui.ColorConvertFloat4ToU32(new Vector4(0f, 0f, 0f, 1f));
+            var whiteU32 = ImGui.ColorConvertFloat4ToU32(new Vector4(1f, 1f, 1f, 1f));
 
             foreach (var svc in floor.Services)
             {
@@ -57,30 +71,38 @@ public class PictomancyMarkerManager : IDisposable
                     continue;
 
                 var worldPos = new Vector3(svc.X, svc.Z, svc.Y);
-                var col = GetServiceColor(svc.Type, colors);
+                var col = access.ColorOverrideEnabled
+                    ? new Vector4(access.OverrideColor.X, access.OverrideColor.Y, access.OverrideColor.Z, 1f)
+                    : GetServiceColor(svc.Type, colors);
                 var colU32 = ImGui.ColorConvertFloat4ToU32(col);
 
-                drawList.AddCircle(worldPos, 0.6f, colU32, 24, 2f);
+                drawList.AddCircle(worldPos, 0.6f * scale, colU32, 24, 2f * scale);
 
-                var pulse = (MathF.Sin(time * 2f) + 1f) / 2f;
-                var pulseCol = ImGui.ColorConvertFloat4ToU32(UIConstants.WithAlpha(col, 0.25f + 0.25f * pulse));
-                drawList.AddCircle(worldPos, 0.8f + 0.3f * pulse, pulseCol, 24, 1.5f);
+                var pulse = (MathF.Sin(time * pulseSpeed) + 1f) / 2f;
+                var pulseCol = ImGui.ColorConvertFloat4ToU32(UIConstants.WithAlpha(col, 0.25f + pulseAmp * pulse));
+                drawList.AddCircle(worldPos, (0.8f + 0.3f * pulse) * scale, pulseCol, 24, 1.5f * scale);
 
                 var fillCol = ImGui.ColorConvertFloat4ToU32(UIConstants.WithAlpha(col, 0.15f));
-                drawList.AddCircleFilled(worldPos, 0.5f, fillCol);
+                drawList.AddCircleFilled(worldPos, 0.5f * scale, fillCol);
 
                 var beamBot = worldPos;
                 var beamTop = new Vector3(worldPos.X, worldPos.Y + 2.5f, worldPos.Z);
                 var beamCol = ImGui.ColorConvertFloat4ToU32(UIConstants.WithAlpha(col, 0.12f + 0.08f * pulse));
-                drawList.AddLine(beamBot, beamTop, beamCol, 3);
-                drawList.AddLine(beamBot, beamTop, colU32, 1);
+                drawList.AddLine(beamBot, beamTop, beamCol, (uint)MathF.Max(1, 3 * scale));
+                drawList.AddLine(beamBot, beamTop, colU32, (uint)MathF.Max(1, 1 * scale));
 
-                drawList.AddDot(worldPos, 6f, colU32, colU32);
+                drawList.AddDot(worldPos, 6f * scale, colU32, colU32);
 
                 var labelPos = new Vector3(worldPos.X, worldPos.Y + 2.0f, worldPos.Z);
-                var bgCol = ImGui.ColorConvertFloat4ToU32(UIConstants.WithAlpha(UIConstants.Background, 0.7f));
-                drawList.AddDot(labelPos, 40f, bgCol, bgCol);
-                drawList.AddText(labelPos, colU32, svc.Label);
+                var bgCol = access.ColorOverrideEnabled
+                    ? colU32
+                    : ImGui.ColorConvertFloat4ToU32(UIConstants.WithAlpha(UIConstants.Background, 0.7f));
+                drawList.AddDot(labelPos, 40f * scale, bgCol, bgCol);
+
+                var textCol = access.ColorOverrideEnabled
+                    ? (Luminance(col) > 0.5f ? blackU32 : whiteU32)
+                    : colU32;
+                drawList.AddText(labelPos, textCol, svc.Label);
             }
         }
         catch (Exception ex)
@@ -88,6 +110,8 @@ public class PictomancyMarkerManager : IDisposable
             log.Debug($"[VenueMapper] Pictomancy render: {ex.Message}");
         }
     }
+
+    private static float Luminance(Vector4 col) => 0.299f * col.X + 0.587f * col.Y + 0.114f * col.Z;
 
     private static Vector4 GetServiceColor(string type, VenueColors? colors)
     {

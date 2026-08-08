@@ -1,4 +1,5 @@
 using System;
+using System.Linq;
 using System.Numerics;
 using Dalamud.Bindings.ImGui;
 using Dalamud.Interface;
@@ -14,14 +15,24 @@ public static class ToastOverlay
     private const float MinWidth = 230f;
     private const float Margin = 16f;
     private const float TopOffset = 60f;
+    private const float ProgressBarHeight = 2.5f;
+
+    // The toast currently being hovered keeps its on-screen position pinned for as long as the
+    // hover lasts, so it doesn't jump when a neighboring toast above/below it appears or expires
+    // and the rest of the stack reflows - it only rejoins the normal flow once hover ends.
+    private static ToastManager.ToastEntry? pinnedEntry;
+    private static Vector2 pinnedBoxMin;
 
     public static void Draw(ToastManager toasts, ToastCorner corner, bool enabled)
     {
         var active = toasts.Active;
-        if (!enabled || active.Count == 0) return;
+        if (!enabled || active.Count == 0) { pinnedEntry = null; return; }
+        if (pinnedEntry != null && !active.Contains(pinnedEntry)) pinnedEntry = null;
 
         var dl = ImGui.GetForegroundDrawList();
         var vp = ImGui.GetMainViewport();
+        var mousePos = ImGui.GetMousePos();
+        var deltaTime = ImGui.GetIO().DeltaTime;
 
         var isTop = corner is ToastCorner.TopLeft or ToastCorner.TopRight;
         var isRight = corner is ToastCorner.TopRight or ToastCorner.BottomRight;
@@ -61,20 +72,62 @@ public static class ToastOverlay
             var slideX = isRight ? slide : -slide;
             var size = MeasureToast(entry);
 
-            var boxMin = isTop
-                ? new Vector2(isRight ? edgeX + slideX - size.X : edgeX + slideX, cursorY)
-                : new Vector2(isRight ? edgeX + slideX - size.X : edgeX + slideX, cursorY - size.Y);
+            var boxMin = entry == pinnedEntry
+                ? pinnedBoxMin
+                : isTop
+                    ? new Vector2(isRight ? edgeX + slideX - size.X : edgeX + slideX, cursorY)
+                    : new Vector2(isRight ? edgeX + slideX - size.X : edgeX + slideX, cursorY - size.Y);
             var boxMax = boxMin + size;
 
-            RenderToast(dl, entry, boxMin, boxMax, alpha);
+            // Hovering "holds" a toast open by nudging StartedAt forward in lockstep with real
+            // time each frame - elapsed (Now - StartedAt) stays pinned at whatever it was when the
+            // hover began, for as long as it continues, so the fade-out/removal-by-duration logic
+            // above (and ToastManager.Active's own duration check) both naturally stay frozen too.
+            var hovered = mousePos.X >= boxMin.X && mousePos.X <= boxMax.X
+                       && mousePos.Y >= boxMin.Y && mousePos.Y <= boxMax.Y;
+            if (hovered)
+            {
+                entry.StartedAt += TimeSpan.FromSeconds(deltaTime);
+                pinnedEntry = entry;
+                pinnedBoxMin = boxMin;
+            }
+            else if (entry == pinnedEntry)
+            {
+                pinnedEntry = null;
+            }
+
+            var remainingFrac = duration > 0f ? Math.Clamp(1f - elapsed / duration, 0f, 1f) : 0f;
+            RenderToast(dl, entry, boxMin, boxMax, alpha, remainingFrac, elapsed);
 
             cursorY += isTop ? size.Y + Gap : -(size.Y + Gap);
         }
+
+        var trimCount = toasts.RecentTrimCount;
+        if (trimCount > 0)
+            DrawTrimBadge(dl, trimCount, edgeX, cursorY, isTop, isRight);
+    }
+
+    private static void DrawTrimBadge(ImDrawListPtr dl, int count, float edgeX, float cursorY, bool isTop, bool isRight)
+    {
+        var label = $"+{count} more";
+        var textSz = ImGui.CalcTextSize(label);
+        var pad = new Vector2(10, 5);
+        var boxSz = textSz + pad * 2;
+
+        var boxMin = isTop
+            ? new Vector2(isRight ? edgeX - boxSz.X : edgeX, cursorY)
+            : new Vector2(isRight ? edgeX - boxSz.X : edgeX, cursorY - boxSz.Y);
+        var boxMax = boxMin + boxSz;
+
+        dl.AddRectFilled(boxMin, boxMax, ImGui.ColorConvertFloat4ToU32(UIConstants.WithAlpha(UIConstants.Background, 0.85f)), UIConstants.ChipRounding);
+        dl.AddRect(boxMin, boxMax, ImGui.ColorConvertFloat4ToU32(UIConstants.WithAlpha(UIConstants.TextSecondary, 0.4f)), UIConstants.ChipRounding);
+        dl.AddText(boxMin + pad, ImGui.ColorConvertFloat4ToU32(UIConstants.WithAlpha(UIConstants.TextSecondary, 0.85f)), label);
     }
 
     private static (FontAwesomeIcon Icon, Vector4 Accent, string Label) GetStyle(ToastKind kind) => kind switch
     {
-        ToastKind.Success => (FontAwesomeIcon.CheckCircle, UIConstants.ApplyOverride(new Vector4(0.35f, 0.85f, 0.45f, 1f)), "SUCCESS"),
+        ToastKind.Success => (FontAwesomeIcon.CheckCircle, UIConstants.ApplyOverride(UIConstants.Success), "SUCCESS"),
+        ToastKind.Warning => (FontAwesomeIcon.ExclamationTriangle, UIConstants.ApplyOverride(UIConstants.Warning), "WARNING"),
         ToastKind.Egg => (FontAwesomeIcon.Star, UIConstants.Glow, "EASTER EGG"),
         _ => (FontAwesomeIcon.InfoCircle, UIConstants.Secondary, "NOTIFICATION"),
     };
@@ -102,12 +155,12 @@ public static class ToastOverlay
         var boxW = Math.Max(MinWidth, contentW + pad.X * 2);
 
         var headerRowH = Math.Max(glyphSz.Y, headerSz.Y);
-        var boxH = pad.Y + headerRowH + lineGap + 1f + lineGap + msgSz.Y + pad.Y;
+        var boxH = pad.Y + headerRowH + lineGap + 1f + lineGap + msgSz.Y + pad.Y + ProgressBarHeight;
 
         return new Vector2(boxW, boxH);
     }
 
-    private static void RenderToast(ImDrawListPtr dl, ToastManager.ToastEntry entry, Vector2 boxMin, Vector2 boxMax, float alpha)
+    private static void RenderToast(ImDrawListPtr dl, ToastManager.ToastEntry entry, Vector2 boxMin, Vector2 boxMax, float alpha, float remainingFrac, float elapsed)
     {
         var (icon, accent, kindLabel) = GetStyle(entry.Kind);
 
@@ -129,11 +182,18 @@ public static class ToastOverlay
         var headerRowH = Math.Max(glyphSz.Y, headerSz.Y);
 
         var bg = UIConstants.WithAlpha(UIConstants.Background, 0.90f * alpha);
-        var border = UIConstants.WithAlpha(accent, 0.55f * alpha);
         var shadow = new Vector4(0f, 0f, 0f, 0.30f * alpha);
 
-        dl.AddRectFilled(boxMin + new Vector2(0, 3), boxMax + new Vector2(0, 3), ImGui.ColorConvertFloat4ToU32(shadow), 6f);
-        dl.AddRectFilled(boxMin, boxMax, ImGui.ColorConvertFloat4ToU32(bg), 6f);
+        dl.AddRectFilled(boxMin + new Vector2(0, 3), boxMax + new Vector2(0, 3), ImGui.ColorConvertFloat4ToU32(shadow), UIConstants.ChipRounding);
+
+        // Accent bar on the left instead of a full outline border, matching the same layered
+        // backdrop+punch-back technique used for cards elsewhere in the plugin (Directory rows,
+        // Events cards) - can't reuse UIConstants.DrawCardWithAccentBar directly since it forces
+        // the body layer fully opaque, which would break this toast's fade in/out.
+        const float barWidth = 3f;
+        dl.AddRectFilled(boxMin, boxMax, ImGui.ColorConvertFloat4ToU32(UIConstants.WithAlpha(accent, 0.85f * alpha)), UIConstants.ChipRounding);
+        dl.AddRectFilled(new Vector2(boxMin.X + barWidth, boxMin.Y), boxMax,
+            ImGui.ColorConvertFloat4ToU32(bg), UIConstants.ChipRounding, ImDrawFlags.RoundCornersRight);
 
         if (UIConstants.OverrideMode == ColorOverrideMode.Hacker)
         {
@@ -141,13 +201,40 @@ public static class ToastOverlay
             HackerModeOverlay.DrawMatrixRain(dl, boxMin, boxMax, UIConstants.HackerGreen, 0.35f * alpha, 12);
             dl.PopClipRect();
         }
+        else if (entry.Kind == ToastKind.Egg)
+        {
+            dl.PushClipRect(boxMin, boxMax, true);
+            DrawSparkle(dl, boxMin, boxMax, accent, alpha, entry.CreatedAt);
+            dl.PopClipRect();
+        }
 
-        dl.AddRect(boxMin, boxMax, ImGui.ColorConvertFloat4ToU32(border), 6f, ImDrawFlags.None, 1.3f);
+        dl.AddRect(boxMin, boxMax, ImGui.ColorConvertFloat4ToU32(UIConstants.WithAlpha(accent, 0.35f * alpha)), UIConstants.ChipRounding, ImDrawFlags.None, 1f);
 
-        var iconPos = new Vector2(boxMin.X + pad.X, boxMin.Y + pad.Y + (headerRowH - glyphSz.Y) / 2f);
-        dl.AddText(iconFont, iconSize, iconPos, ImGui.ColorConvertFloat4ToU32(UIConstants.WithAlpha(accent, alpha)), iconStr);
+        // Icon scale animation: a quick "pop" past 100% that settles back to normal on appear
+        // (classic back-ease-out overshoot), plus a slow continuous pulse for kinds that want
+        // ongoing attention (Warning) or a playful feel (Egg) for as long as they're visible.
+        var popScale = 1f;
+        if (elapsed < FadeInTime)
+        {
+            var t = elapsed / FadeInTime;
+            const float c1 = 1.70158f;
+            const float c3 = c1 + 1f;
+            popScale = 1f + c3 * MathF.Pow(t - 1f, 3f) + c1 * MathF.Pow(t - 1f, 2f);
+        }
+        var pulseScale = 1f;
+        if (entry.Kind is ToastKind.Warning or ToastKind.Egg)
+        {
+            var pulseT = (MathF.Sin((float)ImGui.GetTime() * 4f) + 1f) * 0.5f;
+            pulseScale = 1f + pulseT * 0.12f;
+        }
+        var animIconSize = iconSize * popScale * pulseScale;
+        var animGlyphSz = glyphRawSz * (animIconSize / iconFont.FontSize);
 
-        var headerPos = new Vector2(iconPos.X + glyphSz.X + headerGap, boxMin.Y + pad.Y + (headerRowH - headerSz.Y) / 2f);
+        var iconCenter = new Vector2(boxMin.X + pad.X + glyphSz.X / 2f, boxMin.Y + pad.Y + headerRowH / 2f);
+        var iconPos = iconCenter - animGlyphSz / 2f;
+        dl.AddText(iconFont, animIconSize, iconPos, ImGui.ColorConvertFloat4ToU32(UIConstants.WithAlpha(accent, alpha)), iconStr);
+
+        var headerPos = new Vector2(boxMin.X + pad.X + glyphSz.X + headerGap, boxMin.Y + pad.Y + (headerRowH - headerSz.Y) / 2f);
         dl.AddText(headerPos, ImGui.ColorConvertFloat4ToU32(UIConstants.WithAlpha(UIConstants.TextPrimary, alpha)), kindLabel);
 
         var sepY = boxMin.Y + pad.Y + headerRowH + lineGap;
@@ -156,5 +243,40 @@ public static class ToastOverlay
 
         var msgPos = new Vector2(boxMin.X + pad.X, sepY + lineGap);
         dl.AddText(msgPos, ImGui.ColorConvertFloat4ToU32(UIConstants.WithAlpha(UIConstants.TextSecondary, alpha)), entry.Text);
+
+        // Thin countdown bar along the bottom edge, shrinking left-to-right as the toast's
+        // remaining time runs out - gives a visual sense of how long is left before it dismisses.
+        var barY0 = boxMax.Y - ProgressBarHeight - 2f;
+        var barY1 = boxMax.Y - 2f;
+        var barX0 = boxMin.X + 2f;
+        var barMaxX = boxMax.X - 2f;
+        var barX1 = barX0 + (barMaxX - barX0) * remainingFrac;
+        if (barX1 > barX0)
+            dl.AddRectFilled(new Vector2(barX0, barY0), new Vector2(barX1, barY1),
+                ImGui.ColorConvertFloat4ToU32(UIConstants.WithAlpha(accent, 0.7f * alpha)), 1.5f);
+    }
+
+    // A handful of twinkling dots scattered over an Egg toast - positions are derived from the
+    // entry's own StartedAt so they're stable across frames (no re-randomizing every draw) without
+    // needing extra mutable state on ToastEntry.
+    private static void DrawSparkle(ImDrawListPtr dl, Vector2 boxMin, Vector2 boxMax, Vector4 accent, float alpha, DateTime seedSource)
+    {
+        const int count = 7;
+        var seed = seedSource.Ticks;
+        var rng = new Random(unchecked((int)(seed ^ (seed >> 32))));
+        var time = (float)ImGui.GetTime();
+        var size = boxMax - boxMin;
+
+        for (var i = 0; i < count; i++)
+        {
+            var px = boxMin.X + (float)rng.NextDouble() * size.X;
+            var py = boxMin.Y + (float)rng.NextDouble() * size.Y;
+            var phase = (float)rng.NextDouble() * MathF.PI * 2f;
+            var speed = 1.5f + (float)rng.NextDouble();
+            var twinkle = (MathF.Sin(time * speed + phase) + 1f) * 0.5f;
+            var radius = 1f + twinkle * 1.5f;
+            var col = UIConstants.WithAlpha(accent, twinkle * 0.8f * alpha);
+            dl.AddCircleFilled(new Vector2(px, py), radius, ImGui.ColorConvertFloat4ToU32(col));
+        }
     }
 }

@@ -28,8 +28,18 @@ public static class ChangelogData
         "v0.5.8",
     };
 
+    // Versions big enough to deserve a short "what's new" spotlight (summarizing just what's new,
+    // centered layout matching SetupWindow's chrome) but not big enough to drag existing users
+    // through the entire setup wizard again, which doesn't even cover most of what a point
+    // release like this adds.
+    public static readonly HashSet<string> HighlightVersions = new()
+    {
+        "v0.5.9",
+    };
+
     public static readonly (string Ver, string Date)[] Versions =
     [
+        ("v0.5.9",   "Aug 7, 2026"),
         ("v0.5.8.1", "Jul 26, 2026"),
         ("v0.5.8",   "Jul 23, 2026"),
         ("v0.5.7.1", "Jul 11, 2026"),
@@ -48,6 +58,97 @@ public static class ChangelogData
 
     public static readonly Dictionary<string, ChangelogSection[]> Changelogs = new()
     {
+        ["v0.5.9"] =
+        [
+            new("Notifications", "Benachrichtigungen",
+            [
+                new("ADDED",    "New Warning notification style (amber, with a warning icon) for real failures like a failed teleport or config pull, instead of the same neutral look as an ordinary status update",
+                                 "Neuer Warning-Benachrichtigungsstil (bernsteinfarben, mit Warn-Icon) für echte Fehlschläge wie einen fehlgeschlagenen Teleport oder Config-Pull, statt dem gleichen neutralen Look wie eine normale Status-Meldung"),
+                new("ADDED",    "Notification History window - a running log of recent notifications grouped by day, with filters per kind, styled after the Changelog window and opened via the new bell icon next to it in the title bar",
+                                 "Notification-History-Fenster - ein laufendes, nach Tag gruppiertes Protokoll der letzten Benachrichtigungen mit Filtern pro Art, im Look des Changelog-Fensters, erreichbar über das neue Glocken-Icon daneben in der Titelleiste"),
+                new("ADDED",    "Hovering a notification now pauses its countdown, so it doesn't disappear while you're still reading it",
+                                 "Eine Benachrichtigung mit der Maus überfahren pausiert jetzt ihren Countdown, damit sie beim Lesen nicht verschwindet"),
+                new("ADDED",    "A thin countdown bar on each notification shows how much time is left before it dismisses",
+                                 "Ein dünner Countdown-Balken an jeder Benachrichtigung zeigt, wie viel Zeit bis zum Verschwinden bleibt"),
+                new("ADDED",    "Changing the notification position in Settings shows an instant confirmation at the new spot",
+                                 "Ändern der Benachrichtigungs-Position in den Einstellungen zeigt sofort eine Bestätigung an der neuen Stelle"),
+                new("IMPROVED", "Notification cards restyled with an accent bar matching the rest of the plugin's card look, plus a small pop-in animation and an ongoing pulse for Warning and Easter Egg notifications",
+                                 "Benachrichtigungskarten mit Akzentbalken im Look der restlichen Plugin-Karten neu gestaltet, dazu eine kleine Pop-in-Animation und ein anhaltendes Pulsieren bei Warning- und Easter-Egg-Benachrichtigungen"),
+            ]),
+            new("Quick Popup", "Quick-Popup",
+            [
+                new("ADDED", "New quick popup that can appear when you enter a venue, showing its name, district and open/closed status at a glance",
+                             "Neues Quick-Popup, das beim Betreten einer Venue erscheinen kann und Name, Bezirk und Öffnungsstatus auf einen Blick zeigt"),
+                new("ADDED", "Quick toggles for 3D Markers, Strong Pulse and Marker Color Override right inside the popup, fully synced with Settings",
+                             "Schnell-Schalter für 3D-Marker, Strong Pulse und Marker-Farbüberschreibung direkt im Popup, vollständig synchron mit den Einstellungen"),
+                new("ADDED", "Copy Address and Directory buttons for quick access without opening the full window",
+                             "Copy-Address- und Directory-Buttons für schnellen Zugriff, ohne das ganze Fenster zu öffnen"),
+                new("ADDED", "\"Show quick popup on venue enter\" setting, off by default, reacts instantly even if you toggle it while already standing inside a venue",
+                             "Einstellung \"Show quick popup on venue enter\", standardmäßig aus, reagiert sofort auch wenn man sie einschaltet während man schon in einer Venue steht"),
+                new("ADDED", "\"/vmapper quick\" command to open or close the quick popup manually while inside a venue",
+                             "\"/vmapper quick\"-Befehl, um das Quick-Popup manuell zu öffnen oder zu schließen, solange man in einer Venue steht"),
+            ]),
+            new("Venue Details", "Venue-Details",
+            [
+                new("ADDED", "New Venue Details window - click a venue's name or the info icon on the Map tab to see its full info in one place",
+                             "Neues Venue-Details-Fenster - klicke auf den Namen oder das Info-Icon im Map-Tab, um alle Infos auf einen Blick zu sehen"),
+                new("ADDED", "Visit and Copy Lifestream Command buttons for quick teleporting or sharing the exact house location",
+                             "Visit- und Copy-Lifestream-Command-Buttons zum schnellen Teleportieren oder Teilen der genauen Hausadresse"),
+                new("ADDED", "Venue avatar shown at the top, pulled from Partake or FFXIVVenues with automatic center-cropping so it's never stretched",
+                             "Venue-Avatar oben im Fenster, geladen von Partake oder FFXIVVenues mit automatischem Center-Crop, damit nichts mehr verzerrt wird"),
+                new("ADDED", "Next Event card with a clear NOW badge for live events, and a fallback message when no event data is available",
+                             "Next-Event-Karte mit deutlichem NOW-Badge für laufende Events und einer Fallback-Nachricht, wenn keine Event-Daten verfügbar sind"),
+            ]),
+            new(null, null,
+            [
+                new("ADDED",    "Crown filter in the Directory to show only venues you're a registered owner of",
+                                 "Kronen-Filter im Verzeichnis, um nur Venues anzuzeigen, bei denen du als Owner registriert bist"),
+                new("ADDED",    "Separate \"Auto-open for my own venue\" setting (shown only if you own a registered venue) to opt your own venue out of auto-open while keeping it on for others",
+                                 "Eigene Einstellung \"Auto-open für meine Venue\" (nur sichtbar, wenn du eine registrierte Venue besitzt), um Auto-Open für deine eigene Venue separat auszuschalten"),
+                new("ADDED",    "\"Send Feedback\" button in the About tab, linking directly to the feedback form",
+                                 "\"Send Feedback\"-Button im About-Tab, verlinkt direkt zum Feedback-Formular"),
+                new("IMPROVED", "Directory and Events cards now have properly rounded corners and a cleaner accent-bar highlight",
+                                 "Directory- und Events-Karten haben jetzt korrekt abgerundete Ecken und einen saubereren Akzentbalken"),
+                new("IMPROVED", "Navigation tabs simplified and more stable, no more layout glitches on hover",
+                                 "Navigations-Tabs vereinfacht und stabiler, keine Layout-Glitches beim Hovern mehr"),
+                new("IMPROVED", "Scrollbars are now consistently styled everywhere, including the Changelog window and a few places that still had the default gray one",
+                                 "Scrollbars sind jetzt überall einheitlich gestylt, auch im Changelog-Fenster und an ein paar Stellen, die noch die graue Standard-Scrollbar hatten"),
+                new("IMPROVED", "Right-click context menu styling cleaned up",
+                                 "Styling des Rechtsklick-Kontextmenüs überarbeitet"),
+                new("IMPROVED", "About tab support buttons reorganized into a clearer 2x2 grid",
+                                 "Support-Buttons im About-Tab in einem übersichtlicheren 2x2-Raster angeordnet"),
+                new("IMPROVED", "Event schedule lookups now use a single efficient bulk request instead of many individual ones, reducing load on the venue data API",
+                                 "Event-Zeitplan-Abfragen nutzen jetzt eine einzelne effiziente Sammel-Anfrage statt vieler Einzelanfragen, was die Venue-Daten-API entlastet"),
+                new("FIXED",    "Copy Lifestream button now copies the correct teleport command instead of a plain address",
+                                 "Copy-Lifestream-Button kopiert jetzt den korrekten Teleport-Befehl statt einer reinen Adresse"),
+                new("FIXED",    "Marker color override setting wasn't applied to the marker's background, only its label",
+                                 "Die Marker-Farbüberschreibung wurde nur auf das Label angewendet, nicht auf den Marker-Hintergrund"),
+                new("FIXED",    "Hardened several windows against a rare crash and UI-rendering-corruption issue",
+                                 "Mehrere Fenster gegen einen seltenen Absturz und eine UI-Rendering-Korruption abgesichert"),
+                new("FIXED",    "Main window could lose its saved position under certain conditions",
+                                 "Hauptfenster konnte unter bestimmten Umständen seine gespeicherte Position verlieren"),
+                new("FIXED",    "Some venues' open/closed status could be wrong if they have more than one weekly schedule entry",
+                                 "Der Öffnungsstatus mancher Venues konnte falsch sein, wenn sie mehr als einen wöchentlichen Termin haben"),
+                new("FIXED",    "A venue's Partake logo could show the wrong image (or fall back to none) if the venue currently has no listed events",
+                                 "Das Partake-Logo einer Venue konnte falsch angezeigt werden (oder ganz fehlen), wenn die Venue gerade keine gelisteten Events hat"),
+                new("FIXED",    "A failed venue schedule fetch (e.g. a rate limit) could retry instantly in a tight loop instead of waiting for the normal cooldown",
+                                 "Ein fehlgeschlagener Venue-Zeitplan-Abruf (z.B. Rate-Limit) konnte sofort in einer Dauerschleife neu versuchen, statt die normale Abklingzeit abzuwarten"),
+                new("IMPROVED", "Venue schedule data now survives a plugin reload or game restart instead of needing to refetch",
+                                 "Venue-Zeitplan-Daten überstehen jetzt einen Plugin-Reload oder Neustart, statt neu geladen werden zu müssen"),
+                new("IMPROVED", "Several Settings labels shortened for a more compact layout, and the auto-open/quick-popup toggles now sit in a fixed two-column grid instead of a layout that could overflow",
+                                 "Mehrere Beschriftungen in den Einstellungen für ein kompakteres Layout gekürzt, und die Auto-Open-/Quick-Popup-Schalter stehen jetzt in einem festen Zwei-Spalten-Raster statt einem Layout, das überlaufen konnte"),
+                new("IMPROVED", "Minor Settings layout polish (RGB slider label placement, Misc section header)",
+                                 "Kleinere Layout-Verbesserungen in den Einstellungen (Position der RGB-Slider-Beschriftung, Misc-Sektionsheader)"),
+                new("ADDED",    "\"Hide 3D markers in my venue\" setting next to 3D World Markers - visible to everyone, but only enabled if you have a registered Owner ID",
+                                 "Einstellung \"3D-Marker in meiner Venue ausblenden\" neben den 3D-Weltmarkern - für alle sichtbar, aber nur aktivierbar mit registrierter Owner-ID"),
+                new("CHANGED",  "The \"Own venue\" auto-open setting is now always visible in Settings (greyed out without a registered Owner ID) instead of being hidden entirely",
+                                 "Die \"Own venue\"-Auto-Open-Einstellung ist jetzt immer in den Einstellungen sichtbar (ausgegraut ohne registrierte Owner-ID), statt komplett ausgeblendet zu werden"),
+                new("ADDED",    "A short \"What's New\" popup for major updates like this one, summarizing new features and settings without repeating the entire setup wizard",
+                                 "Ein kurzes \"What's New\"-Popup für größere Updates wie dieses, das neue Features und Einstellungen zusammenfasst, ohne den kompletten Setup-Assistenten zu wiederholen"),
+                new("FIXED",    "A venue's FFXIVVenues banner and open/closed schedule status could fail to load if its FFXIVVenues link used the alternate hash-style URL format instead of the standard /venue/ path format",
+                                 "Das FFXIVVenues-Banner und der Öffnungsstatus einer Venue konnten nicht geladen werden, wenn ihr FFXIVVenues-Link das alternative Hash-Format statt des Standard-/venue/-Pfad-Formats verwendete"),
+            ]),
+        ],
         ["v0.5.8.1"] =
         [
             new(null, null,

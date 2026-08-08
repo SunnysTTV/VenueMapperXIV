@@ -44,6 +44,7 @@ public sealed class VenueMapperPlugin : IDalamudPlugin
     public PictomancyMarkerManager PictomancyMarkers { get; }
     public PartakeApiService PartakeApi { get; }
     public XivVenuesService XivVenues { get; }
+    public VenueLogoService VenueLogos { get; }
     public EasterEggManager EasterEggManager { get; }
     public KonamiDetector KonamiDetector { get; }
     public ToastManager Toasts { get; }
@@ -56,6 +57,10 @@ public sealed class VenueMapperPlugin : IDalamudPlugin
     public OwnerVerifyWindow OwnerVerifyWindow { get; }
     public SetupWindow SetupWindow { get; }
     public DebugWindow DebugWindow { get; }
+    public VenueDetailWindow VenueDetailWindow { get; }
+    public VenueQuickPopupWindow VenueQuickPopupWindow { get; }
+    public NotificationHistoryWindow NotificationHistoryWindow { get; }
+    public WhatsNewWindow WhatsNewWindow { get; }
     public Dalamud.Interface.Windowing.WindowSystem WindowSystem { get; } = new("VenueMapper");
 
     public VenueMapperPlugin()
@@ -77,8 +82,16 @@ public sealed class VenueMapperPlugin : IDalamudPlugin
         MapLoader   = new HousingMapLoader(DataManager, TextureProvider, Log);
         Lifestream  = new LifestreamService(PluginInterface, Log);
         PictomancyMarkers = new PictomancyMarkerManager(PluginInterface, Log);
+        PictomancyMarkers.Enabled = Configuration.Markers3DEnabled;
         PartakeApi   = new PartakeApiService(Log);
-        XivVenues    = new XivVenuesService(Log);
+        XivVenues    = new XivVenuesService(Log, PluginInterface.ConfigDirectory.FullName);
+        // Starts the ~1400-venue bulk fetch right away instead of waiting for the first window
+        // that needs schedule data to trigger it - that first trigger could be a window that
+        // renders synchronously (e.g. the quick popup opening the instant you enter a venue),
+        // which would show blank status for the ~1-2s the fetch takes. Kicking it off at plugin
+        // load gives it a head start so it's very likely already cached by the time it's needed.
+        XivVenues.RequestSchedule();
+        VenueLogos   = new VenueLogoService(TextureProvider, Log);
         EasterEggManager = new EasterEggManager(Configuration, Log);
         KonamiDetector = new KonamiDetector(KeyState);
         KonamiDetector.OnCompleted += OnKonamiCompleted;
@@ -99,7 +112,6 @@ public sealed class VenueMapperPlugin : IDalamudPlugin
         }
         else if (Configuration.LastSeenVersion != ChangelogData.PluginVersion)
         {
-            pendingUpdateToast = true;
             // Only versions listed in ChangelogData.ForcedSetupVersions force the wizard - small
             // hotfixes (e.g. a v0.5.8.1 patch) still show the normal "updated to vX" toast, but
             // don't drag existing users through the whole wizard again for no reason.
@@ -110,6 +122,20 @@ public sealed class VenueMapperPlugin : IDalamudPlugin
             {
                 Configuration.HasSeenSetup = false;
                 Configuration.PendingForcedSetup = true;
+                pendingUpdateToast = true;
+            }
+            // HighlightVersions gets the short "what's new" spotlight instead - showing both that
+            // and the plain toast would be redundant, since the spotlight already states the
+            // version. PendingWhatsNew is persisted (same reasoning as PendingForcedSetup above)
+            // so the enforced, unclosable spotlight keeps reappearing on every reload/restart
+            // until the user actually clicks "Got it" - not just a one-shot in-memory flag.
+            else if (ChangelogData.HighlightVersions.Contains(ChangelogData.PluginVersion))
+            {
+                Configuration.PendingWhatsNew = true;
+            }
+            else
+            {
+                pendingUpdateToast = true;
             }
         }
 
@@ -127,6 +153,10 @@ public sealed class VenueMapperPlugin : IDalamudPlugin
         OwnerVerifyWindow = new OwnerVerifyWindow(this);
         SetupWindow = new SetupWindow(this);
         DebugWindow = new DebugWindow(PositionTracker, this);
+        VenueDetailWindow = new VenueDetailWindow(this);
+        VenueQuickPopupWindow = new VenueQuickPopupWindow(this);
+        NotificationHistoryWindow = new NotificationHistoryWindow(this);
+        WhatsNewWindow = new WhatsNewWindow(this);
 
         WindowSystem.AddWindow(VenueMapWindow);
         WindowSystem.AddWindow(SettingsWindow);
@@ -136,10 +166,14 @@ public sealed class VenueMapperPlugin : IDalamudPlugin
         WindowSystem.AddWindow(OwnerVerifyWindow);
         WindowSystem.AddWindow(SetupWindow);
         WindowSystem.AddWindow(DebugWindow);
+        WindowSystem.AddWindow(VenueDetailWindow);
+        WindowSystem.AddWindow(VenueQuickPopupWindow);
+        WindowSystem.AddWindow(NotificationHistoryWindow);
+        WindowSystem.AddWindow(WhatsNewWindow);
 
         CommandManager.AddHandler(CommandName, new CommandInfo(OnCommand)
         {
-            HelpMessage = "Toggle the Venue Map window. Use '/vmapper settings' for settings, '/vmapper pull now' to refresh config, '/vmapper debug' for the debug window."
+            HelpMessage = "Toggle the Venue Map window. Use '/vmapper settings' for settings, '/vmapper pull now' to refresh config, '/vmapper debug' for the debug window, '/vmapper quick' for the quick popup."
         });
 
         PluginInterface.UiBuilder.Draw += DrawUI;
@@ -156,7 +190,10 @@ public sealed class VenueMapperPlugin : IDalamudPlugin
 
     private bool wasInVenue;
     private bool wasInsideHouse;
+    private bool lastShowQuickPopupOnEnter;
+    private bool quickPopupSettingInitialized;
     private bool setupShownThisSession;
+    private bool whatsNewShownThisSession;
     private DateTime lastAutoCheck = DateTime.MinValue;
     private DateTime lastEventReminderCheck = DateTime.MinValue;
     private readonly Dictionary<string, DateTime> remindedEventIds = new();
@@ -278,7 +315,6 @@ public sealed class VenueMapperPlugin : IDalamudPlugin
                 pendingUpdateToast = false;
                 Toasts.Show(Lang.ToastUpdated(ChangelogData.PluginVersion), ToastKind.Info, 4.0);
             }
-
             CheckPendingClosedToast();
 
             if (!Configuration.HasSeenSetup && !setupShownThisSession)
@@ -287,6 +323,14 @@ public sealed class VenueMapperPlugin : IDalamudPlugin
                 SetupWindow.Forced = Configuration.PendingForcedSetup;
                 SetupWindow.RefreshFromConfig();
                 SetupWindow.IsOpen = true;
+            }
+
+            // Persisted like PendingForcedSetup above - keeps reappearing on every reload/restart
+            // until WhatsNewWindow itself clears the flag when "Got it" is actually clicked.
+            if (Configuration.PendingWhatsNew && !whatsNewShownThisSession)
+            {
+                whatsNewShownThisSession = true;
+                WhatsNewWindow.Open();
             }
 
             if ((DateTime.Now - lastAutoCheck).TotalHours >= 1 && !string.IsNullOrWhiteSpace(Configuration.GitHubConfigUrl))
@@ -309,16 +353,44 @@ public sealed class VenueMapperPlugin : IDalamudPlugin
 
             if (isInVenue && !wasInVenue)
             {
-                VenueMapWindow.IsOpen = true;
-                VenueMapWindow.HideDirectory();
+                var isOwnVenue = currentVenue!.OwnerIdHashes.Contains(OwnerIdHelper.ComputeHash(PlayerState.ContentId));
+                var shouldAutoOpen = Configuration.AutoOpenOnVenueEnter && (!isOwnVenue || Configuration.AutoOpenOwnVenue);
+                if (shouldAutoOpen)
+                {
+                    VenueMapWindow.IsOpen = true;
+                    VenueMapWindow.HideDirectory();
+                }
+                if (Configuration.ShowQuickPopupOnEnter)
+                    VenueQuickPopupWindow.Open(currentVenue!);
                 ShowVenueEntryToasts(currentVenue!);
             }
             else if (!isInVenue && wasInVenue)
             {
+                VenueQuickPopupWindow.IsOpen = false;
                 VenueMapWindow.ShowDirectory();
             }
 
             wasInVenue = isInVenue;
+
+            // Reacts live to the "Show quick popup on venue enter" toggle while already standing
+            // inside a venue - otherwise flipping it mid-visit would do nothing until the next
+            // actual enter/leave edge, which is a confusing way to test/use the setting.
+            if (!quickPopupSettingInitialized)
+            {
+                lastShowQuickPopupOnEnter = Configuration.ShowQuickPopupOnEnter;
+                quickPopupSettingInitialized = true;
+            }
+            else if (Configuration.ShowQuickPopupOnEnter != lastShowQuickPopupOnEnter)
+            {
+                if (isInVenue)
+                {
+                    if (Configuration.ShowQuickPopupOnEnter)
+                        VenueQuickPopupWindow.Open(currentVenue!);
+                    else
+                        VenueQuickPopupWindow.IsOpen = false;
+                }
+                lastShowQuickPopupOnEnter = Configuration.ShowQuickPopupOnEnter;
+            }
 
             var isInsideHouse = PositionTracker.IsInsideHouse;
             if (isInsideHouse && !wasInsideHouse && SunnyContentId != 0 && PlayerState.ContentId == SunnyContentId)
@@ -353,6 +425,30 @@ public sealed class VenueMapperPlugin : IDalamudPlugin
         if (args.Equals("debug", StringComparison.OrdinalIgnoreCase))
         {
             DebugWindow.IsOpen = !DebugWindow.IsOpen;
+            return;
+        }
+
+        if (args.Equals("quick", StringComparison.OrdinalIgnoreCase))
+        {
+            if (!Configuration.ShowQuickPopupOnEnter)
+            {
+                Toasts.Show(Lang.ToastQuickPopupDisabled, ToastKind.Warning, 3.5);
+                return;
+            }
+
+            if (VenueQuickPopupWindow.IsOpen)
+            {
+                VenueQuickPopupWindow.IsOpen = false;
+            }
+            else
+            {
+                var vmConfig = ConfigManager.Config;
+                var currentVenue = vmConfig != null ? PositionTracker.GetCurrentVenue(vmConfig) : null;
+                if (currentVenue != null)
+                    VenueQuickPopupWindow.Open(currentVenue);
+                else
+                    Toasts.Show(Lang.ToastMustBeInVenue, ToastKind.Warning, 2.5);
+            }
             return;
         }
 
@@ -399,6 +495,8 @@ public sealed class VenueMapperPlugin : IDalamudPlugin
                 "off" => false,
                 _     => !PictomancyMarkers.Enabled,
             };
+            Configuration.Markers3DEnabled = PictomancyMarkers.Enabled;
+            Configuration.Save();
             Log.Information($"[VenueMapper] 3D markers: {(PictomancyMarkers.Enabled ? "ON" : "OFF")}");
             return;
         }
@@ -431,7 +529,7 @@ public sealed class VenueMapperPlugin : IDalamudPlugin
             }
             else if (result == PullResult.Failed)
             {
-                Toasts.Show(Lang.ToastConfigPullFailed, ToastKind.Info, 3.5);
+                Toasts.Show(Lang.ToastConfigPullFailed, ToastKind.Warning, 3.5);
             }
         }
         catch (Exception ex)
@@ -454,7 +552,7 @@ public sealed class VenueMapperPlugin : IDalamudPlugin
                     Toasts.Show(Lang.ToastConfigUpToDate, ToastKind.Info, 2.5);
                     break;
                 case PullResult.Failed:
-                    Toasts.Show(Lang.ToastConfigPullFailed, ToastKind.Info, 3.5);
+                    Toasts.Show(Lang.ToastConfigPullFailed, ToastKind.Warning, 3.5);
                     break;
             }
         }
@@ -493,8 +591,20 @@ public sealed class VenueMapperPlugin : IDalamudPlugin
             {
                 var floor = PositionTracker.GetCurrentFloor(venue);
 
-                if (PictomancyMarkers.Available && PictomancyMarkers.Enabled)
-                    PictomancyMarkers.DrawMarkers(floor, venue.Colors, Configuration.ServiceFilters);
+                var isOwnVenueForMarkers = venue.OwnerIdHashes.Contains(OwnerIdHelper.ComputeHash(PlayerState.ContentId));
+                var suppressMarkers = Configuration.HideMarkersInOwnVenue && isOwnVenueForMarkers;
+
+                if (PictomancyMarkers.Available && PictomancyMarkers.Enabled && !suppressMarkers)
+                {
+                    var access = new Services.MarkerAccessibilityOptions
+                    {
+                        SizeScale = Configuration.MarkerSizeScale,
+                        ColorOverrideEnabled = Configuration.MarkerColorOverrideEnabled,
+                        OverrideColor = Configuration.MarkerOverrideColor,
+                        StrongPulse = Configuration.MarkerStrongPulse,
+                    };
+                    PictomancyMarkers.DrawMarkers(floor, venue.Colors, Configuration.ServiceFilters, access);
+                }
             }
         }
     }
@@ -518,12 +628,17 @@ public sealed class VenueMapperPlugin : IDalamudPlugin
         OwnerVerifyWindow.Dispose();
         SetupWindow.Dispose();
         DebugWindow.Dispose();
+        VenueDetailWindow.Dispose();
+        VenueQuickPopupWindow.Dispose();
+        NotificationHistoryWindow.Dispose();
+        WhatsNewWindow.Dispose();
         MapLoader.Dispose();
         GitHubPuller.Dispose();
         Lifestream.Dispose();
         PictomancyMarkers.Dispose();
         PartakeApi.Dispose();
         XivVenues.Dispose();
+        VenueLogos.Dispose();
 
         CommandManager.RemoveHandler(CommandName);
     }

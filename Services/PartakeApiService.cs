@@ -25,9 +25,12 @@ public class PartakeApiService : IDisposable
     private readonly ConcurrentDictionary<int, DateTime> fetchTimes = new();
     private readonly ConcurrentDictionary<int, string?> errorByTeam = new();
     private readonly ConcurrentDictionary<int, bool> fetching = new();
+    private readonly ConcurrentDictionary<int, string?> iconUrlByTeam = new();
+    private readonly ConcurrentDictionary<int, bool> fetchingIcon = new();
 
     public bool IsLoading(int teamId) => fetching.ContainsKey(teamId);
     public string? GetError(int teamId) => errorByTeam.GetValueOrDefault(teamId);
+    public string? GetTeamIconUrl(int teamId) => iconUrlByTeam.GetValueOrDefault(teamId);
 
     public PartakeApiService(IPluginLog log)
     {
@@ -57,11 +60,11 @@ public class PartakeApiService : IDisposable
                     query($teamId: Int!) {
                         events(game: ""final-fantasy-xiv"", teamId: $teamId, limit: 2, sortBy: STARTS_AT) {
                             id title location description startsAt endsAt attendeeCount tags
-                            team { id name }
+                            team { id name iconUrl }
                         }
                         activeEvents(game: ""final-fantasy-xiv"", teamId: $teamId) {
                             id title location description startsAt endsAt attendeeCount tags
-                            team { id name }
+                            team { id name iconUrl }
                         }
                     }",
                 ["variables"] = new JObject
@@ -125,6 +128,10 @@ public class PartakeApiService : IDisposable
                     var tId      = e["team"]?["id"]?.Value<int>() ?? 0;
                     teams.Add($"{teamName} (id={tId})");
 
+                    var iconUrl = e["team"]?["iconUrl"]?.Value<string>();
+                    if (!string.IsNullOrEmpty(iconUrl))
+                        iconUrlByTeam[tId] = iconUrl;
+
                     result.Add(new VenueEvent
                     {
                         EventId     = e["id"]?.Value<string>() ?? "",
@@ -152,6 +159,45 @@ public class PartakeApiService : IDisposable
         finally
         {
             fetching.TryRemove(teamId, out _);
+        }
+    }
+
+    /// <summary>
+    /// The events query above only learns a team's iconUrl as a side-effect of that team having
+    /// at least one upcoming/active event - teams with none never populate iconUrlByTeam that way.
+    /// This queries Partake's standalone `team(id:)` field instead, which returns iconUrl
+    /// independent of event data, so the logo shows up even for venues with no listed events.
+    /// </summary>
+    public async Task FetchTeamIconAsync(int teamId)
+    {
+        if (iconUrlByTeam.ContainsKey(teamId)) return;
+        if (!fetchingIcon.TryAdd(teamId, true)) return;
+
+        try
+        {
+            var query = new JObject
+            {
+                ["query"] = "query($id: Int!) { team(id: $id) { iconUrl } }",
+                ["variables"] = new JObject { ["id"] = teamId },
+            };
+
+            var content = new StringContent(query.ToString(), Encoding.UTF8, "application/json");
+            var response = await http.PostAsync(Endpoint, content);
+            if (!response.IsSuccessStatusCode) return;
+
+            var json = await response.Content.ReadAsStringAsync();
+            var root = JObject.Parse(json);
+            var iconUrl = root["data"]?["team"]?["iconUrl"]?.Value<string>();
+            if (!string.IsNullOrEmpty(iconUrl))
+                iconUrlByTeam[teamId] = iconUrl;
+        }
+        catch (Exception ex)
+        {
+            log.Debug($"[Partake] Team icon fetch failed: {ex.Message}");
+        }
+        finally
+        {
+            fetchingIcon.TryRemove(teamId, out _);
         }
     }
 

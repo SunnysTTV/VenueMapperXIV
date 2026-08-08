@@ -70,6 +70,8 @@
   <data name="HideVenue" xml:space="preserve"><value>Hide Venue</value></data>
   <data name="UnhideVenue" xml:space="preserve"><value>Unhide Venue</value></data>
   <data name="ShowHidden" xml:space="preserve"><value>Show Hidden</value></data>
+  <data name="ShowOwnedOnly" xml:space="preserve"><value>Show only venues I own</value></data>
+  <data name="NoOwnedVenues" xml:space="preserve"><value>No venue registered to you.</value></data>
   <data name="RightClickHint" xml:space="preserve"><value>Right-click for options</value></data>
 
   <!-- Status -->
@@ -95,15 +97,41 @@
   <data name="Notifications" xml:space="preserve"><value>Notifications</value></data>
   <data name="TestNotification" xml:space="preserve"><value>TEST NOTIFICATION</value></data>
   <data name="TestNotificationText" xml:space="preserve"><value>This is a test notification!</value></data>
+  <data name="NotificationHistory" xml:space="preserve"><value>Notify History</value></data>
+  <data name="NotificationHistoryDesc" xml:space="preserve"><value>Recent notifications from this session</value></data>
+  <data name="ClearHistory" xml:space="preserve"><value>Clear History</value></data>
+  <data name="NoNotificationHistory" xml:space="preserve"><value>No notifications yet</value></data>
+  <data name="Today" xml:space="preserve"><value>Today</value></data>
+  <data name="Yesterday" xml:space="preserve"><value>Yesterday</value></data>
+  <data name="ToastPositionChanged" xml:space="preserve"><value>Notifications now appear here</value></data>
+  <data name="ToastMustBeInVenue" xml:space="preserve"><value>You need to be inside a venue for this</value></data>
+  <data name="ToastQuickPopupDisabled" xml:space="preserve"><value>Enable "Quick popup on enter" in Settings first</value></data>
+  <data name="WhatsNewTitle" xml:space="preserve"><value>What's New in</value></data>
+  <data name="WhatsNewQuickPopup" xml:space="preserve"><value>Shows status when you enter a venue - or trigger it manually with "/vmapper quick"</value></data>
+  <data name="WhatsNewHistory" xml:space="preserve"><value>Notification History - click the bell icon up top</value></data>
+  <data name="WhatsNewWarningKind" xml:space="preserve"><value>Warning notifications for real failures</value></data>
+  <data name="WhatsNewWarningKindDesc" xml:space="preserve"><value>Failed teleports, config pulls and more now stand out in amber instead of looking like a normal status update</value></data>
+  <data name="WhatsNewQuickCommand" xml:space="preserve"><value>"/vmapper quick" opens the quick popup manually</value></data>
+  <data name="WhatsNewNewSettings" xml:space="preserve"><value>New settings</value></data>
+  <data name="WhatsNewAllFeatures" xml:space="preserve"><value>All features (recap)</value></data>
+  <data name="WhatsNewFeatures" xml:space="preserve"><value>New features</value></data>
+  <data name="WhatsNewVenueDetails" xml:space="preserve"><value>Venue Details window</value></data>
+  <data name="WhatsNewVenueDetailsDesc" xml:space="preserve"><value>Full info, Visit/Copy Address and Next Event in one place - click a venue's name or the info icon</value></data>
+  <data name="WhatsNewSmartNotify" xml:space="preserve"><value>Smarter notifications</value></data>
+  <data name="WhatsNewSmartNotifyDesc" xml:space="preserve"><value>New History log (bell icon up top) and a distinct Warning style for real failures</value></data>
+  <data name="WhatsNewCrownFilter" xml:space="preserve"><value>Crown filter</value></data>
+  <data name="WhatsNewCrownFilterDesc" xml:space="preserve"><value>Directory can show only venues you're a registered owner of</value></data>
+  <data name="WhatsNewGotIt" xml:space="preserve"><value>Got it</value></data>
+  <data name="WhatsNewSeeMore" xml:space="preserve"><value>There's more to discover inside the plugin itself - browse Settings, or revisit the full changelog anytime from the document icon in the title bar.</value></data>
   <data name="NotificationPosition" xml:space="preserve"><value>Position:</value></data>
   <data name="PosTopRight" xml:space="preserve"><value>Top Right</value></data>
   <data name="PosTopLeft" xml:space="preserve"><value>Top Left</value></data>
   <data name="PosBottomRight" xml:space="preserve"><value>Bottom Right</value></data>
   <data name="PosBottomLeft" xml:space="preserve"><value>Bottom Left</value></data>
   <data name="EventReminders" xml:space="preserve"><value>Event reminders</value></data>
-  <data name="EventRemindersFavOnly" xml:space="preserve"><value>Only for favorite venues</value></data>
+  <data name="EventRemindersFavOnly" xml:space="preserve"><value>Favorites only</value></data>
   <data name="EventReminderMinutesLabel" xml:space="preserve"><value>Remind me (minutes before):</value></data>
-  <data name="EnableNotifications" xml:space="preserve"><value>Enable notifications</value></data>
+  <data name="EnableNotifications" xml:space="preserve"><value>Notifications</value></data>
   <data name="MiscSettings" xml:space="preserve"><value>Misc</value></data>
   <data name="ResetWindowPosition" xml:space="preserve"><value>RESET POSITION</value></data>
   <data name="ResetWindowPositionTip" xml:space="preserve"><value>Reset the main window's position and size to default</value></data>
@@ -113,11 +141,28 @@
   <data name="ToastAllVenuesUnhidden" xml:space="preserve"><value>{0} venues unhidden</value></data>
   <data name="MaxVisibleToasts" xml:space="preserve"><value>Max visible at once:</value></data>
   <data name="ToastDurationLabel" xml:space="preserve"><value>Popup duration:</value></data>
-  <data name="SuppressInCombat" xml:space="preserve"><value>Suppress notifications during combat/duties</value></data>
+  <data name="SuppressInCombat" xml:space="preserve"><value>Mute during combat/duty</value></data>
   <data name="DefaultTabLabel" xml:space="preserve"><value>Default tab:</value></data>
   <data name="DefaultTabRemember" xml:space="preserve"><value>Remember last used</value></data>
-  <data name="BoostOpenVenues" xml:space="preserve"><value>Boost currently open venues to the top</value></data>
+  <data name="BoostOpenVenues" xml:space="preserve"><value>Boost open</value></data>
   <data name="BoostOpenVenuesTip" xml:space="preserve"><value>Within your favorites and within the rest of the list, venues that are open right now move to the top</value></data>
+  <data name="AutoOpenOnVenueEnter" xml:space="preserve"><value>Auto-open</value></data>
+  <data name="AutoOpenOnVenueEnterTip" xml:space="preserve"><value>Automatically open the plugin window when you enter a tracked venue</value></data>
+  <data name="AutoOpenOwnVenue" xml:space="preserve"><value>Own venue</value></data>
+  <data name="AutoOpenOwnVenueTip" xml:space="preserve"><value>Turn this off to stop the window from auto-opening specifically when you enter your own venue (other venues are unaffected)</value></data>
+  <data name="ShowQuickPopupOnEnter" xml:space="preserve"><value>Quick popup</value></data>
+  <data name="ShowQuickPopupOnEnterTip" xml:space="preserve"><value>Shows a small popup with the venue's status, quick 3D marker and accessibility toggles, and teleport tools whenever you enter a venue</value></data>
+  <data name="QuickPopupTitle" xml:space="preserve"><value>Quick Info</value></data>
+  <data name="QuickSettings" xml:space="preserve"><value>Quick Settings</value></data>
+  <data name="AccessibilitySettings" xml:space="preserve"><value>Accessibility</value></data>
+  <data name="MarkerSizeLabel" xml:space="preserve"><value>Marker size</value></data>
+  <data name="MarkerSizeNormal" xml:space="preserve"><value>Normal</value></data>
+  <data name="MarkerSizeLarge" xml:space="preserve"><value>Large</value></data>
+  <data name="MarkerSizeExtraLarge" xml:space="preserve"><value>Extra Large</value></data>
+  <data name="MarkerStrongPulse" xml:space="preserve"><value>Stronger pulse animation</value></data>
+  <data name="MarkerColorOverride" xml:space="preserve"><value>Override marker color</value></data>
+  <data name="MarkerColorOverrideTip" xml:space="preserve"><value>Use a single color of your choice for all markers instead of the per-service colors</value></data>
+  <data name="MarkerColorPickerTip" xml:space="preserve"><value>Click to open the color picker</value></data>
   <data name="ToastCacheCleared" xml:space="preserve"><value>Cache cleared</value></data>
   <data name="ToastCacheClearFailed" xml:space="preserve"><value>Failed to clear cache</value></data>
   <data name="ToastConfigUpdated" xml:space="preserve"><value>Venue list updated</value></data>
@@ -152,12 +197,22 @@
   <data name="MarkersOn" xml:space="preserve"><value>Markers enabled</value></data>
   <data name="MarkersOff" xml:space="preserve"><value>Markers disabled</value></data>
   <data name="Markers3D" xml:space="preserve"><value>3D World Markers</value></data>
+  <data name="HideMarkersInOwnVenue" xml:space="preserve"><value>Hide 3D markers in my venue</value></data>
+  <data name="HideMarkersInOwnVenueTip" xml:space="preserve"><value>Hides 3D markers specifically while you're inside your own venue, without affecting any other venue</value></data>
+  <data name="HideMarkersInOwnVenueNeedsOwnerTip" xml:space="preserve"><value>Register your Owner ID to use this</value></data>
 
   <!-- Map -->
   <data name="MapUnavailable" xml:space="preserve"><value>MAP UNAVAILABLE</value></data>
   <data name="MapNotInVenue" xml:space="preserve"><value>Visit the housing venue to view the map and access services.</value></data>
   <data name="ScrollZoom" xml:space="preserve"><value>scroll to zoom</value></data>
   <data name="TeleportVia" xml:space="preserve"><value>Teleport via Lifestream</value></data>
+  <data name="ViewVenueDetails" xml:space="preserve"><value>View venue details</value></data>
+  <data name="YouAreOwner" xml:space="preserve"><value>You're a registered owner of this venue</value></data>
+  <data name="CopyLifestreamAddress" xml:space="preserve"><value>Copy Lifestream</value></data>
+  <data name="VenueServices" xml:space="preserve"><value>Services</value></data>
+  <data name="NextEvent" xml:space="preserve"><value>Next Event</value></data>
+  <data name="NoPartakeEvents" xml:space="preserve"><value>No Partake events linked - next opening:</value></data>
+  <data name="NoScheduleInfo" xml:space="preserve"><value>No schedule info available for this venue.</value></data>
 
   <!-- Links -->
   <data name="Links" xml:space="preserve"><value>LINKS</value></data>

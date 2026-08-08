@@ -13,7 +13,7 @@ public class ChangelogWindow : Window, IDisposable
 
     public ChangelogWindow()
         : base("VenueMapper Changelog##ChangelogModal",
-            ImGuiWindowFlags.NoCollapse | ImGuiWindowFlags.NoDocking | ImGuiWindowFlags.NoResize)
+            ImGuiWindowFlags.NoCollapse | ImGuiWindowFlags.NoDocking | ImGuiWindowFlags.NoResize | ImGuiWindowFlags.NoScrollbar)
     {
         Size = new Vector2(500, 500);
         SizeCondition = ImGuiCond.Always;
@@ -43,17 +43,34 @@ public class ChangelogWindow : Window, IDisposable
 
     public override void Draw()
     {
+        // An uncaught exception here would propagate out of Draw() and could skip PostDraw()
+        // (which pops PreDraw's window-chrome styles), leaking them onto the shared ImGui stack
+        // for every window drawn afterward, including other plugins'. Catch+log instead.
+        try { DrawContent(); }
+        catch (Exception ex) { VenueMapperPlugin.Log.Error(ex, "[VenueMapper] ChangelogWindow draw failed"); }
+    }
+
+    private void DrawContent()
+    {
         var hackerBooting = UIConstants.IsHackerBooting;
         if (hackerBooting) ImGui.BeginDisabled();
 
         if (ImGui.BeginTable("##clLayout", 2, ImGuiTableFlags.BordersInnerV))
         {
+            // An unclosed BeginTable/BeginChild (if either returned true) leaves ImGui's internal
+            // table/child stack corrupted for the next frame's calls, not just this one, if
+            // anything below throws - same reasoning as the other Begin/End pairs fixed earlier.
+            try
+            {
             ImGui.TableSetupColumn("##clVersions", ImGuiTableColumnFlags.WidthFixed, 120);
             ImGui.TableSetupColumn("##clDetails");
 
             ImGui.TableNextRow();
 
             ImGui.TableSetColumnIndex(0);
+            UIConstants.PushScrollbarStyle();
+            try
+            {
             if (ImGui.BeginChild("##clVerScroll", new Vector2(-1, -1)))
             {
                 var curVer = ChangelogData.Versions.Length > 0 ? ChangelogData.Versions[0].Ver : "";
@@ -93,7 +110,12 @@ public class ChangelogWindow : Window, IDisposable
                     ImGui.PopStyleColor();
                 }
             }
-            ImGui.EndChild();
+            }
+            finally
+            {
+                ImGui.EndChild();
+                UIConstants.PopScrollbarStyle();
+            }
 
             ImGui.TableSetColumnIndex(1);
             var isCur = ChangelogData.Versions.Length > 0 && selectedVersion == ChangelogData.Versions[0].Ver;
@@ -106,12 +128,27 @@ public class ChangelogWindow : Window, IDisposable
             ImGui.Separator();
             ImGui.Spacing();
 
-            if (ChangelogData.Changelogs.TryGetValue(selectedVersion, out var sections))
-                UIConstants.DrawChangelog(sections);
-            else
-                ImGui.TextColored(UIConstants.WithAlpha(UIConstants.TextSecondary, 0.5f), Lang.NoChangelog);
-
-            ImGui.EndTable();
+            UIConstants.PushScrollbarStyle();
+            try
+            {
+            if (ImGui.BeginChild("##clDetailScroll", new Vector2(-1, -1)))
+            {
+                if (ChangelogData.Changelogs.TryGetValue(selectedVersion, out var sections))
+                    UIConstants.DrawChangelog(sections);
+                else
+                    ImGui.TextColored(UIConstants.WithAlpha(UIConstants.TextSecondary, 0.5f), Lang.NoChangelog);
+            }
+            }
+            finally
+            {
+                ImGui.EndChild();
+                UIConstants.PopScrollbarStyle();
+            }
+            }
+            finally
+            {
+                ImGui.EndTable();
+            }
         }
 
         if (hackerBooting) ImGui.EndDisabled();

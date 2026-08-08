@@ -67,12 +67,7 @@ public class SetupWindow : Window, IDisposable
     public override void PreDraw()
     {
         ShowCloseButton = !Forced;
-        ImGui.PushStyleColor(ImGuiCol.WindowBg, UIConstants.Background);
-        ImGui.PushStyleColor(ImGuiCol.TitleBg, UIConstants.WithAlpha(UIConstants.Primary, 0.25f));
-        ImGui.PushStyleColor(ImGuiCol.TitleBgActive, UIConstants.WithAlpha(UIConstants.Primary, 0.35f));
-        ImGui.PushStyleColor(ImGuiCol.Border, UIConstants.WithAlpha(UIConstants.Glow, 0.6f));
-        ImGui.PushStyleVar(ImGuiStyleVar.WindowBorderSize, 2f);
-        ImGui.PushStyleVar(ImGuiStyleVar.WindowRounding, 10f);
+        UIConstants.PushWindowChrome(UIConstants.Glow, 2f);
 
         var vp = ImGui.GetMainViewport();
         ImGui.SetNextWindowPos(vp.GetCenter(), ImGuiCond.Appearing, new Vector2(0.5f, 0.5f));
@@ -80,8 +75,7 @@ public class SetupWindow : Window, IDisposable
 
     public override void PostDraw()
     {
-        ImGui.PopStyleVar(2);
-        ImGui.PopStyleColor(4);
+        UIConstants.PopWindowChrome();
     }
 
     private double hackerModeStart = -1;
@@ -89,9 +83,35 @@ public class SetupWindow : Window, IDisposable
 
     public override void Draw()
     {
+        // An uncaught exception here would propagate out of Draw() and could skip PostDraw()
+        // (which pops PushWindowChrome's styles), leaking them onto the shared ImGui stack for
+        // every window drawn afterward, including other plugins'. Catch+log instead.
         var hackerBooting = UIConstants.IsHackerBooting;
-        if (hackerBooting) ImGui.BeginDisabled();
+        try
+        {
+            DrawContent(hackerBooting);
+        }
+        catch (Exception ex)
+        {
+            VenueMapperPlugin.Log.Error(ex, "[VenueMapper] SetupWindow draw failed");
+        }
+    }
 
+    private void DrawContent(bool hackerBooting)
+    {
+        if (hackerBooting) ImGui.BeginDisabled();
+        try
+        {
+            DrawContentInner();
+        }
+        finally
+        {
+            if (hackerBooting) ImGui.EndDisabled();
+        }
+    }
+
+    private void DrawContentInner()
+    {
         if (step != lastRenderedStep)
         {
             lastRenderedStep = step;
@@ -104,80 +124,95 @@ public class SetupWindow : Window, IDisposable
         ImGui.Spacing();
 
         ImGui.PushTextWrapPos(0);
-
-        if (Forced)
+        try
         {
-            DrawForcedBanner();
-            ImGui.Spacing();
-        }
-
-        if (ImGui.BeginChild("##setupContent", new Vector2(-1, -40)))
-        {
-            switch (step)
+            if (Forced)
             {
-                case 0: DrawLanguage(); break;
-                case 1: DrawWelcome(); break;
-                case 2: DrawFeatures(); break;
-                case 3: DrawSettings(); break;
+                DrawForcedBanner();
+                ImGui.Spacing();
+            }
+
+            UIConstants.PushScrollbarStyle();
+            var childOpen = ImGui.BeginChild("##setupContent", new Vector2(-1, -40));
+            try
+            {
+                if (childOpen)
+                {
+                    switch (step)
+                    {
+                        case 0: DrawLanguage(); break;
+                        case 1: DrawWelcome(); break;
+                        case 2: DrawFeatures(); break;
+                        case 3: DrawSettings(); break;
+                    }
+                }
+            }
+            finally
+            {
+                ImGui.EndChild();
+                UIConstants.PopScrollbarStyle();
+            }
+
+            ImGui.Separator();
+            ImGui.Spacing();
+
+            if (!Forced)
+            {
+                ImGui.PushStyleColor(ImGuiCol.Button, UIConstants.WithAlpha(UIConstants.TextSecondary, 0.1f));
+                ImGui.PushStyleColor(ImGuiCol.ButtonHovered, UIConstants.WithAlpha(UIConstants.TextSecondary, 0.2f));
+                ImGui.PushStyleColor(ImGuiCol.Text, UIConstants.WithAlpha(UIConstants.TextSecondary, 0.5f));
+                if (ImGui.Button(Lang.SetupSkip, new Vector2(50, 26)))
+                    IsOpen = false;
+                ImGui.PopStyleColor(3);
+                ImGui.SameLine();
+            }
+
+            if (step > 0)
+            {
+                if (ImGui.Button(Lang.SetupBack, new Vector2(80, 26)))
+                    step--;
+                ImGui.SameLine();
+            }
+
+            var rightX = ImGui.GetContentRegionAvail().X - 100;
+            ImGui.Dummy(new Vector2(rightX, 0));
+            ImGui.SameLine();
+
+            var waiting = waitRemaining > 0;
+            var nextLabel = waiting ? $"{Lang.SetupNext} ({(int)Math.Ceiling(waitRemaining)})" : Lang.SetupNext;
+            var doneLabel = waiting ? $"{Lang.SetupDone} ({(int)Math.Ceiling(waitRemaining)})" : Lang.SetupDone;
+
+            if (waiting) ImGui.BeginDisabled();
+            try
+            {
+                if (step < 3)
+                {
+                    ImGui.PushStyleColor(ImGuiCol.Button, UIConstants.WithAlpha(UIConstants.Glow, 0.2f));
+                    ImGui.PushStyleColor(ImGuiCol.ButtonHovered, UIConstants.WithAlpha(UIConstants.Glow, 0.4f));
+                    ImGui.PushStyleColor(ImGuiCol.Text, UIConstants.Glow);
+                    if (ImGui.Button(nextLabel, new Vector2(waiting ? 130 : 100, 26)))
+                        step++;
+                    ImGui.PopStyleColor(3);
+                }
+                else
+                {
+                    ImGui.PushStyleColor(ImGuiCol.Button, UIConstants.WithAlpha(UIConstants.Primary, 0.3f));
+                    ImGui.PushStyleColor(ImGuiCol.ButtonHovered, UIConstants.WithAlpha(UIConstants.Primary, 0.5f));
+                    ImGui.PushStyleColor(ImGuiCol.Text, UIConstants.Primary);
+                    if (ImGui.Button(doneLabel, new Vector2(waiting ? 130 : 100, 26)))
+                        Finish();
+                    ImGui.PopStyleColor(3);
+                }
+            }
+            finally
+            {
+                if (waiting) ImGui.EndDisabled();
             }
         }
-        ImGui.EndChild();
-
-        ImGui.Separator();
-        ImGui.Spacing();
-
-        if (!Forced)
+        finally
         {
-            ImGui.PushStyleColor(ImGuiCol.Button, UIConstants.WithAlpha(UIConstants.TextSecondary, 0.1f));
-            ImGui.PushStyleColor(ImGuiCol.ButtonHovered, UIConstants.WithAlpha(UIConstants.TextSecondary, 0.2f));
-            ImGui.PushStyleColor(ImGuiCol.Text, UIConstants.WithAlpha(UIConstants.TextSecondary, 0.5f));
-            if (ImGui.Button(Lang.SetupSkip, new Vector2(50, 26)))
-                IsOpen = false;
-            ImGui.PopStyleColor(3);
-            ImGui.SameLine();
+            ImGui.PopTextWrapPos();
         }
-
-        if (step > 0)
-        {
-            if (ImGui.Button(Lang.SetupBack, new Vector2(80, 26)))
-                step--;
-            ImGui.SameLine();
-        }
-
-        var rightX = ImGui.GetContentRegionAvail().X - 100;
-        ImGui.Dummy(new Vector2(rightX, 0));
-        ImGui.SameLine();
-
-        var waiting = waitRemaining > 0;
-        var nextLabel = waiting ? $"{Lang.SetupNext} ({(int)Math.Ceiling(waitRemaining)})" : Lang.SetupNext;
-        var doneLabel = waiting ? $"{Lang.SetupDone} ({(int)Math.Ceiling(waitRemaining)})" : Lang.SetupDone;
-
-        if (waiting) ImGui.BeginDisabled();
-
-        if (step < 3)
-        {
-            ImGui.PushStyleColor(ImGuiCol.Button, UIConstants.WithAlpha(UIConstants.Glow, 0.2f));
-            ImGui.PushStyleColor(ImGuiCol.ButtonHovered, UIConstants.WithAlpha(UIConstants.Glow, 0.4f));
-            ImGui.PushStyleColor(ImGuiCol.Text, UIConstants.Glow);
-            if (ImGui.Button(nextLabel, new Vector2(waiting ? 130 : 100, 26)))
-                step++;
-            ImGui.PopStyleColor(3);
-        }
-        else
-        {
-            ImGui.PushStyleColor(ImGuiCol.Button, UIConstants.WithAlpha(UIConstants.Primary, 0.3f));
-            ImGui.PushStyleColor(ImGuiCol.ButtonHovered, UIConstants.WithAlpha(UIConstants.Primary, 0.5f));
-            ImGui.PushStyleColor(ImGuiCol.Text, UIConstants.Primary);
-            if (ImGui.Button(doneLabel, new Vector2(waiting ? 130 : 100, 26)))
-                Finish();
-            ImGui.PopStyleColor(3);
-        }
-
-        if (waiting) ImGui.EndDisabled();
-
-        ImGui.PopTextWrapPos();
-
-        if (hackerBooting) ImGui.EndDisabled();
 
         HackerModeOverlay.Draw(ref hackerModeStart, ref hackerTitleLoopStart, WindowName);
     }
@@ -221,7 +256,7 @@ public class SetupWindow : Window, IDisposable
         ImGui.Dummy(new Vector2(avail, r * 2 + 8));
     }
 
-    private static void IconRow(FontAwesomeIcon icon, Vector4 col, string title, string? desc = null)
+    internal static void IconRow(FontAwesomeIcon icon, Vector4 col, string title, string? desc = null)
     {
         var iconFont = UiBuilder.IconFont;
         ImGui.PushFont(iconFont);
@@ -350,7 +385,10 @@ public class SetupWindow : Window, IDisposable
             ImGui.PushStyleColor(ImGuiCol.Text, selected ? UIConstants.Glow : UIConstants.TextPrimary);
             ImGui.PushStyleColor(ImGuiCol.Border, selected ? UIConstants.Glow : UIConstants.WithAlpha(UIConstants.TextSecondary, 0.2f));
             ImGui.PushStyleVar(ImGuiStyleVar.FrameBorderSize, 1.5f);
-            if (ImGui.Button($"{flags[i]}   {languages[i]}", new Vector2(-1, 38)) && langIdx != i)
+            ImGui.PushStyleVar(ImGuiStyleVar.FrameRounding, UIConstants.ChipRounding);
+            var clicked = ImGui.Button($"{flags[i]}   {languages[i]}", new Vector2(-1, 38));
+            UIConstants.DrawHoverPulseOverlay($"##lang{i}", ImGui.IsItemHovered(), clicked && langIdx != i, UIConstants.Glow);
+            if (clicked && langIdx != i)
             {
                 langIdx = i;
                 Lang.Set(flags[i]);
@@ -358,7 +396,7 @@ public class SetupWindow : Window, IDisposable
                 plugin.Configuration.Language = flags[i];
                 plugin.Configuration.Save();
             }
-            ImGui.PopStyleVar();
+            ImGui.PopStyleVar(2);
             ImGui.PopStyleColor(4);
             ImGui.Spacing();
         }
@@ -403,9 +441,9 @@ public class SetupWindow : Window, IDisposable
 
         SectionHeader(FontAwesomeIcon.Bell, new Vector4(1f, 0.5f, 0.2f, 1f), Lang.Notifications);
 
-        ImGui.PushStyleColor(ImGuiCol.CheckMark, UIConstants.Glow);
-        ImGui.Checkbox(Lang.EnableNotifications, ref notifications);
-        ImGui.PopStyleColor();
+        UIConstants.Toggle("##setupNotifications", ref notifications);
+        ImGui.SameLine();
+        ImGui.TextColored(UIConstants.TextPrimary, Lang.EnableNotifications);
 
         if (!notifications) ImGui.BeginDisabled();
         ImGui.Indent();
@@ -413,21 +451,15 @@ public class SetupWindow : Window, IDisposable
         ImGui.Spacing();
         ImGui.TextColored(UIConstants.TextSecondary, Lang.NotificationPosition);
         ImGui.SameLine();
-        ImGui.PushStyleColor(ImGuiCol.FrameBg, UIConstants.CardBackground);
-        ImGui.PushStyleColor(ImGuiCol.Border, UIConstants.GlowDim);
-        ImGui.PushStyleVar(ImGuiStyleVar.FrameBorderSize, 1f);
-        ImGui.SetNextItemWidth(150);
-        if (ImGui.BeginCombo("##setupToastPos", CornerLabel(toastPosition)))
+        var posLabel = CornerLabel(toastPosition);
+        UIConstants.StyledCombo("##setupToastPos", posLabel, 150, () =>
         {
             foreach (var corner in new[] { ToastCorner.TopRight, ToastCorner.TopLeft, ToastCorner.BottomRight, ToastCorner.BottomLeft })
             {
                 if (ImGui.Selectable(CornerLabel(corner), toastPosition == corner))
                     toastPosition = corner;
             }
-            ImGui.EndCombo();
-        }
-        ImGui.PopStyleVar();
-        ImGui.PopStyleColor(2);
+        });
 
         ImGui.Spacing();
         ImGui.TextColored(UIConstants.TextSecondary, Lang.MaxVisibleToasts);
@@ -443,28 +475,26 @@ public class SetupWindow : Window, IDisposable
         ImGui.SliderFloat("##setupToastDuration", ref toastDurationSeconds, 1.5f, 9.0f, "%.1fs");
 
         ImGui.Spacing();
-        ImGui.PushStyleColor(ImGuiCol.CheckMark, UIConstants.Glow);
-        ImGui.Checkbox(Lang.SuppressInCombat, ref suppressInCombat);
-        ImGui.PopStyleColor();
+        UIConstants.Toggle("##setupSuppressCombat", ref suppressInCombat);
+        ImGui.SameLine();
+        ImGui.TextColored(UIConstants.TextPrimary, Lang.SuppressInCombat);
 
-        ImGui.SameLine(0, 24);
-        ImGui.PushStyleColor(ImGuiCol.CheckMark, UIConstants.Glow);
-        ImGui.Checkbox(Lang.EventReminders, ref eventReminders);
-        ImGui.PopStyleColor();
+        UIConstants.Toggle("##setupEventReminders", ref eventReminders);
+        ImGui.SameLine();
+        ImGui.TextColored(UIConstants.TextPrimary, Lang.EventReminders);
 
         if (eventReminders)
         {
-            ImGui.Indent();
-            ImGui.PushStyleColor(ImGuiCol.CheckMark, UIConstants.Glow);
-            ImGui.Checkbox(Lang.EventRemindersFavOnly, ref eventRemindersFavOnly);
-            ImGui.PopStyleColor();
+            UIConstants.Toggle("##setupEventRemindersFavOnly", ref eventRemindersFavOnly);
+            ImGui.SameLine();
+            ImGui.TextColored(UIConstants.TextPrimary, Lang.EventRemindersFavOnly);
 
+            ImGui.SameLine();
             ImGui.TextColored(UIConstants.TextSecondary, Lang.EventReminderMinutesLabel);
             ImGui.SameLine();
             ImGui.SetNextItemWidth(80);
             ImGui.DragInt("##setupEventReminderMin", ref eventReminderMinutes, 1, 5, 60);
             eventReminderMinutes = Math.Clamp(eventReminderMinutes, 5, 60);
-            ImGui.Unindent();
         }
 
         ImGui.Unindent();
@@ -477,41 +507,34 @@ public class SetupWindow : Window, IDisposable
 
         SectionHeader(FontAwesomeIcon.SlidersH, UIConstants.Glow, Lang.MiscSettings);
 
-        ImGui.PushStyleColor(ImGuiCol.CheckMark, UIConstants.Glow);
-        ImGui.Checkbox(Lang.SetupEnable3D, ref markers3d);
-        ImGui.PopStyleColor();
+        UIConstants.Toggle("##setupMarkers3d", ref markers3d);
+        ImGui.SameLine();
+        ImGui.TextColored(UIConstants.TextPrimary, Lang.SetupEnable3D);
         ImGui.TextColored(UIConstants.WithAlpha(UIConstants.TextSecondary, 0.5f), Lang.SetupEnable3DDesc);
 
         ImGui.Spacing();
 
-        ImGui.PushStyleColor(ImGuiCol.CheckMark, UIConstants.Glow);
-        ImGui.Checkbox(Lang.BoostOpenVenues, ref boostOpenVenues);
-        ImGui.PopStyleColor();
+        UIConstants.Toggle("##setupBoostOpen", ref boostOpenVenues);
         if (ImGui.IsItemHovered()) ImGui.SetTooltip(Lang.BoostOpenVenuesTip);
+        ImGui.SameLine();
+        ImGui.TextColored(UIConstants.TextPrimary, Lang.BoostOpenVenues);
 
         ImGui.SameLine(0, 24);
-        ImGui.PushStyleColor(ImGuiCol.CheckMark, UIConstants.Glow);
-        ImGui.Checkbox(Lang.AutoPullCfg, ref autoPullOnStartup);
-        ImGui.PopStyleColor();
+        UIConstants.Toggle("##setupAutoPull", ref autoPullOnStartup);
+        ImGui.SameLine();
+        ImGui.TextColored(UIConstants.TextPrimary, Lang.AutoPullCfg);
 
         ImGui.Spacing();
         ImGui.TextColored(UIConstants.TextSecondary, Lang.DefaultTabLabel);
         ImGui.SameLine();
-        ImGui.PushStyleColor(ImGuiCol.FrameBg, UIConstants.CardBackground);
-        ImGui.PushStyleColor(ImGuiCol.Border, UIConstants.GlowDim);
-        ImGui.PushStyleVar(ImGuiStyleVar.FrameBorderSize, 1f);
-        ImGui.SetNextItemWidth(140);
-        if (ImGui.BeginCombo("##setupDefaultTab", DefaultTabLabel(defaultTab)))
+        UIConstants.StyledCombo("##setupDefaultTab", DefaultTabLabel(defaultTab), 140, () =>
         {
             foreach (var tab in new[] { "remember", "map", "dir", "evt" })
             {
                 if (ImGui.Selectable(DefaultTabLabel(tab), defaultTab == tab))
                     defaultTab = tab;
             }
-            ImGui.EndCombo();
-        }
-        ImGui.PopStyleVar();
-        ImGui.PopStyleColor(2);
+        });
 
         ImGui.Spacing();
         ImGui.Spacing();
@@ -563,6 +586,7 @@ public class SetupWindow : Window, IDisposable
         plugin.Configuration.EventRemindersFavoritesOnly = eventRemindersFavOnly;
         plugin.Configuration.EventReminderMinutes = eventReminderMinutes;
         plugin.Configuration.DefaultTab = defaultTab;
+        plugin.Configuration.Markers3DEnabled = markers3d;
         plugin.Configuration.Save();
 
         Lang.Set(lang);
