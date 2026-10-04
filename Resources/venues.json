@@ -1023,97 +1023,14 @@
           "yMin": -3.5,
           "yMax": 6.5,
           "mapId": 0,
-          "services": [
-            {
-              "type": "dj_booth",
-              "label": "Dj music",
-              "icon": "",
-              "x": 0.05,
-              "y": -14.09,
-              "z": 6.64,
-              "description": ""
-            },
-            {
-              "type": "stage",
-              "label": "Canoodling Corner",
-              "icon": "",
-              "x": -10.68,
-              "y": 0.25,
-              "z": 0.0,
-              "description": ""
-            },
-            {
-              "type": "stage",
-              "label": "Cigar Lounge",
-              "icon": "",
-              "x": 7.33,
-              "y": -2.56,
-              "z": 0.0,
-              "description": ""
-            },
-            {
-              "type": "bar",
-              "label": "2nd Bar",
-              "icon": "",
-              "x": 16.84,
-              "y": -8.45,
-              "z": 0.0,
-              "description": ""
-            },
-            {
-              "type": "entrance",
-              "label": "Shiver's Exit",
-              "icon": "",
-              "x": -0.03,
-              "y": 11.15,
-              "z": 0.02,
-              "description": ""
-            }
-          ]
+          "services": []
         },
         {
           "floor": "second",
           "yMin": 6.5,
           "yMax": 14,
           "mapId": 0,
-          "services": [
-            {
-              "type": "bath",
-              "label": "Baths",
-              "icon": "",
-              "x": 14.33,
-              "y": -0.01,
-              "z": 7.96,
-              "description": ""
-            },
-            {
-              "type": "dj_booth",
-              "label": "Dj music",
-              "icon": "",
-              "x": 0.05,
-              "y": -14.09,
-              "z": 6.64,
-              "description": ""
-            },
-            {
-              "type": "bar",
-              "label": "Main Bar",
-              "icon": "",
-              "x": 0.15,
-              "y": 11.85,
-              "z": 7.91,
-              "description": ""
-            },
-            {
-              "type": "gambling",
-              "label": "Blackjack",
-              "icon": "",
-              "x": -15.47,
-              "y": -0.01,
-              "z": 7.01,
-              "description": ""
-            }
-          ]
+          "services": []
         }
       ],
       "ownerIdHashes": [
