@@ -13,12 +13,13 @@
       "teamId": 708,
       "availableFloors": [
         "ground",
-        "cellar"
+        "cellar",
+        "garden"
       ],
       "colors": {
         "primary": "#ff006e",
-        "accent": "#00f0ff",
-        "secondary": "#9d4edd"
+        "accent": "#9d4edd",
+        "secondary": "#00f0ff"
       },
       "links": {
         "discord": "https://discord.gg/neonnightsxiv",
@@ -93,6 +94,38 @@
               "x": 3.23,
               "y": -8.62,
               "z": -3.59,
+              "description": ""
+            }
+          ]
+        },
+        {
+          "floor": "garden",
+          "services": [
+            {
+              "type": "bar",
+              "label": "Neon Bar [Garden]",
+              "icon": "",
+              "x": -615.95,
+              "y": -834.88,
+              "z": 12.00,
+              "description": ""
+            },
+            {
+              "type": "dj_booth",
+              "label": "DJ Stage [Garden]",
+              "icon": "",
+              "x": -617.17,
+              "y": -843.13,
+              "z": 14.72,
+              "description": ""
+            },
+            {
+              "type": "gambling",
+              "label": "Neon Gambler [Garden]",
+              "icon": "",
+              "x": -638.23,
+              "y": -821.74,
+              "z": 12.00,
               "description": ""
             }
           ]
@@ -634,6 +667,7 @@
     {
       "venueId": "thehelix",
       "name": "The Helix",
+      "closed": true,
       "address": "Light - Zodiark - Lavender Beds - Ward 2 - Plot 1",
       "datacenter": "Light",
       "server": "Zodiark",
@@ -1221,6 +1255,7 @@
     {
       "venueId": "minusone",
       "name": "Minus One",
+      "closed": true,
       "address": "Light - Raiden - The Goblet - Ward 18 - Plot 30",
       "datacenter": "Light",
       "server": "Raiden",
@@ -1395,6 +1430,73 @@
         "48067ba860c1fb99690af173b367ce85a6b48b61b693e786f95aef77dfcf9a5f"
       ],
       "description": "Welcome to our most lovely and innocent BDSM-Dungeon that will make sure you'll leave with a wide grin. The Cheshire-Cat is there to catnap you into the wonderlands of safe BDSM-experiences."
+    },
+    {
+      "venueId": "neoeden",
+      "name": "Neo Eden",
+      "address": "Light - Alpha - The Goblet - Ward 17 - Plot 13",
+      "datacenter": "Light",
+      "server": "Alpha",
+      "houseSize": "L",
+      "nsfw": false,
+      "ward": 17,
+      "plot": 13,
+      "teamId": 1399,
+      "availableFloors": [
+        "ground"
+      ],
+      "colors": {
+        "primary": "#ff006e",
+        "accent": "#00f0ff",
+        "secondary": "#9d4edd"
+      },
+      "links": {
+        "discord": "https://discord.gg/neoeden",
+        "partake": "https://www.partake.gg/teams/1399",
+        "ffxivvenues": "https://ffxivvenues.com/venue/8hSNKs1MhNFX",
+        "website": ""
+      },
+      "floors": [
+        {
+          "floor": "ground",
+          "yMin": -3.5,
+          "yMax": 6.5,
+          "mapId": 0,
+          "services": [
+            {
+              "type": "bar",
+              "label": "Neo Bar",
+              "icon": "",
+              "x": 5.8,
+              "y": -2.2,
+              "z": 1.0,
+              "description": ""
+            },
+            {
+              "type": "dj_booth",
+              "label": "DJ",
+              "icon": "",
+              "x": -0.1,
+              "y": -4.8,
+              "z": 4.5,
+              "description": ""
+            },
+            {
+              "type": "gambling",
+              "label": "Gamba",
+              "icon": "",
+              "x": -15.4,
+              "y": 7.7,
+              "z": 1.1,
+              "description": ""
+            }
+          ]
+        }
+      ],
+      "ownerIdHashes": [
+        "6ef87dab3246d24cb70efae5dd999a9b295ec098c93919310c343fdb77c7589c"
+      ],
+      "description": "We are not just a venue but a community, a safe place to come and relax"
     }
   ]
 }
