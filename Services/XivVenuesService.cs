@@ -1,7 +1,9 @@
 using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.IO;
 using System.Net.Http;
+using System.Threading;
 using System.Threading.Tasks;
 using Dalamud.Plugin.Services;
 using Newtonsoft.Json;
@@ -12,18 +14,19 @@ namespace VenueMapper.Services;
 
 public class XivVenuesService : IDisposable
 {
-    private const string ListUrl = "http://api.ffxivvenues.com/v1.0/venue";
+    private const string ListUrl = "https://api.ffxivvenues.com/v1.0/venue";
     private const int CacheTtlMinutes = 30;
 
     private readonly HttpClient http;
     private readonly IPluginLog log;
     private readonly string cacheFilePath;
+    private readonly CancellationTokenSource cts = new();
 
     private volatile Dictionary<string, ScheduleInfo?> scheduleById = new();
     private volatile Dictionary<string, string?> bannerById = new();
 
     private DateTime lastFetch = DateTime.MinValue;
-    private bool fetching;
+    private int fetching;
 
     public XivVenuesService(IPluginLog log, string configDirectory)
     {
@@ -52,9 +55,9 @@ public class XivVenuesService : IDisposable
 
     public void RequestSchedule(string venueId = "")
     {
-        if (fetching) return;
-        if ((DateTime.Now - lastFetch).TotalMinutes < CacheTtlMinutes) return;
-        fetching = true;
+        if (cts.IsCancellationRequested) return;
+        if ((DateTime.UtcNow - lastFetch).TotalMinutes < CacheTtlMinutes) return;
+        if (Interlocked.CompareExchange(ref fetching, 1, 0) != 0) return;
         _ = FetchAllAsync();
     }
 
@@ -70,7 +73,7 @@ public class XivVenuesService : IDisposable
 
             scheduleById = disk.Schedules ?? new();
             bannerById = disk.Banners ?? new();
-            lastFetch = disk.FetchedAt;
+            lastFetch = disk.FetchedAt.Kind == DateTimeKind.Local ? disk.FetchedAt.ToUniversalTime() : disk.FetchedAt;
             log.Information($"[XIVVenues] Loaded {scheduleById.Count} schedules / {bannerById.Count} banners from disk cache (fetched {lastFetch:u})");
         }
         catch (Exception ex)
@@ -84,7 +87,7 @@ public class XivVenuesService : IDisposable
         try
         {
             var disk = new DiskCache { FetchedAt = lastFetch, Schedules = scheduleById, Banners = bannerById };
-            File.WriteAllText(cacheFilePath, JsonConvert.SerializeObject(disk));
+            SafeFile.WriteAllText(cacheFilePath, JsonConvert.SerializeObject(disk));
         }
         catch (Exception ex)
         {
@@ -97,17 +100,18 @@ public class XivVenuesService : IDisposable
         try
         {
             log.Information("[XIVVenues] Fetching full venue list");
-            var response = await http.GetAsync(ListUrl);
+            using var response = await http.GetAsync(ListUrl, cts.Token);
             if (!response.IsSuccessStatusCode)
             {
                 log.Warning($"[XIVVenues] list fetch: HTTP {response.StatusCode}");
 
-                lastFetch = DateTime.Now;
+                lastFetch = DateTime.UtcNow;
                 return;
             }
 
-            var json = await response.Content.ReadAsStringAsync();
-            var arr = JArray.Parse(json);
+            var json = await response.Content.ReadAsStringAsync(cts.Token);
+            using var reader = new JsonTextReader(new StringReader(json)) { DateParseHandling = DateParseHandling.None };
+            var arr = JArray.Load(reader);
 
             var newSchedules = new Dictionary<string, ScheduleInfo?>();
             var newBanners = new Dictionary<string, string?>();
@@ -125,39 +129,48 @@ public class XivVenuesService : IDisposable
 
                 if (resolution == null || resolution.Type != JTokenType.Object) continue;
 
-                var isNow = resolution["isNow"]?.Value<bool>() ?? false;
-                DateTime? start = null;
-                DateTime? end = null;
-                if (DateTimeOffset.TryParse(resolution["start"]?.ToString(), out var s)) start = s.UtcDateTime;
-                if (DateTimeOffset.TryParse(resolution["end"]?.ToString(), out var e)) end = e.UtcDateTime;
-
                 newSchedules[id] = new ScheduleInfo
                 {
-                    IsOpenNow = isNow,
-                    NextStart = start,
-                    NextEnd = end,
+                    IsNowAtFetch = resolution["isNow"]?.Value<bool>() ?? false,
+                    NextStart = ParseUtc(resolution["start"]),
+                    NextEnd = ParseUtc(resolution["end"]),
                 };
             }
 
             scheduleById = newSchedules;
             bannerById = newBanners;
-            lastFetch = DateTime.Now;
+            lastFetch = DateTime.UtcNow;
             SaveToDisk();
             log.Information($"[XIVVenues] Loaded {newSchedules.Count} schedules / {newBanners.Count} banners from {arr.Count} venues");
+        }
+        catch (OperationCanceledException) when (cts.IsCancellationRequested)
+        {
         }
         catch (Exception ex)
         {
             log.Debug($"[XIVVenues] List fetch failed: {ex.Message}");
 
-            lastFetch = DateTime.Now;
+            lastFetch = DateTime.UtcNow;
         }
         finally
         {
-            fetching = false;
+            Interlocked.Exchange(ref fetching, 0);
         }
     }
 
-    public void Dispose() => http.Dispose();
+    private static DateTime? ParseUtc(JToken? token)
+    {
+        var raw = token?.Type == JTokenType.String ? token.Value<string>() : null;
+        return DateTimeOffset.TryParse(raw, CultureInfo.InvariantCulture, DateTimeStyles.AssumeUniversal, out var dto)
+            ? dto.UtcDateTime
+            : null;
+    }
+
+    public void Dispose()
+    {
+        cts.Cancel();
+        http.Dispose();
+    }
 
     private class DiskCache
     {
@@ -168,9 +181,24 @@ public class XivVenuesService : IDisposable
 
     public class ScheduleInfo
     {
-        public bool IsOpenNow { get; set; }
+        [JsonProperty("IsOpenNow")]
+        public bool IsNowAtFetch { get; set; }
         public DateTime? NextStart { get; set; }
         public DateTime? NextEnd { get; set; }
+
+        [JsonIgnore]
+        public bool IsOpenNow
+        {
+            get
+            {
+                if (NextStart is { } start && NextEnd is { } end)
+                {
+                    var now = DateTime.UtcNow;
+                    return start <= now && now < end;
+                }
+                return IsNowAtFetch;
+            }
+        }
 
         public string GetStatusText()
         {

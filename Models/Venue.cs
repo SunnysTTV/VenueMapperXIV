@@ -55,6 +55,27 @@ public class Venue
 
     [JsonProperty("description")]
     public string Description { get; set; } = string.Empty;
+
+    [JsonProperty("banner")]
+    public string Banner { get; set; } = string.Empty;
+
+    [JsonProperty("closed")]
+    public bool Closed { get; set; }
+
+    [JsonProperty("rules")]
+    public List<VenueRule> Rules { get; set; } = new();
+
+    [JsonProperty("rulesDe")]
+    public List<VenueRule> RulesDe { get; set; } = new();
+}
+
+public class VenueRule
+{
+    [JsonProperty("icon")]
+    public string Icon { get; set; } = string.Empty;
+
+    [JsonProperty("text")]
+    public string Text { get; set; } = string.Empty;
 }
 
 public class VenueSocialLinks

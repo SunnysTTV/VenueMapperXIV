@@ -17,13 +17,11 @@ public static class EasterEggIds
 {
     public const string RgbOverload    = "rgb_overload";
     public const string HackerMode     = "hacker_mode";
-    public const string SunnyDetection = "sunny_detection";
-    public const string WindowWobble   = "window_wobble";
     public const string RandomTitle    = "random_title";
 
     public static readonly string[] All =
     [
-        RgbOverload, HackerMode, SunnyDetection, WindowWobble, RandomTitle,
+        RgbOverload, HackerMode, RandomTitle,
     ];
 }
 
@@ -42,7 +40,9 @@ public class EasterEggManager
         this.config = config;
         this.log = log;
 
-        EnsureDefaultDiscovered(EasterEggIds.WindowWobble);
+        var stale = config.EasterEggs.Keys.Where(k => !EasterEggIds.All.Contains(k)).ToList();
+        foreach (var key in stale)
+            config.EasterEggs.Remove(key);
     }
 
     public bool IsRgbOverloadActive => IsEnabled(EasterEggIds.RgbOverload);
@@ -87,23 +87,6 @@ public class EasterEggManager
             OnAllUnlocked?.Invoke();
 
         return true;
-    }
-
-    private void EnsureDefaultDiscovered(string id)
-    {
-        var state = GetOrCreate(id);
-        if (state.Discovered) return;
-        state.Discovered = true;
-        state.Enabled = true;
-        config.Save();
-    }
-
-    public void RegisterFirstSeen(string id)
-    {
-        var state = GetOrCreate(id);
-        if (!state.Discovered || state.DiscoveredAt.HasValue) return;
-        state.DiscoveredAt = DateTime.Now;
-        config.Save();
     }
 
     public void SetEnabled(string id, bool enabled)

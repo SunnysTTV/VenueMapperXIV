@@ -1,4 +1,4 @@
-﻿using System.Globalization;
+using System.Globalization;
 using System.Resources;
 
 namespace VenueMapper.UI;
@@ -9,6 +9,8 @@ public static class Lang
         new("VenueMapper.Resources.Localization.UIStrings", typeof(Lang).Assembly);
 
     private static CultureInfo culture = CultureInfo.InvariantCulture;
+
+    public static CultureInfo Culture => culture;
 
     public static void Set(string l)
     {
@@ -42,7 +44,6 @@ public static class Lang
 
     public static string Active        => G("Active");
     public static string NotInstalled  => G("NotInstalled");
-    public static string Here          => G("Here");
     public static string Here2         => G("Here2");
     public static string NoVenues      => G("NoVenues");
     public static string NoEvents      => G("NoEvents");
@@ -53,9 +54,6 @@ public static class Lang
     public static string LangEnglish   => G("LangEnglish");
     public static string LangGerman    => G("LangGerman");
     public static string About         => G("About");
-    public static string GithubConfig  => G("GithubConfig");
-    public static string AutoPull      => G("AutoPull");
-    public static string LastUpdated   => G("LastUpdated");
     public static string PullNow       => G("PullNow");
     public static string ResetCache    => G("ResetCache");
     public static string Notifications      => G("Notifications");
@@ -70,23 +68,157 @@ public static class Lang
     public static string ToastPositionChanged      => G("ToastPositionChanged");
     public static string ToastMustBeInVenue        => G("ToastMustBeInVenue");
     public static string ToastQuickPopupDisabled   => G("ToastQuickPopupDisabled");
-    public static string WhatsNewTitle         => G("WhatsNewTitle");
-    public static string WhatsNewQuickPopup    => G("WhatsNewQuickPopup");
-    public static string WhatsNewHistory       => G("WhatsNewHistory");
-    public static string WhatsNewWarningKind   => G("WhatsNewWarningKind");
-    public static string WhatsNewWarningKindDesc => G("WhatsNewWarningKindDesc");
-    public static string WhatsNewQuickCommand  => G("WhatsNewQuickCommand");
-    public static string WhatsNewNewSettings   => G("WhatsNewNewSettings");
-    public static string WhatsNewAllFeatures   => G("WhatsNewAllFeatures");
-    public static string WhatsNewFeatures      => G("WhatsNewFeatures");
-    public static string WhatsNewVenueDetails      => G("WhatsNewVenueDetails");
-    public static string WhatsNewVenueDetailsDesc  => G("WhatsNewVenueDetailsDesc");
-    public static string WhatsNewSmartNotify       => G("WhatsNewSmartNotify");
-    public static string WhatsNewSmartNotifyDesc   => G("WhatsNewSmartNotifyDesc");
-    public static string WhatsNewCrownFilter       => G("WhatsNewCrownFilter");
-    public static string WhatsNewCrownFilterDesc   => G("WhatsNewCrownFilterDesc");
     public static string WhatsNewGotIt         => G("WhatsNewGotIt");
-    public static string WhatsNewSeeMore       => G("WhatsNewSeeMore");
+
+    public static string BannerUrl             => G("BannerUrl");
+    public static string BannerHint            => G("BannerHint");
+    public static string ToastFavoriteOpened(string name) => string.Format(G("ToastFavoriteOpened"), name);
+    public static string FavoriteOpenNotify    => G("FavoriteOpenNotify");
+    public static string FavoriteOpenNotifyTip => G("FavoriteOpenNotifyTip");
+    public static string VenueSigns            => G("VenueSigns");
+    public static string VenueSignsTip         => G("VenueSignsTip");
+    public static string UpdateNotes           => G("UpdateNotes");
+    public static string UpdateTagline         => G("UpdateTagline");
+    public static string ChangelogTab          => G("ChangelogTab");
+    public static string CreditsTab            => G("CreditsTab");
+    public static string LatestBadge           => G("LatestBadge");
+    public static string CreditsDeveloper      => G("CreditsDeveloper");
+    public static string CreditsLibraries      => G("CreditsLibraries");
+    public static string CreditsData           => G("CreditsData");
+    public static string CreditsCommunity      => G("CreditsCommunity");
+    public static string CreditsCommunityText  => G("CreditsCommunityText");
+    public static string CreditsDalamud        => G("CreditsDalamud");
+    public static string CreditsPictomancy     => G("CreditsPictomancy");
+    public static string CreditsLifestream     => G("CreditsLifestream");
+    public static string CreditsClientStructs  => G("CreditsClientStructs");
+    public static string CreditsLumina         => G("CreditsLumina");
+    public static string CreditsPartake        => G("CreditsPartake");
+    public static string CreditsXivVenues      => G("CreditsXivVenues");
+    public static string CreditsArtwork        => G("CreditsArtwork");
+    public static string CreditsLogo           => G("CreditsLogo");
+    public static string Close                 => G("Close");
+    public static string DiscordServer         => G("DiscordServer");
+    public static string SupportKofi           => G("SupportKofi");
+    public static string MoreChanges           => G("MoreChanges");
+    public static string MarkersAndMap         => G("MarkersAndMap");
+    public static string Share                 => G("Share");
+    public static string ShareChat             => G("ShareChat");
+    public static string ShareDiscord          => G("ShareDiscord");
+    public static string PlacardNames          => G("PlacardNames");
+    public static string PlacardNamesTip       => G("PlacardNamesTip");
+    public static string PartyFinderAds        => G("PartyFinderAds");
+    public static string PartyFinderAdsTip     => G("PartyFinderAdsTip");
+    public static string PartyFinderOpenTip    => G("PartyFinderOpenTip");
+    public static string PartyFinderGone       => G("PartyFinderGone");
+    public static string PartyFinderSeen(int n) => string.Format(G("PartyFinderSeen"), n);
+    public static string ShareWebLink          => G("ShareWebLink");
+    public static string OwnerGuide            => G("OwnerGuide");
+    public static string OwnerGuideTip         => G("OwnerGuideTip");
+    public static string ShareFlag             => G("ShareFlag");
+    public static string ToastShareCopied      => G("ToastShareCopied");
+    public static string ToastFlagSet          => G("ToastFlagSet");
+    public static string Website               => G("Website");
+    public static string FestivalFlagSet       => G("FestivalFlagSet");
+    public static string GameMapBoth           => G("GameMapBoth");
+    public static string NotifyBanners         => G("NotifyBanners");
+    public static string NotifyBannersDesc     => G("NotifyBannersDesc");
+    public static string SetGeneral            => G("SetGeneral");
+    public static string SetGeneralSub         => G("SetGeneralSub");
+    public static string SetDirectorySub       => G("SetDirectorySub");
+    public static string SetMarkersSub         => G("SetMarkersSub");
+    public static string SetNotificationsSub   => G("SetNotificationsSub");
+    public static string SetAccessibilitySub   => G("SetAccessibilitySub");
+    public static string SetData               => G("SetData");
+    public static string SetDataSub            => G("SetDataSub");
+    public static string Reset                 => G("Reset");
+    public static string HiddenVenues          => G("HiddenVenues");
+    public static string NoHiddenVenues        => G("NoHiddenVenues");
+    public static string Markers3DDesc         => G("Markers3DDesc");
+    public static string GameMapDesc           => G("GameMapDesc");
+    public static string NotificationsDesc     => G("NotificationsDesc");
+    public static string Test                  => G("Test");
+    public static string TestNotificationDesc  => G("TestNotificationDesc");
+    public static string MarkerColor           => G("MarkerColor");
+    public static string AutoPullDesc          => G("AutoPullDesc");
+    public static string PullNowLabel          => G("PullNowLabel");
+    public static string PullNowDesc           => G("PullNowDesc");
+    public static string ResetCacheLabel       => G("ResetCacheLabel");
+    public static string ResetCacheDesc        => G("ResetCacheDesc");
+    public static string Minimize              => G("Minimize");
+    public static string Restore               => G("Restore");
+    public static string DirNoMatch            => G("DirNoMatch");
+    public static string DirGroupOpen          => G("DirGroupOpen");
+    public static string DirGroupSoon          => G("DirGroupSoon");
+    public static string DirGroupOther         => G("DirGroupOther");
+    public static string DirGroupAll           => G("DirGroupAll");
+    public static string DirShowMore(int count) => string.Format(G("DirShowMore"), count);
+    public static string StatOpenNow           => G("StatOpenNow");
+    public static string StatOpenToday       => G("StatOpenToday");
+    public static string StatFestivalsLive     => G("StatFestivalsLive");
+    public static string ChipOpenNow           => G("ChipOpenNow");
+    public static string ChipFavorites         => G("ChipFavorites");
+    public static string ChipOpenToday       => G("ChipOpenToday");
+    public static string ChipMyDatacenter      => G("ChipMyDatacenter");
+    public static string MarkerNames           => G("MarkerNames");
+    public static string MarkerNamesAlways     => G("MarkerNamesAlways");
+    public static string MarkerNamesNear       => G("MarkerNamesNear");
+    public static string MarkerNamesOff        => G("MarkerNamesOff");
+    public static string MarkerThroughWalls    => G("MarkerThroughWalls");
+    public static string MarkerThroughWallsTip => G("MarkerThroughWallsTip");
+    public static string MarkerVenueColors     => G("MarkerVenueColors");
+    public static string MarkerVenueColorsTip  => G("MarkerVenueColorsTip");
+    public static string VenueSignsAll         => G("VenueSignsAll");
+    public static string VenueSignsOpen        => G("VenueSignsOpen");
+    public static string VenueSignsFavorites   => G("VenueSignsFavorites");
+    public static string VenueSignsOff         => G("VenueSignsOff");
+    public static string VenueSignRange        => G("VenueSignRange");
+    public static string SignOpenUntil(string time) => string.Format(G("SignOpenUntil"), time);
+    public static string SignOpensAt(string time) => string.Format(G("SignOpensAt"), time);
+    public static string GameMapNames          => G("GameMapNames");
+    public static string GameMapOff            => G("GameMapOff");
+    public static string GameMapNative         => G("GameMapNative");
+    public static string GameMapOverlay        => G("GameMapOverlay");
+    public static string GameMapTip            => G("GameMapTip");
+    public static string TagNew                => G("TagNew");
+    public static string TagBetter             => G("TagBetter");
+    public static string TagChanged            => G("TagChanged");
+    public static string TagFixed              => G("TagFixed");
+    public static string TagRemoved            => G("TagRemoved");
+    public static string HotfixBadge(string version) => string.Format(G("HotfixBadge"), version);
+    public static string HotfixHeader(string version, string date) => string.Format(G("HotfixHeader"), version, date);
+
+    public static string Festivals             => G("Festivals");
+    public static string FestivalsHeader       => G("FestivalsHeader");
+    public static string FestivalCount(int count) => string.Format(G("FestivalCount"), count);
+    public static string NoFestivals           => G("NoFestivals");
+    public static string SubmitFestival        => G("SubmitFestival");
+    public static string FestivalLive          => G("FestivalLive");
+    public static string FestivalUntil(string time) => string.Format(G("FestivalUntil"), time);
+    public static string FestivalBy(string name)    => string.Format(G("FestivalBy"), name);
+    public static string WardLabel             => G("WardLabel");
+    public static string GardenNoMap           => G("GardenNoMap");
+    public static string ToastWelcomeToFestival(string name) => string.Format(G("ToastWelcomeToFestival"), name);
+    public static string ToastFestivalStartsLater(string name, string time) => string.Format(G("ToastFestivalStartsLater"), name, time);
+    public static string ToastFestivalSoon(string name, int minutes) => string.Format(G("ToastFestivalSoon"), name, minutes);
+    public static string FestivalFormTitle     => G("FestivalFormTitle");
+    public static string FestivalFormDesc      => G("FestivalFormDesc");
+    public static string FestivalInfoTab       => G("FestivalInfoTab");
+    public static string FestivalStallsTab     => G("FestivalStallsTab");
+    public static string FestivalName          => G("FestivalName");
+    public static string FestivalOrganizer     => G("FestivalOrganizer");
+    public static string FestivalOrganizerHint => G("FestivalOrganizerHint");
+    public static string FestivalNsfw          => G("FestivalNsfw");
+    public static string FestivalSetCenter     => G("FestivalSetCenter");
+    public static string FestivalCenterInHouse => G("FestivalCenterInHouse");
+    public static string FestivalNoLocation    => G("FestivalNoLocation");
+    public static string FestivalRadius        => G("FestivalRadius");
+    public static string FestivalAetheryte     => G("FestivalAetheryte");
+    public static string FestivalDate          => G("FestivalDate");
+    public static string FestivalTimeInvalid   => G("FestivalTimeInvalid");
+    public static string FestivalAddStall      => G("FestivalAddStall");
+    public static string FestivalStallsHint    => G("FestivalStallsHint");
+    public static string FestivalStallOutside  => G("FestivalStallOutside");
+    public static string FestivalExportDesc    => G("FestivalExportDesc");
     public static string NotificationPosition => G("NotificationPosition");
     public static string PosTopRight        => G("PosTopRight");
     public static string PosTopLeft         => G("PosTopLeft");
@@ -116,7 +248,6 @@ public static class Lang
     public static string AutoOpenOwnVenueTip => G("AutoOpenOwnVenueTip");
     public static string ShowQuickPopupOnEnter    => G("ShowQuickPopupOnEnter");
     public static string ShowQuickPopupOnEnterTip => G("ShowQuickPopupOnEnterTip");
-    public static string QuickPopupTitle => G("QuickPopupTitle");
     public static string QuickSettings   => G("QuickSettings");
     public static string AccessibilitySettings => G("AccessibilitySettings");
     public static string MarkerSizeLabel => G("MarkerSizeLabel");
@@ -136,6 +267,11 @@ public static class Lang
     public static string ToastLifestreamMissing => G("ToastLifestreamMissing");
     public static string ToastTeleportingTo(string name) => string.Format(G("ToastTeleportingTo"), name);
     public static string ToastTeleportFailed    => G("ToastTeleportFailed");
+    public static string ToastTeleportCancelled => G("ToastTeleportCancelled");
+    public static string ToastHouseEnterFailed  => G("ToastHouseEnterFailed");
+    public static string ToastShowOnMapFailed   => G("ToastShowOnMapFailed");
+    public static string ShowOnMap              => G("ShowOnMap");
+    public static string TeleportCancelTip      => G("TeleportCancelTip");
     public static string ToastFavoriteAdded(string name)   => string.Format(G("ToastFavoriteAdded"), name);
     public static string ToastFavoriteRemoved(string name) => string.Format(G("ToastFavoriteRemoved"), name);
     public static string ToastAddressCopied     => G("ToastAddressCopied");
@@ -157,8 +293,6 @@ public static class Lang
     public static string PlayerPos     => G("PlayerPos");
     public static string CurrentFloor  => G("CurrentFloor");
 
-    public static string MarkersOn     => G("MarkersOn");
-    public static string MarkersOff    => G("MarkersOff");
     public static string Markers3D     => G("Markers3D");
     public static string HideMarkersInOwnVenue    => G("HideMarkersInOwnVenue");
     public static string HideMarkersInOwnVenueTip => G("HideMarkersInOwnVenueTip");
@@ -166,7 +300,6 @@ public static class Lang
 
     public static string MapUnavailable=> G("MapUnavailable");
     public static string MapNotInVenue => G("MapNotInVenue");
-    public static string ScrollZoom    => G("ScrollZoom");
     public static string TeleportVia   => G("TeleportVia");
     public static string ViewVenueDetails => G("ViewVenueDetails");
     public static string YouAreOwner    => G("YouAreOwner");
@@ -177,7 +310,6 @@ public static class Lang
     public static string NoScheduleInfo  => G("NoScheduleInfo");
 
     public static string Links         => G("Links");
-    public static string NoLinks       => G("NoLinks");
     public static string SubmitVenue   => G("SubmitVenue");
 
     public static string Retry         => G("Retry");
@@ -185,10 +317,8 @@ public static class Lang
     public static string Loading       => G("Loading");
 
     public static string AutoPullCfg   => G("AutoPullCfg");
-    public static string JoinSupport   => G("JoinSupport");
     public static string GotIdeas      => G("GotIdeas");
     public static string CurRelease    => G("CurRelease");
-    public static string OlderVer      => G("OlderVer");
     public static string WantVenue     => G("WantVenue");
     public static string PluginDesc    => G("PluginDesc");
 
@@ -221,7 +351,6 @@ public static class Lang
     public static string OptDiscordDesc=> G("OptDiscordDesc");
     public static string SendUpdate     => G("SendUpdate");
     public static string SendUpdateDesc => G("SendUpdateDesc");
-    public static string CopyJsonDm    => G("CopyJsonDm");
     public static string Preview       => G("Preview");
     public static string FillRequired  => G("FillRequired");
     public static string Floor         => G("Floor");
@@ -253,13 +382,14 @@ public static class Lang
     public static string ServiceNameHint => G("ServiceNameHint");
     public static string CopyJson      => G("CopyJson");
     public static string FormOpened    => G("FormOpened");
-    public static string CurrentTag    => G("CurrentTag");
-    public static string NoChangelog   => G("NoChangelog");
     public static string AllServers    => G("AllServers");
 
     public static string FloorGround        => G("FloorGround");
     public static string FloorSecond        => G("FloorSecond");
     public static string FloorCellar        => G("FloorCellar");
+    public static string FloorGarden        => G("FloorGarden");
+    public static string FloorWard          => G("FloorWard");
+    public static string SvcStall           => G("SvcStall");
 
     public static string SvcEntrance        => G("SvcEntrance");
     public static string SvcBar             => G("SvcBar");
@@ -327,12 +457,154 @@ public static class Lang
     public static string EggRgbHint    => G("EggRgbHint");
     public static string EggHackerName => G("EggHackerName");
     public static string EggHackerHint => G("EggHackerHint");
-    public static string EggSunnyName  => G("EggSunnyName");
-    public static string EggSunnyHint  => G("EggSunnyHint");
-    public static string EggWobbleName => G("EggWobbleName");
-    public static string EggWobbleHint => G("EggWobbleHint");
     public static string EggTitleName  => G("EggTitleName");
     public static string EggTitleHint  => G("EggTitleHint");
+
+    public static string FestivalWhereWhenTab => G("FestivalWhereWhenTab");
+    public static string FestivalSendTab      => G("FestivalSendTab");
+    public static string FestivalWhere        => G("FestivalWhere");
+    public static string FestivalWhen         => G("FestivalWhen");
+    public static string FestivalAddHouse     => G("FestivalAddHouse");
+    public static string FestivalAddHouseTip  => G("FestivalAddHouseTip");
+    public static string FestivalAddHouseNeedsPlot => G("FestivalAddHouseNeedsPlot");
+    public static string FestivalNoHouses     => G("FestivalNoHouses");
+    public static string FestivalHouseLabelHint => G("FestivalHouseLabelHint");
+    public static string FestivalHouseOtherWard => G("FestivalHouseOtherWard");
+    public static string FestivalHouseAlready(int plot) => string.Format(G("FestivalHouseAlready"), plot);
+    public static string FestivalHouseAdded(int plot) => string.Format(G("FestivalHouseAdded"), plot);
+    public static string FestivalDaysHint     => G("FestivalDaysHint");
+    public static string FestivalStartShort   => G("FestivalStartShort");
+    public static string FestivalEndShort     => G("FestivalEndShort");
+    public static string FestivalAddDay       => G("FestivalAddDay");
+    public static string FestivalPreviewTitle => G("FestivalPreviewTitle");
+    public static string FestivalPreviewDesc  => G("FestivalPreviewDesc");
+    public static string FestivalPreviewButton => G("FestivalPreviewButton");
+    public static string FestivalPreviewUpdate => G("FestivalPreviewUpdate");
+    public static string FestivalPreviewRemove => G("FestivalPreviewRemove");
+    public static string FestivalPreviewBadge => G("FestivalPreviewBadge");
+    public static string FestivalSendTitle    => G("FestivalSendTitle");
+    public static string ToastFestivalPreview => G("ToastFestivalPreview");
+    public static string ToastFestivalPreviewDetail => G("ToastFestivalPreviewDetail");
+    public static string ToastFestivalPreviewFailed => G("ToastFestivalPreviewFailed");
+    public static string ToastFestivalPreviewRemoved => G("ToastFestivalPreviewRemoved");
+
+    public static string PlotLabel(int plot) => string.Format(G("PlotLabel"), plot);
+    public static string FestivalDays(int count) => string.Format(G("FestivalDays"), count);
+    public static string FestivalDayOf(int day, int count) => string.Format(G("FestivalDayOf"), day, count);
+    public static string FestivalUntilDate(string date) => string.Format(G("FestivalUntilDate"), date);
+    public static string FestivalHouses(int count) => string.Format(G("FestivalHouses"), count);
+    public static string FestivalSchedule     => G("FestivalSchedule");
+    public static string FestivalHousesTitle  => G("FestivalHousesTitle");
+    public static string FestivalStallsTitle  => G("FestivalStallsTitle");
+
+    public static string MarkersBehindUi      => G("MarkersBehindUi");
+    public static string MarkersBehindUiTip   => G("MarkersBehindUiTip");
+    public static string VenueSignRangeTip    => G("VenueSignRangeTip");
+    public static string WholeWard            => G("WholeWard");
+    public static string GuideColorLabel      => G("GuideColorLabel");
+    public static string GuideColorTip        => G("GuideColorTip");
+    public static string GuideColorSingle     => G("GuideColorSingle");
+    public static string GuideColorVenue      => G("GuideColorVenue");
+    public static string GuideColorPick       => G("GuideColorPick");
+    public static string GuideAnimLabel       => G("GuideAnimLabel");
+    public static string GuideAnimArrow       => G("GuideAnimArrow");
+    public static string GuideAnimSparkles    => G("GuideAnimSparkles");
+    public static string GuideAnimPulse       => G("GuideAnimPulse");
+    public static string GuideAnimDots        => G("GuideAnimDots");
+
+    public static string GuideStarted(string target) => string.Format(G("GuideStarted"), target);
+    public static string GuideStartedDetail   => G("GuideStartedDetail");
+    public static string GuideStopped         => G("GuideStopped");
+    public static string GuideArrived(string target) => string.Format(G("GuideArrived"), target);
+    public static string GuideFollow(string target) => string.Format(G("GuideFollow"), WithoutLeadingTo(target));
+
+    private static readonly string[] LeadingTo = ["to ", "zu ", "zum ", "zur "];
+
+    private static string WithoutLeadingTo(string target)
+    {
+        var trimmed = target.Trim();
+        foreach (var prefix in LeadingTo)
+            if (trimmed.Length > prefix.Length && trimmed.StartsWith(prefix, System.StringComparison.OrdinalIgnoreCase))
+                return trimmed[prefix.Length..];
+        return trimmed;
+    }
+    public static string GuideLost            => G("GuideLost");
+    public static string GuideHeadOutside     => G("GuideHeadOutside");
+    public static string GuideGoInside        => G("GuideGoInside");
+    public static string GuideStairsDown(string floor) => string.Format(G("GuideStairsDown"), floor);
+    public static string GuideStairsUp(string floor) => string.Format(G("GuideStairsUp"), floor);
+    public static string GuideClickHint       => G("GuideClickHint");
+    public static string GuideClickStop       => G("GuideClickStop");
+    public static string GuideStop            => G("GuideStop");
+
+    public static string ChatLinks            => G("ChatLinks");
+    public static string ChatLinksTip         => G("ChatLinksTip");
+    public static string ChatLinkChannels     => G("ChatLinkChannels");
+    public static string ChatChannelsAll      => G("ChatChannelsAll");
+    public static string ChatChannelsNone     => G("ChatChannelsNone");
+    public static string ChatChannelsCount(int count) => string.Format(G("ChatChannelsCount"), count);
+    public static string ChannelSay           => G("ChannelSay");
+    public static string ChannelShout         => G("ChannelShout");
+    public static string ChannelTell          => G("ChannelTell");
+    public static string ChannelParty         => G("ChannelParty");
+    public static string ChannelFc            => G("ChannelFc");
+    public static string ChannelLs            => G("ChannelLs");
+    public static string ChannelCwls          => G("ChannelCwls");
+    public static string ChannelNovice        => G("ChannelNovice");
+
+    public static string Passport             => G("Passport");
+    public static string PassportCollect      => G("PassportCollect");
+    public static string PassportCollectTip   => G("PassportCollectTip");
+    public static string PassportProgress(int visited, int total) => string.Format(G("PassportProgress"), visited, total);
+    public static string PassportEmpty        => G("PassportEmpty");
+    public static string PassportNotLoggedIn  => G("PassportNotLoggedIn");
+    public static string PassportStampNew(string name) => string.Format(G("PassportStampNew"), name);
+    public static string PassportFirstVisit(string date) => string.Format(G("PassportFirstVisit"), date);
+    public static string PassportLastVisit(string date) => string.Format(G("PassportLastVisit"), date);
+    public static string PassportVisits(int count) => count == 1 ? G("PassportOneVisit") : string.Format(G("PassportVisits"), count);
+    public static string PassportNotVisited   => G("PassportNotVisited");
+    public static string PassportRemoved      => G("PassportRemoved");
+    public static string PassportClickDetails => G("PassportClickDetails");
+    public static string PassportClosed       => G("PassportClosed");
+    public static string HouseRulesTitle(string venue) => string.Format(G("HouseRulesTitle"), venue);
+    public static string HouseRulesSub        => G("HouseRulesSub");
+    public static string HouseRulesGotIt      => G("HouseRulesGotIt");
+    public static string HouseRulesMute       => G("HouseRulesMute");
+    public static string HouseRulesPill       => G("HouseRulesPill");
+    public static string HouseRulesShow       => G("HouseRulesShow");
+    public static string HouseRulesSetting    => G("HouseRulesSetting");
+    public static string HouseRulesSettingTip => G("HouseRulesSettingTip");
+    public static string HouseRulesEvery      => G("HouseRulesEvery");
+    public static string HouseRulesFirst      => G("HouseRulesFirst");
+    public static string HouseRulesOff        => G("HouseRulesOff");
+    public static string HouseRulesMutedTitle => G("HouseRulesMutedTitle");
+    public static string HouseRulesMutedDesc(int count) => string.Format(G("HouseRulesMutedDesc"), count);
+    public static string RulesTab             => G("RulesTab");
+    public static string RulesFormHint        => G("RulesFormHint");
+    public static string RulesAdd             => G("RulesAdd");
+    public static string RuleTextHint         => G("RuleTextHint");
+    public static string RulesGerman          => G("RulesGerman");
+    public static string RulesGermanHint      => G("RulesGermanHint");
+    public static string RuleIconTip          => G("RuleIconTip");
+    public static string PassportBadgeEarnedShort => G("PassportBadgeEarnedShort");
+    public static string PassportBadgeLocked  => G("PassportBadgeLocked");
+    public static string PassportBadgeEarned(string name) => string.Format(G("PassportBadgeEarned"), name);
+    public static string BadgeFirst           => G("BadgeFirst");
+    public static string BadgeFirstDesc       => G("BadgeFirstDesc");
+    public static string BadgeFive            => G("BadgeFive");
+    public static string BadgeFiveDesc        => G("BadgeFiveDesc");
+    public static string BadgeTen             => G("BadgeTen");
+    public static string BadgeTenDesc         => G("BadgeTenDesc");
+    public static string BadgeRegular         => G("BadgeRegular");
+    public static string BadgeRegularDesc     => G("BadgeRegularDesc");
+    public static string BadgeDistricts       => G("BadgeDistricts");
+    public static string BadgeDistrictsDesc   => G("BadgeDistrictsDesc");
+    public static string BadgeNight           => G("BadgeNight");
+    public static string BadgeNightDesc       => G("BadgeNightDesc");
+    public static string BadgeTraveler        => G("BadgeTraveler");
+    public static string BadgeTravelerDesc    => G("BadgeTravelerDesc");
+    public static string BadgeComplete        => G("BadgeComplete");
+    public static string BadgeCompleteDesc    => G("BadgeCompleteDesc");
 
     public static string Location(int count)
         => string.Format(G(count != 1 ? "LocationMany" : "LocationOne"), count);

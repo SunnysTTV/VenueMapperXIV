@@ -2,6 +2,8 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Numerics;
+using Dalamud.Interface.Utility;
+using Dalamud.Interface.Utility.Raii;
 using Dalamud.Interface.Windowing;
 using Dalamud.Bindings.ImGui;
 using VenueMapper.Models;
@@ -33,13 +35,31 @@ public class VenueDetailWindow : Window, IDisposable
         IsOpen = true;
     }
 
+    public void Stage(Venue v, Vector2 size)
+    {
+        var viewport = ImGui.GetMainViewport().Size;
+        Position = Vector2.Max(Vector2.Zero, (viewport - size * ImGuiHelpers.GlobalScale) / 2f);
+        PositionCondition = ImGuiCond.Always;
+        Size = size;
+        SizeCondition = ImGuiCond.Always;
+        Open(v);
+    }
+
     public override void PreDraw() => UIConstants.PushWindowChrome(UIConstants.Glow);
     public override void PostDraw() => UIConstants.PopWindowChrome();
 
+    public ScreenRect LastRect { get; private set; }
+
     public override void Draw()
     {
+        LastRect = ScreenRect.FromCurrentWindow();
         if (SizeCondition == ImGuiCond.Always)
             SizeCondition = ImGuiCond.FirstUseEver;
+        if (PositionCondition == ImGuiCond.Always)
+        {
+            Position = null;
+            PositionCondition = ImGuiCond.FirstUseEver;
+        }
 
         var v = venue;
         if (v == null)
@@ -48,108 +68,91 @@ public class VenueDetailWindow : Window, IDisposable
             return;
         }
 
-        UIConstants.PushScrollbarStyle();
-        ImGui.PushStyleColor(ImGuiCol.ChildBg, new Vector4(0, 0, 0, 0));
         try
         {
+            using var scrollbar = UIConstants.ScrollbarStyle();
+            using var childBg = ImRaii.PushColor(ImGuiCol.ChildBg, Vector4.Zero);
+            using var child = ImRaii.Child("##venueDetailScroll", Vector2.Zero);
+            if (!child) return;
 
-            if (ImGui.BeginChild("##venueDetailScroll", new Vector2(0, 0)))
-                DrawContent(v);
+            using var wrap = ImRaii.TextWrapPos(0);
+            DrawContent(v);
         }
         catch (Exception ex)
         {
             VenueMapperPlugin.Log.Error(ex, "[VenueMapper] VenueDetailWindow draw failed");
         }
-        finally
-        {
-            ImGui.EndChild();
-            ImGui.PopStyleColor();
-            UIConstants.PopScrollbarStyle();
-        }
     }
-
-    private static float Luminance(Vector4 col) => 0.299f * col.X + 0.587f * col.Y + 0.114f * col.Z;
 
     private void DrawContent(Venue v)
     {
-        ImGui.PushTextWrapPos(0);
-
         var xivId = VenueMapWindow.ExtractXivVenuesId(v.Links?.FfxivVenues);
         if (v.TeamId > 0)
         {
-            _ = plugin.PartakeApi.FetchTeamAsync(v.TeamId);
+            plugin.PartakeApi.RequestTeam(v.TeamId);
 
             _ = plugin.PartakeApi.FetchTeamIconAsync(v.TeamId);
         }
         if (xivId != null) plugin.XivVenues.RequestSchedule(xivId);
 
         var logoUrl = v.TeamId > 0 ? plugin.PartakeApi.GetTeamIconUrl(v.TeamId) : null;
-        logoUrl ??= xivId != null ? plugin.XivVenues.GetBannerUri(xivId) : null;
         var logoTex = plugin.VenueLogos.Get(logoUrl);
 
-        var avatarCol = v.Colors?.PrimaryVec ?? UIConstants.Primary;
-        const float avatarR = 24f;
+        var venueAccent = v.Colors?.PrimaryVec ?? UIConstants.Accent;
         var dl = ImGui.GetWindowDrawList();
-        var avatarOrigin = ImGui.GetCursorScreenPos();
-        var avatarCenter = avatarOrigin + new Vector2(avatarR, avatarR);
+        var bannerMin = ImGui.GetCursorScreenPos();
+        var bannerMax = bannerMin + new Vector2(ImGui.GetContentRegionAvail().X, 118f);
+        VenueBanner.Draw(plugin, v, dl, bannerMin, bannerMax);
 
+        const float avatarR = 22f;
+        var avatarOrigin = new Vector2(bannerMin.X + 10f, bannerMax.Y - avatarR - 4f);
+        var avatarCenter = avatarOrigin + new Vector2(avatarR, avatarR);
+        dl.AddCircleFilled(avatarCenter, avatarR + 2.5f, ImGui.ColorConvertFloat4ToU32(UIConstants.Background));
         if (logoTex != null)
         {
-
-            var texW = (float)logoTex.Width;
-            var texH = (float)logoTex.Height;
-            var uvMin = Vector2.Zero;
-            var uvMax = Vector2.One;
-            if (texW > texH && texW > 0)
-            {
-                var crop = (texW - texH) / texW / 2f;
-                uvMin = new Vector2(crop, 0f);
-                uvMax = new Vector2(1f - crop, 1f);
-            }
-            else if (texH > texW && texH > 0)
-            {
-                var crop = (texH - texW) / texH / 2f;
-                uvMin = new Vector2(0f, crop);
-                uvMax = new Vector2(1f, 1f - crop);
-            }
-
+            var (uvMin, uvMax) = VenueBanner.CoverUv(logoTex, new Vector2(1f, 1f));
             dl.AddImageRounded(logoTex.Handle, avatarOrigin, avatarOrigin + new Vector2(avatarR * 2, avatarR * 2),
-                uvMin, uvMax, ImGui.ColorConvertFloat4ToU32(new Vector4(1, 1, 1, 1)), avatarR);
+                uvMin, uvMax, ImGui.ColorConvertFloat4ToU32(Vector4.One), avatarR);
         }
         else
         {
-            dl.AddCircleFilled(avatarCenter, avatarR, ImGui.ColorConvertFloat4ToU32(avatarCol));
-            var letter = v.Name.Length > 0 ? v.Name[..1].ToUpperInvariant() : "?";
-            var letterCol = Luminance(avatarCol) > 0.5f ? new Vector4(0, 0, 0, 1) : new Vector4(1, 1, 1, 1);
-            var font = ImGui.GetFont();
-            var letterSize = avatarR * 1.1f;
-            var letterScale = letterSize / font.FontSize;
-            var letterSz = ImGui.CalcTextSize(letter) * letterScale;
-            dl.AddText(font, letterSize, avatarCenter - letterSz * 0.5f, ImGui.ColorConvertFloat4ToU32(letterCol), letter);
+            dl.AddCircleFilled(avatarCenter, avatarR, ImGui.ColorConvertFloat4ToU32(UIConstants.PanelRaised));
+            UIConstants.DrawGem(dl, avatarCenter, avatarR * 0.45f, venueAccent);
         }
-        dl.AddCircle(avatarCenter, avatarR, ImGui.ColorConvertFloat4ToU32(UIConstants.WithAlpha(UIConstants.Glow, 0.5f)), 0, 1.5f);
+        dl.AddCircle(avatarCenter, avatarR, ImGui.ColorConvertFloat4ToU32(UIConstants.WithAlpha(UIConstants.Trim, 0.9f)), 0, 1.5f);
 
-        ImGui.SetCursorScreenPos(avatarOrigin + new Vector2(avatarR * 2 + 10, 0));
-        ImGui.BeginGroup();
-
-        ImGui.TextColored(UIConstants.Primary, v.Name.ToUpperInvariant());
-        ImGui.SameLine(0, 6);
-        var nsfwCol = v.Nsfw ? UIConstants.Danger : UIConstants.Success;
-        ImGui.TextColored(nsfwCol, $"[{(v.Nsfw ? Lang.NsfwBadge : Lang.SfwBadge)}]");
-
+        ImGui.Dummy(new Vector2(0, bannerMax.Y - bannerMin.Y - avatarR - 6f));
+        ImGui.SetCursorScreenPos(new Vector2(avatarOrigin.X + avatarR * 2 + 10, ImGui.GetCursorScreenPos().Y));
         var sched = xivId != null ? plugin.XivVenues.GetSchedule(xivId) : null;
         var statusText = sched?.GetStatusText() ?? "";
-        if (statusText.Length > 0)
-            ImGui.TextColored(sched!.IsOpenNow ? UIConstants.Success : UIConstants.WithAlpha(UIConstants.TextSecondary, 0.6f), statusText);
 
-        var myHash = OwnerIdHelper.ComputeHash(VenueMapperPlugin.PlayerState.ContentId);
-        if (v.OwnerIdHashes.Contains(myHash))
+        using (ImRaii.Group())
         {
-            ImGui.TextColored(UIConstants.Glow, Lang.YouAreOwner);
-        }
+            UIConstants.TextReadable(venueAccent, UIConstants.DisplayName(v.Name).ToUpperInvariant());
+            ImGui.SameLine(0, 6);
+            var nsfwCol = v.Nsfw ? UIConstants.Danger : UIConstants.Success;
+            ImGui.TextColored(nsfwCol, $"[{(v.Nsfw ? Lang.NsfwBadge : Lang.SfwBadge)}]");
 
-        ImGui.EndGroup();
-        ImGui.SetCursorScreenPos(new Vector2(avatarOrigin.X, avatarOrigin.Y + MathF.Max(avatarR * 2, ImGui.GetItemRectSize().Y) + 6));
+            if (statusText.Length > 0)
+                ImGui.TextColored(sched!.IsOpenNow ? UIConstants.Success : UIConstants.WithAlpha(UIConstants.TextSecondary, 0.6f), statusText);
+
+            if (plugin.PartyFinderAds.SeenAt(v.VenueId) is { } adSeen)
+            {
+                ImGui.TextColored(UIConstants.Glow, Lang.PartyFinderSeen(VenueMapWindow.MinutesAgo(adSeen)));
+                if (ImGui.IsItemHovered())
+                {
+                    ImGui.SetMouseCursor(ImGuiMouseCursor.Hand);
+                    ImGui.SetTooltip(Lang.PartyFinderOpenTip);
+                }
+                if (ImGui.IsItemClicked() && !plugin.PartyFinderAds.OpenListing(v.VenueId))
+                    plugin.Toasts.Show(Lang.PartyFinderGone, ToastKind.Warning, 3.0);
+            }
+
+            var myHash = OwnerIdHelper.ComputeHash(VenueMapperPlugin.PlayerState.ContentId);
+            if (!plugin.ScreenshotMode && v.OwnerIdHashes.Contains(myHash))
+                ImGui.TextColored(UIConstants.Glow, Lang.YouAreOwner);
+        }
+        ImGui.SetCursorScreenPos(new Vector2(bannerMin.X, MathF.Max(avatarOrigin.Y + avatarR * 2, ImGui.GetItemRectMax().Y) + 6));
 
         ImGui.Spacing();
         ImGui.Separator();
@@ -191,12 +194,19 @@ public class VenueDetailWindow : Window, IDisposable
                 }
             }
             ImGui.SameLine(0, 8);
-            if (UIConstants.AccentButton($"{Lang.CopyLifestreamAddress}##detailCopyLs", UIConstants.Primary, width: btnW))
+            if (UIConstants.AccentButton($"{Lang.CopyLifestreamAddress}##detailCopyLs", UIConstants.Accent, width: btnW))
             {
 
                 ImGui.SetClipboardText($"/li {v.Server} {district} {v.Ward} {v.Plot}");
                 plugin.Toasts.Show(Lang.ToastAddressCopied, ToastKind.Success, 2.0);
             }
+            var halfW = (ImGui.GetContentRegionAvail().X - 8) / 2f;
+            if (UIConstants.AccentButton($"{Lang.ShowOnMap}##detailShowOnMap", UIConstants.Accent, width: halfW))
+                plugin.ShowVenueOnMap(v);
+            ImGui.SameLine(0, 8);
+            if (UIConstants.AccentButton($"{Lang.Share}##detailShare", UIConstants.Accent, width: halfW))
+                ImGui.OpenPopup("##detailSharePopup");
+            VenueShare.Popup(plugin, v, "##detailSharePopup");
         }
 
         if (v.Floors.Any(f => f.Services.Count > 0))
@@ -234,7 +244,7 @@ public class VenueDetailWindow : Window, IDisposable
                 var evt = events[0];
                 var title = EventsView.StripEmoji(evt.Title);
                 var isNow = evt.StartTime <= DateTime.UtcNow && evt.EndTime >= DateTime.UtcNow;
-                var accent = v.Colors?.PrimaryVec ?? UIConstants.Primary;
+                var accent = v.Colors?.PrimaryVec ?? UIConstants.Accent;
 
                 var cardDl = ImGui.GetWindowDrawList();
                 var cardMin = ImGui.GetCursorScreenPos();
@@ -249,9 +259,7 @@ public class VenueDetailWindow : Window, IDisposable
                 cardDl.AddText(new Vector2(textX, cardMin.Y + 6),
                     ImGui.ColorConvertFloat4ToU32(UIConstants.TextPrimary), title);
 
-                string dateText;
-                try { dateText = evt.StartTime.ToLocalTime().ToString("ddd, MMM d - h:mm tt"); }
-                catch { dateText = evt.StartTime.ToString("ddd, MMM d - h:mm tt"); }
+                var dateText = $"{evt.StartTime.ToString("ddd, MMM d", Lang.Culture)} - {UIConstants.FormatServerTime(evt.StartTime)}";
                 cardDl.AddText(new Vector2(textX, cardMin.Y + 8 + lineH),
                     ImGui.ColorConvertFloat4ToU32(UIConstants.WithAlpha(UIConstants.TextSecondary, 0.6f)), dateText);
 
@@ -272,10 +280,7 @@ public class VenueDetailWindow : Window, IDisposable
                 ImGui.Spacing();
 
                 if (UIConstants.AccentButton($"{Lang.ViewPartake}##nextEvent", new Vector4(0.95f, 0.55f, 0.15f, 1f), width: -1))
-                {
-                    try { System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo
-                        { FileName = $"https://partake.gg/events/{evt.EventId}", UseShellExecute = true }); } catch { }
-                }
+                    UIConstants.OpenUrl($"https://partake.gg/events/{evt.EventId}");
             }
             else
             {
@@ -319,16 +324,11 @@ public class VenueDetailWindow : Window, IDisposable
             {
                 var (label, url, col) = linkEntries[i];
                 if (UIConstants.AccentButton($"{label}##detail_{label}", col, width: pairW))
-                {
-                    try { System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo
-                        { FileName = url, UseShellExecute = true }); } catch { }
-                }
+                    UIConstants.OpenUrl(url);
                 if (i % 2 == 0 && i + 1 < linkEntries.Length)
                     ImGui.SameLine(0, 8);
             }
         }
-
-        ImGui.PopTextWrapPos();
     }
 
     public void Dispose() { }

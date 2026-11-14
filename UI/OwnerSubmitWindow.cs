@@ -2,18 +2,17 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Numerics;
-using Dalamud.Interface.Windowing;
+using Dalamud.Interface;
+using Dalamud.Interface.Utility.Raii;
 using Dalamud.Bindings.ImGui;
 using VenueMapper.Models;
 using VenueMapper.Services;
 
 namespace VenueMapper.UI;
 
-public class OwnerSubmitWindow : Window, IDisposable
+public class OwnerSubmitWindow : HudWindow, IDisposable
 {
     private readonly VenueMapperPlugin plugin;
-    private double hackerModeStart = -1;
-    private double hackerTitleLoopStart = -1;
 
     private string loadedVenueId = "";
 
@@ -33,6 +32,7 @@ public class OwnerSubmitWindow : Window, IDisposable
     private string partakeLink = "";
     private string xivVenuesLink = "";
     private string websiteLink = "";
+    private string bannerLink = "";
 
     private string colorPrimary = "#ff006e";
     private string colorAccent = "#00f0ff";
@@ -42,6 +42,10 @@ public class OwnerSubmitWindow : Window, IDisposable
     private Vector3 colSecVec = new(0.62f, 0.31f, 0.87f);
 
     private readonly List<ServiceEntry> services = new();
+    private readonly List<RuleEntry> rules = new();
+    private readonly List<RuleEntry> rulesDe = new();
+    private const int MaxRules = 6;
+    private const int MaxRuleLength = 90;
 
     private bool copied;
     private double copiedTime;
@@ -53,25 +57,12 @@ public class OwnerSubmitWindow : Window, IDisposable
     private static readonly string[] HouseSizeLabels = ["L - Large", "M - Medium", "S - Small"];
     private static readonly string[] HouseSizeKeys = ["L", "M", "S"];
 
-    private static readonly Dictionary<string, (HashSet<int> L, HashSet<int> M)> PlotSizes = new()
-    {
-        ["Mist"]          = (new HashSet<int> { 2, 5, 15, 32, 35, 45 },
-                             new HashSet<int> { 1, 4, 6, 7, 14, 29, 30, 31, 34, 36, 37, 44, 59, 60 }),
-        ["Lavender Beds"] = (new HashSet<int> { 3, 6, 28, 33, 36, 58 },
-                             new HashSet<int> { 1, 5, 11, 16, 21, 27, 30, 31, 35, 41, 46, 51, 57, 60 }),
-        ["The Goblet"]    = (new HashSet<int> { 5, 13, 30, 35, 43, 60 },
-                             new HashSet<int> { 4, 6, 8, 11, 12, 19, 25, 34, 36, 38, 41, 42, 49, 55 }),
-        ["Empyreum"]      = (new HashSet<int> { 12, 22, 30, 42, 52, 60 },
-                             new HashSet<int> { 2, 7, 8, 17, 18, 21, 26, 32, 37, 47, 48, 51 }),
-        ["Shirogane"]     = (new HashSet<int> { 7, 16, 30, 37, 46, 60 },
-                             new HashSet<int> { 1, 8, 13, 15, 19, 24, 28, 31, 38, 43, 45, 49, 54, 58 }),
-    };
-
     private void AutoDetectHouseSizeFromPlot()
     {
         if (!int.TryParse(plot, out var p)) return;
-        if (!PlotSizes.TryGetValue(Districts[districtIndex], out var sizes)) return;
-        houseSizeIndex = sizes.L.Contains(p) ? 0 : sizes.M.Contains(p) ? 1 : 2;
+        var size = plugin.HousingData.PlotSize(HousingData.FromComboIndex(districtIndex), p);
+        if (size is >= 0 and <= 2)
+            houseSizeIndex = 2 - size;
     }
 
     private void AutoFillFromPosition()
@@ -92,20 +83,11 @@ public class OwnerSubmitWindow : Window, IDisposable
             }
         }
 
-        var district = tracker.CurrentHousingDistrict;
-        if (!string.IsNullOrEmpty(district))
-        {
-
-            var idx = Array.FindIndex(Districts, d => district.Contains(d, StringComparison.OrdinalIgnoreCase));
-            if (idx >= 0)
-                districtIndex = idx;
-            else
-                VenueMapperPlugin.Log.Warning($"[VenueMapper] Auto-detect: resolved district '{district}' did not match any known district name");
-        }
+        var districtIdx = HousingData.ComboIndex(tracker.CurrentDistrict);
+        if (districtIdx >= 0)
+            districtIndex = districtIdx;
         else
-        {
-            VenueMapperPlugin.Log.Warning("[VenueMapper] Auto-detect: housing district could not be resolved (empty) - territory lookup may have failed for this house/subdivision");
-        }
+            VenueMapperPlugin.Log.Warning($"[VenueMapper] Auto-detect: housing district unknown (territory {tracker.CurrentTerritoryId}, original {tracker.OriginalHouseTerritoryId})");
 
         if (tracker.CurrentWard >= 0 && tracker.CurrentPlot >= 0)
         {
@@ -163,6 +145,11 @@ public class OwnerSubmitWindow : Window, IDisposable
             websiteLink = venue.Links.Website;
         }
 
+        bannerLink = venue.Banner;
+
+        LoadRules(rules, venue.Rules);
+        LoadRules(rulesDe, venue.RulesDe);
+
         services.Clear();
         foreach (var floor in venue.Floors)
         {
@@ -197,104 +184,61 @@ public class OwnerSubmitWindow : Window, IDisposable
     private static readonly string[] ServiceTypeLabels =
         Array.ConvertAll(ServiceTypes, VenueMapWindow.ChipLabel);
     private static readonly string[] FloorNames =
-        ["ground", "second", "cellar"];
+        ["ground", "second", "cellar", "garden"];
     private static readonly string[] FloorNameLabels =
         Array.ConvertAll(FloorNames, VenueMapWindow.TranslateFloorName);
 
     private readonly bool isUpdateMode;
 
     public OwnerSubmitWindow(VenueMapperPlugin plugin, bool isUpdateMode = false)
-        : base(isUpdateMode ? "Update Venue##OwnerUpdate" : "Venue Owner Setup##OwnerSubmit",
-            ImGuiWindowFlags.NoCollapse | ImGuiWindowFlags.NoDocking | ImGuiWindowFlags.NoResize)
+        : base(plugin, isUpdateMode ? "OwnerUpdate" : "OwnerSubmit", new Vector2(540, 690))
     {
         this.plugin = plugin;
         this.isUpdateMode = isUpdateMode;
-        Size = new Vector2(540, 666);
-        SizeCondition = ImGuiCond.Always;
     }
+
+    protected override string Title => isUpdateMode ? Lang.UpdateVenueTitle : Lang.OwnerTitle;
 
     private bool IdentityKnown() => isUpdateMode;
 
-    public override void PreDraw()
+    protected override void DrawBody()
     {
-        UIConstants.PushWindowChrome(isUpdateMode ? UIConstants.Glow : UIConstants.Primary);
+        using (ImRaii.TextWrapPos(0))
+            ImGui.TextColored(UIConstants.TextMuted, isUpdateMode ? Lang.UpdateVenueDesc : Lang.OwnerDesc);
+        ImGui.Spacing();
+
+        var showCopied = copied && ImGui.GetTime() - copiedTime < 3.0;
+        var bottomReserve = showCopied ? ImGui.GetTextLineHeightWithSpacing() + 4f : 0f;
+
+        using (var tabBar = ImRaii.TabBar("##ownerTabs"))
+        {
+            if (tabBar)
+            {
+                ScrollTab(Lang.VenueInfo, bottomReserve, DrawVenueInfo);
+                ScrollTab($"{Lang.Links}##tab_links", bottomReserve, DrawLinks);
+                ScrollTab("Services##tab_svc", bottomReserve, DrawServices);
+                ScrollTab($"{Lang.RulesTab}##tab_rules", bottomReserve, DrawRules);
+                ScrollTab(Lang.Export, bottomReserve, DrawExport);
+            }
+        }
+
+        if (showCopied)
+        {
+            ImGui.Spacing();
+            ImGui.TextColored(UIConstants.Glow, $"{Lang.Copied} {copiedWhat}");
+        }
     }
 
-    public override void PostDraw()
+    private static void ScrollTab(string label, float bottomReserve, Action draw)
     {
-        UIConstants.PopWindowChrome();
-    }
+        using var tab = ImRaii.TabItem(label);
+        if (!tab) return;
 
-    public override void Draw()
-    {
-
-        var hackerBooting = UIConstants.IsHackerBooting;
-        try
-        {
-            if (hackerBooting) ImGui.BeginDisabled();
-            try
-            {
-                ImGui.TextColored(isUpdateMode ? UIConstants.Glow : UIConstants.Primary,
-                    isUpdateMode ? Lang.UpdateVenueTitle : Lang.OwnerTitle);
-                ImGui.SameLine(0, 8);
-                ImGui.TextColored(UIConstants.WithAlpha(UIConstants.TextSecondary, 0.45f),
-                    isUpdateMode ? Lang.UpdateVenueDesc : Lang.OwnerDesc);
-                ImGui.Spacing();
-
-                var showCopied = copied && ImGui.GetTime() - copiedTime < 3.0;
-                var bottomReserve = showCopied ? ImGui.GetTextLineHeightWithSpacing() + 4f : 0f;
-
-                if (ImGui.BeginTabBar("##ownerTabs"))
-                {
-                    void ScrollTab(string label, Action draw)
-                    {
-                        if (!ImGui.BeginTabItem(label)) return;
-                        UIConstants.PushScrollbarStyle();
-                        ImGui.PushStyleColor(ImGuiCol.ChildBg, new Vector4(0, 0, 0, 0));
-                        try
-                        {
-                            if (ImGui.BeginChild($"##scroll_{label}", new Vector2(0, -bottomReserve)))
-                                draw();
-                        }
-                        finally
-                        {
-                            ImGui.EndChild();
-                            ImGui.PopStyleColor();
-                            UIConstants.PopScrollbarStyle();
-                            ImGui.EndTabItem();
-                        }
-                    }
-
-                    try
-                    {
-                        ScrollTab(Lang.VenueInfo, DrawVenueInfo);
-                        ScrollTab($"{Lang.Links}##tab_links", DrawLinks);
-                        ScrollTab("Services##tab_svc", DrawServices);
-                        ScrollTab(Lang.Export, DrawExport);
-                    }
-                    finally
-                    {
-                        ImGui.EndTabBar();
-                    }
-                }
-
-                if (copied && ImGui.GetTime() - copiedTime < 3.0)
-                {
-                    ImGui.Spacing();
-                    ImGui.TextColored(UIConstants.Glow, $"{Lang.Copied} {copiedWhat}");
-                }
-            }
-            finally
-            {
-                if (hackerBooting) ImGui.EndDisabled();
-            }
-
-            HackerModeOverlay.Draw(ref hackerModeStart, ref hackerTitleLoopStart, WindowName);
-        }
-        catch (Exception ex)
-        {
-            VenueMapperPlugin.Log.Error(ex, "[VenueMapper] OwnerSubmitWindow draw failed");
-        }
+        using var scrollbar = UIConstants.ScrollbarStyle();
+        using var childBg = ImRaii.PushColor(ImGuiCol.ChildBg, Vector4.Zero);
+        using var child = ImRaii.Child($"##scroll_{label}", new Vector2(0, -bottomReserve));
+        if (child)
+            draw();
     }
 
     private void DrawVenueInfo()
@@ -305,7 +249,7 @@ public class OwnerSubmitWindow : Window, IDisposable
             AutoFillFromPosition();
         ImGui.Spacing();
 
-        PushFieldStyle();
+        using var field = FieldStyle();
 
         Field(Lang.VenueName, ref clubName, Lang.VenueNameHint);
         Field(IdentityKnown() ? Lang.YourDiscordOptional : Lang.YourDiscord, ref discordName, Lang.DiscordHint);
@@ -397,22 +341,91 @@ public class OwnerSubmitWindow : Window, IDisposable
         ColorField(Lang.ColorAccent, ref colAccVec, ref colorAccent);
         ImGui.SameLine(0, 8);
         ColorField(Lang.ColorSecondary, ref colSecVec, ref colorSecondary);
-
-        PopFieldStyle();
     }
 
     private void DrawLinks()
     {
         ImGui.Spacing();
-        PushFieldStyle();
+        using var field = FieldStyle();
 
         Field("Discord Invite", ref discordLink, "https://discord.gg/...");
         Field("Partake Team", ref partakeLink, "https://partake.gg/t/...");
         Field("FFXIV Venues", ref xivVenuesLink, "https://ffxivvenues.com/...");
         Field("Website", ref websiteLink, "https://...");
-
-        PopFieldStyle();
+        ImGui.Spacing();
+        Field(Lang.BannerUrl, ref bannerLink, "https://i.imgur.com/...png");
+        using (ImRaii.TextWrapPos(0))
+            ImGui.TextColored(UIConstants.TextMuted, Lang.BannerHint);
     }
+
+    private static void LoadRules(List<RuleEntry> target, List<VenueRule> source)
+    {
+        target.Clear();
+        foreach (var rule in source.Take(MaxRules))
+            target.Add(new RuleEntry { IconIndex = Math.Max(0, Array.IndexOf(HouseRuleIcons.Keys, rule.Icon)), Text = rule.Text });
+    }
+
+    private void DrawRules()
+    {
+        ImGui.Spacing();
+        using (ImRaii.TextWrapPos(0))
+            ImGui.TextColored(UIConstants.TextMuted, Lang.RulesFormHint);
+        ImGui.Spacing();
+        using var field = FieldStyle();
+        DrawRuleList("en", rules);
+
+        ImGui.Spacing();
+        ImGui.Spacing();
+        ImGui.TextColored(UIConstants.Heading, Lang.RulesGerman);
+        using (ImRaii.TextWrapPos(0))
+            ImGui.TextColored(UIConstants.TextMuted, Lang.RulesGermanHint);
+        ImGui.Spacing();
+        DrawRuleList("de", rulesDe);
+    }
+
+    private static void DrawRuleList(string id, List<RuleEntry> list)
+    {
+        var remove = -1;
+        var frameH = ImGui.GetFrameHeight();
+        for (var i = 0; i < list.Count; i++)
+        {
+            using var scope = ImRaii.PushId($"{id}{i}");
+            var rule = list[i];
+            if (IconCycleButton("##ruleIcon", HouseRuleIcons.Icon(HouseRuleIcons.Keys[rule.IconIndex]), frameH))
+                rule.IconIndex = (rule.IconIndex + 1) % HouseRuleIcons.Keys.Length;
+            if (ImGui.IsItemClicked(ImGuiMouseButton.Right))
+                rule.IconIndex = (rule.IconIndex + HouseRuleIcons.Keys.Length - 1) % HouseRuleIcons.Keys.Length;
+            ImGui.SameLine(0, 6f);
+            ImGui.SetNextItemWidth(ImGui.GetContentRegionAvail().X - frameH - 6f);
+            ImGui.InputTextWithHint("##ruleText", Lang.RuleTextHint, ref rule.Text, MaxRuleLength);
+            ImGui.SameLine(0, 6f);
+            if (UIConstants.AccentButton("X##ruleDel", UIConstants.Danger, frameH))
+                remove = i;
+        }
+        if (remove >= 0)
+            list.RemoveAt(remove);
+        if (list.Count < MaxRules && UIConstants.AccentButton($"{Lang.RulesAdd}##ruleAdd{id}", UIConstants.Glow, -1))
+            list.Add(new RuleEntry());
+    }
+
+    private static bool IconCycleButton(string id, FontAwesomeIcon icon, float size)
+    {
+        var pos = ImGui.GetCursorScreenPos();
+        var clicked = ImGui.InvisibleButton(id, new Vector2(size));
+        var hovered = ImGui.IsItemHovered();
+        var dl = ImGui.GetWindowDrawList();
+        dl.AddRectFilled(pos, pos + new Vector2(size), ImGui.ColorConvertFloat4ToU32(hovered ? UIConstants.Hover : UIConstants.WithAlpha(UIConstants.CardBackground, 0.9f)), 3f);
+        dl.AddRect(pos, pos + new Vector2(size), ImGui.ColorConvertFloat4ToU32(UIConstants.GlowDim), 3f, ImDrawFlags.None, 1f);
+        UIConstants.DrawIconCentered(dl, Dalamud.Interface.UiBuilder.IconFont.FontSize * 0.8f, pos + new Vector2(size / 2f), icon,
+            ImGui.ColorConvertFloat4ToU32(UIConstants.Accent));
+        if (hovered)
+            ImGui.SetTooltip(Lang.RuleIconTip);
+        return clicked;
+    }
+
+    private static string RulesJson(List<RuleEntry> list)
+        => "[" + string.Join(",", list.Where(r => r.Text.Trim().Length > 0)
+            .Select(r => $"{{\"icon\":{J(HouseRuleIcons.Keys[r.IconIndex])},\"text\":{J(r.Text.Trim())}}}")) + "]";
 
     private void DrawServices()
     {
@@ -426,56 +439,63 @@ public class OwnerSubmitWindow : Window, IDisposable
 
         ImGui.Spacing();
 
-        PushFieldStyle();
-        ImGui.PushStyleColor(ImGuiCol.Header,        UIConstants.WithAlpha(UIConstants.Primary, 0.18f));
-        ImGui.PushStyleColor(ImGuiCol.HeaderHovered,  UIConstants.WithAlpha(UIConstants.Primary, 0.28f));
-        ImGui.PushStyleColor(ImGuiCol.HeaderActive,   UIConstants.WithAlpha(UIConstants.Primary, 0.38f));
-        ImGui.PushStyleVar(ImGuiStyleVar.FrameRounding, UIConstants.ChipRounding);
+        using var field = FieldStyle();
+        using var colors = ImRaii.PushColor(ImGuiCol.Header, UIConstants.WithAlpha(UIConstants.Accent, 0.18f))
+                                 .Push(ImGuiCol.HeaderHovered, UIConstants.WithAlpha(UIConstants.Accent, 0.28f))
+                                 .Push(ImGuiCol.HeaderActive, UIConstants.WithAlpha(UIConstants.Accent, 0.38f));
+        using var style = ImRaii.PushStyle(ImGuiStyleVar.FrameRounding, UIConstants.ChipRounding);
+
+        var removeIndex = -1;
         for (var i = 0; i < services.Count; i++)
         {
-            var svc = services[i];
-            ImGui.PushID(i);
-
-            var label = svc.Name.Length > 0 ? svc.Name : $"Service #{i + 1}";
-            if (ImGui.CollapsingHeader(label, ImGuiTreeNodeFlags.DefaultOpen | ImGuiTreeNodeFlags.FramePadding))
+            using (ImRaii.PushId(i))
             {
-                ImGui.Indent(4f);
-                ImGui.TextColored(UIConstants.TextSecondary, Lang.ServiceType);
-                UIConstants.StyledCombo("##type", ServiceTypeLabels, ref svc.TypeIndex, ImGui.GetContentRegionAvail().X);
-
-                Field(Lang.ServiceName, ref svc.Name, Lang.ServiceNameHint);
-
-                ImGui.TextColored(UIConstants.TextSecondary, Lang.Floor);
-                UIConstants.StyledCombo("##floor", FloorNameLabels, ref svc.FloorIndex, ImGui.GetContentRegionAvail().X);
-
-                ImGui.TextColored(UIConstants.TextSecondary, Lang.Coordinates);
-                ImGui.SetNextItemWidth(ImGui.GetContentRegionAvail().X * 0.6f);
-                ImGui.DragFloat3("##coords", ref svc.Coords, 0.1f);
-                ImGui.SameLine();
-
-                if (UIConstants.AccentButton(Lang.UseMyPos, UIConstants.Glow))
-                {
-                    var pos = plugin.PositionTracker.LastPosition;
-                    svc.Coords = new Vector3(pos.X, pos.Z, pos.Y);
-                    svc.FloorIndex = pos.Y switch
-                    {
-                        < -3.5f => 2,
-                        > 6.5f  => 1,
-                        _       => 0,
-                    };
-                }
-
-                if (UIConstants.AccentButton($"{Lang.Delete}##del", UIConstants.Danger, width: -1))
-                    services.RemoveAt(i);
-                ImGui.Unindent(4f);
+                if (DrawServiceEntry(services[i], i))
+                    removeIndex = i;
             }
-
-            ImGui.PopID();
             ImGui.Spacing();
         }
-        ImGui.PopStyleVar();
-        ImGui.PopStyleColor(3);
-        PopFieldStyle();
+        if (removeIndex >= 0)
+            services.RemoveAt(removeIndex);
+    }
+
+    private bool DrawServiceEntry(ServiceEntry svc, int index)
+    {
+        var label = svc.Name.Length > 0 ? svc.Name : $"Service #{index + 1}";
+        if (!ImGui.CollapsingHeader(label, ImGuiTreeNodeFlags.DefaultOpen | ImGuiTreeNodeFlags.FramePadding))
+            return false;
+
+        using var indent = ImRaii.PushIndent(4f, scaled: false);
+        ImGui.TextColored(UIConstants.TextSecondary, Lang.ServiceType);
+        UIConstants.StyledCombo("##type", ServiceTypeLabels, ref svc.TypeIndex, ImGui.GetContentRegionAvail().X);
+
+        Field(Lang.ServiceName, ref svc.Name, Lang.ServiceNameHint);
+
+        ImGui.TextColored(UIConstants.TextSecondary, Lang.Floor);
+        UIConstants.StyledCombo("##floor", FloorNameLabels, ref svc.FloorIndex, ImGui.GetContentRegionAvail().X);
+
+        ImGui.TextColored(UIConstants.TextSecondary, Lang.Coordinates);
+        ImGui.SetNextItemWidth(ImGui.GetContentRegionAvail().X * 0.6f);
+        ImGui.DragFloat3("##coords", ref svc.Coords, 0.1f);
+        ImGui.SameLine();
+
+        if (UIConstants.AccentButton(Lang.UseMyPos, UIConstants.Glow))
+        {
+            var tracker = plugin.PositionTracker;
+            var pos = tracker.LastPosition;
+            svc.Coords = new Vector3(pos.X, pos.Z, pos.Y);
+            var mapFloor = Array.IndexOf(FloorNames, tracker.CurrentMapFloor ?? "");
+            svc.FloorIndex = !tracker.IsInsideHouse ? 3
+                : mapFloor >= 0 ? mapFloor
+                : pos.Y switch
+                {
+                    < -3.5f => 2,
+                    > 6.5f  => 1,
+                    _       => 0,
+                };
+        }
+
+        return UIConstants.AccentButton($"{Lang.Delete}##del", UIConstants.Danger, width: -1);
     }
 
     private const string GoogleFormId = "1FAIpQLSeXKwEDbHQzjoOFH4o5WLTfd2K7m_KwiKp9kiWAHCxTKcpELg";
@@ -498,7 +518,7 @@ public class OwnerSubmitWindow : Window, IDisposable
     private void DrawExport()
     {
         ImGui.Spacing();
-        ImGui.PushTextWrapPos(0);
+        using var wrap = ImRaii.TextWrapPos(0);
 
         var identityKnown = IdentityKnown();
         var valid = clubName.Length > 0 && (identityKnown || discordName.Length > 0) && selectedDc.Length > 0 && selectedServer.Length > 0 && ward.Length > 0 && plot.Length > 0;
@@ -508,7 +528,7 @@ public class OwnerSubmitWindow : Window, IDisposable
             ImGui.Spacing();
         }
 
-        ImGui.TextColored(UIConstants.Primary, Lang.OptForm);
+        ImGui.TextColored(UIConstants.Heading, Lang.OptForm);
         ImGui.TextColored(UIConstants.WithAlpha(UIConstants.TextSecondary, 0.5f),
             identityKnown ? Lang.OptFormDescVerified : Lang.OptFormDesc);
         ImGui.Spacing();
@@ -523,8 +543,7 @@ public class OwnerSubmitWindow : Window, IDisposable
             else
             {
                 var formUrl = GenerateGoogleFormUrl();
-                try { System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo
-                    { FileName = formUrl, UseShellExecute = true }); } catch { }
+                UIConstants.OpenUrl(formUrl);
                 copied = true; copiedTime = ImGui.GetTime(); copiedWhat = Lang.FormOpened;
             }
         }
@@ -543,7 +562,7 @@ public class OwnerSubmitWindow : Window, IDisposable
         {
             UIConstants.AccentButton($"{Lang.Copied}##copyJson", UIConstants.Success, width: -1, disabled: true);
         }
-        else if (UIConstants.AccentButton($"{Lang.CopyJson}##copyJson", UIConstants.Primary, width: -1))
+        else if (UIConstants.AccentButton($"{Lang.CopyJson}##copyJson", UIConstants.Accent, width: -1))
         {
             if (!valid)
             {
@@ -562,31 +581,13 @@ public class OwnerSubmitWindow : Window, IDisposable
         ImGui.Spacing();
 
         ImGui.TextColored(UIConstants.WithAlpha(UIConstants.TextSecondary, 0.5f), Lang.Preview);
-        ImGui.PushStyleColor(ImGuiCol.ChildBg, UIConstants.WithAlpha(UIConstants.CardBackground, 0.3f));
-        UIConstants.PushScrollbarStyle();
-        try
-        {
-            if (ImGui.BeginChild("##preview", new Vector2(-1, 140), true))
-            {
-                ImGui.PushTextWrapPos(0);
-                try
-                {
-                    ImGui.TextColored(UIConstants.WithAlpha(UIConstants.TextSecondary, 0.6f), FormatJson());
-                }
-                finally
-                {
-                    ImGui.PopTextWrapPos();
-                }
-            }
-        }
-        finally
-        {
-            ImGui.EndChild();
-            UIConstants.PopScrollbarStyle();
-            ImGui.PopStyleColor();
-        }
+        using var childBg = ImRaii.PushColor(ImGuiCol.ChildBg, UIConstants.WithAlpha(UIConstants.CardBackground, 0.3f));
+        using var scrollbar = UIConstants.ScrollbarStyle();
+        using var child = ImRaii.Child("##preview", new Vector2(-1, 140), true);
+        if (!child) return;
 
-        ImGui.PopTextWrapPos();
+        using var previewWrap = ImRaii.TextWrapPos(0);
+        ImGui.TextColored(UIConstants.WithAlpha(UIConstants.TextSecondary, 0.6f), FormatJson());
     }
 
     private string GenerateGoogleFormUrl()
@@ -619,11 +620,17 @@ public class OwnerSubmitWindow : Window, IDisposable
         var sb = new System.Text.StringBuilder();
         sb.Append("{");
         sb.Append($"\"nsfw\":{(isNsfw ? "true" : "false")},");
+        if (bannerLink.Trim().Length > 0)
+            sb.Append($"\"banner\":{Newtonsoft.Json.JsonConvert.ToString(bannerLink.Trim())},");
         if (registerOwnerId)
         {
             var ownerIdHash = OwnerIdHelper.ComputeHash(VenueMapperPlugin.PlayerState.ContentId);
             sb.Append($"\"ownerIdHash\":{Newtonsoft.Json.JsonConvert.ToString(ownerIdHash)},");
         }
+        if (rules.Any(r => r.Text.Trim().Length > 0))
+            sb.Append($"\"rules\":{RulesJson(rules)},");
+        if (rulesDe.Any(r => r.Text.Trim().Length > 0))
+            sb.Append($"\"rulesDe\":{RulesJson(rulesDe)},");
         sb.Append("\"services\":[");
         for (var i = 0; i < services.Count; i++)
         {
@@ -635,18 +642,10 @@ public class OwnerSubmitWindow : Window, IDisposable
         return sb.ToString();
     }
 
-    private static void PushFieldStyle()
-    {
-        ImGui.PushStyleColor(ImGuiCol.FrameBg, UIConstants.WithAlpha(UIConstants.CardBackground, 0.9f));
-        ImGui.PushStyleColor(ImGuiCol.Border, UIConstants.GlowDim);
-        ImGui.PushStyleVar(ImGuiStyleVar.FrameBorderSize, 1f);
-    }
-
-    private static void PopFieldStyle()
-    {
-        ImGui.PopStyleVar();
-        ImGui.PopStyleColor(2);
-    }
+    private static IDisposable FieldStyle() => UIConstants.Scope(
+        ImRaii.PushColor(ImGuiCol.FrameBg, UIConstants.WithAlpha(UIConstants.CardBackground, 0.9f))
+              .Push(ImGuiCol.Border, UIConstants.GlowDim),
+        ImRaii.PushStyle(ImGuiStyleVar.FrameBorderSize, 1f));
 
     private static void Field(string label, ref string value, string hint)
     {
@@ -680,7 +679,14 @@ public class OwnerSubmitWindow : Window, IDisposable
         sb.AppendLine($"  \"plot\": {(int.TryParse(plot, System.Globalization.NumberStyles.Integer, System.Globalization.CultureInfo.InvariantCulture, out var plotNum) ? plotNum : 0)},");
         sb.AppendLine($"  \"nsfw\": {(isNsfw ? "true" : "false")},");
         sb.AppendLine($"  \"description\": {J(description)},");
-        sb.AppendLine("  \"availableFloors\": [" + string.Join(", ", services.Select(s => FloorNames[s.FloorIndex]).Distinct().Select(J)) + "],");
+        if (bannerLink.Trim().Length > 0)
+            sb.AppendLine($"  \"banner\": {J(bannerLink.Trim())},");
+        if (rules.Any(r => r.Text.Trim().Length > 0))
+            sb.AppendLine($"  \"rules\": {RulesJson(rules)},");
+        if (rulesDe.Any(r => r.Text.Trim().Length > 0))
+            sb.AppendLine($"  \"rulesDe\": {RulesJson(rulesDe)},");
+        var floorNames = new[] { "ground" }.Concat(services.Select(s => FloorNames[s.FloorIndex])).Distinct().ToList();
+        sb.AppendLine("  \"availableFloors\": [" + string.Join(", ", floorNames.Select(J)) + "],");
         sb.AppendLine("  \"colors\": {");
         sb.AppendLine($"    \"primary\": {J(colorPrimary)},");
         sb.AppendLine($"    \"accent\": {J(colorAccent)},");
@@ -693,13 +699,11 @@ public class OwnerSubmitWindow : Window, IDisposable
         sb.AppendLine($"    \"website\": {J(websiteLink)}");
         sb.AppendLine("  },");
         sb.AppendLine("  \"floors\": [");
-        var floors = services.GroupBy(s => FloorNames[s.FloorIndex]);
-        var floorList = floors.ToList();
-        for (var fi = 0; fi < floorList.Count; fi++)
+        for (var fi = 0; fi < floorNames.Count; fi++)
         {
-            var f = floorList[fi];
-            sb.AppendLine($"    {{ \"floor\": \"{f.Key}\", \"services\": [");
-            var svcs = f.ToList();
+            var floorName = floorNames[fi];
+            sb.AppendLine($"    {{ \"floor\": \"{floorName}\", \"services\": [");
+            var svcs = services.Where(s => FloorNames[s.FloorIndex] == floorName).ToList();
             for (var si = 0; si < svcs.Count; si++)
             {
                 var s = svcs[si];
@@ -707,7 +711,7 @@ public class OwnerSubmitWindow : Window, IDisposable
                 var ci = System.Globalization.CultureInfo.InvariantCulture;
                 sb.AppendLine($"      {{ \"type\": \"{ServiceTypes[s.TypeIndex]}\", \"label\": {Newtonsoft.Json.JsonConvert.ToString(s.Name)}, \"x\": {s.Coords.X.ToString("F2", ci)}, \"y\": {s.Coords.Y.ToString("F2", ci)}, \"z\": {s.Coords.Z.ToString("F2", ci)} }}{comma}");
             }
-            var fcomma = fi < floorList.Count - 1 ? "," : "";
+            var fcomma = fi < floorNames.Count - 1 ? "," : "";
             sb.AppendLine($"    ] }}{fcomma}");
         }
         sb.AppendLine("  ]");
@@ -723,5 +727,11 @@ public class OwnerSubmitWindow : Window, IDisposable
         public string Name = "";
         public int FloorIndex;
         public Vector3 Coords;
+    }
+
+    private class RuleEntry
+    {
+        public int IconIndex;
+        public string Text = "";
     }
 }

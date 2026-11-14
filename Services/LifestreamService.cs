@@ -21,6 +21,14 @@ public class LifestreamService : IDisposable
     private readonly ICallGateSubscriber<AddressBookEntry, object>                                              goToHousingGate;
     private readonly ICallGateSubscriber<string, bool>                                                          aetheryteTeleportGate;
     private readonly ICallGateSubscriber<uint, byte, bool>                                                      teleportGate;
+    private readonly ICallGateSubscriber<object>                                                                abortGate;
+    private readonly ICallGateSubscriber<string, object>                                                        executeCommandGate;
+    private readonly ICallGateSubscriber<object>                                                                houseEnterErrorGate;
+
+    private DateTime lastNavigateAt = DateTime.MinValue;
+    private static readonly TimeSpan OwnTeleportWindow = TimeSpan.FromMinutes(3);
+
+    public event Action? HouseEnterFailed;
 
     private static readonly Dictionary<string, uint> DistrictAetheryteIds = new(StringComparer.OrdinalIgnoreCase)
     {
@@ -45,7 +53,51 @@ public class LifestreamService : IDisposable
         goToHousingGate      = pi.GetIpcSubscriber<AddressBookEntry, object>("Lifestream.GoToHousingAddress");
         aetheryteTeleportGate = pi.GetIpcSubscriber<string, bool>("Lifestream.AetheryteTeleport");
         teleportGate         = pi.GetIpcSubscriber<uint, byte, bool>("Lifestream.Teleport");
+        abortGate            = pi.GetIpcSubscriber<object>("Lifestream.Abort");
+        executeCommandGate   = pi.GetIpcSubscriber<string, object>("Lifestream.ExecuteCommand");
+        houseEnterErrorGate  = pi.GetIpcSubscriber<object>("Lifestream.OnHouseEnterError");
+        houseEnterErrorGate.Subscribe(OnHouseEnterError);
         log.Information("[VenueMapper/LS] IPC subscribers created.");
+    }
+
+    private void OnHouseEnterError()
+    {
+        if (DateTime.Now - lastNavigateAt > OwnTeleportWindow) return;
+        lastNavigateAt = DateTime.MinValue;
+        log.Warning("[VenueMapper/LS] Lifestream reported that entering the house failed.");
+        HouseEnterFailed?.Invoke();
+    }
+
+    public bool ExecuteCommand(string arguments)
+    {
+        try
+        {
+            log.Information($"[VenueMapper/LS] ExecuteCommand('{arguments}')");
+            executeCommandGate.InvokeAction(arguments);
+            lastNavigateAt = DateTime.Now;
+            return true;
+        }
+        catch (Exception ex)
+        {
+            log.Warning($"[VenueMapper/LS] ExecuteCommand failed: {ex.GetType().Name}: {ex.Message}");
+            return false;
+        }
+    }
+
+    public bool Abort()
+    {
+        try
+        {
+            abortGate.InvokeAction();
+            lastNavigateAt = DateTime.MinValue;
+            log.Information("[VenueMapper/LS] Abort sent.");
+            return true;
+        }
+        catch (Exception ex)
+        {
+            log.Warning($"[VenueMapper/LS] Abort failed: {ex.GetType().Name}: {ex.Message}");
+            return false;
+        }
     }
 
     public bool IsLoaded
@@ -74,6 +126,22 @@ public class LifestreamService : IDisposable
         }
     }
 
+    private bool busyCached;
+    private DateTime busyCheckedAt = DateTime.MinValue;
+
+    public bool IsBusyCached
+    {
+        get
+        {
+            var now = DateTime.Now;
+            if ((now - busyCheckedAt).TotalMilliseconds < 500) return busyCached;
+            busyCheckedAt = now;
+            try { busyCached = isBusyGate.InvokeFunc(); }
+            catch { busyCached = false; }
+            return busyCached;
+        }
+    }
+
     public bool NavigateTo(string address)
     {
         log.Information($"[VenueMapper/LS] NavigateTo: '{address}'");
@@ -93,6 +161,7 @@ public class LifestreamService : IDisposable
             log.Information($"[VenueMapper/LS] Entry: world={entry.World}, city={entry.City}, ward={entry.Ward}, plot={entry.Plot}");
             log.Information("[VenueMapper/LS] Calling GoToHousingAddress...");
             goToHousingGate.InvokeAction(entry);
+            lastNavigateAt = DateTime.Now;
             log.Information("[VenueMapper/LS] GoToHousingAddress OK.");
             return true;
         }
@@ -210,5 +279,9 @@ public class LifestreamService : IDisposable
         "Light" or "Crystal" or "Aether" or "Primal" or "Chaos" or "Materia" or
         "Elemental" or "Gaia" or "Mana" or "Meteor" or "Dynamis" or "Shadow";
 
-    public void Dispose() { }
+    public void Dispose()
+    {
+        try { houseEnterErrorGate.Unsubscribe(OnHouseEnterError); }
+        catch (Exception ex) { log.Debug($"[VenueMapper/LS] Unsubscribe failed: {ex.Message}"); }
+    }
 }

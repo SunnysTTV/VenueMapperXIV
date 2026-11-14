@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Numerics;
 
 namespace VenueMapper.Services;
 
@@ -28,6 +29,10 @@ public sealed class ToastManager
         public DateTime StartedAt;
         public double Duration;
         public string? Tag;
+        public string? Detail;
+        public Vector4? Color;
+        public Vector4? Color2;
+        public bool Banner;
 
         public readonly DateTime CreatedAt = DateTime.Now;
     }
@@ -43,6 +48,10 @@ public sealed class ToastManager
     private readonly List<ToastEntry> retiring = new();
     private readonly List<HistoryEntry> history = new();
     private readonly List<DateTime> recentTrims = new();
+    private readonly List<ToastEntry> banners = new();
+
+    public bool BannersEnabled = true;
+    public bool BannersMuted;
 
     public int MaxVisible = 4;
     public float DurationMultiplier = 1.0f;
@@ -66,16 +75,70 @@ public sealed class ToastManager
                 var pausedFor = DateTime.Now - pauseStartedAt.Value;
                 foreach (var e in entries) e.StartedAt += pausedFor;
                 foreach (var e in retiring) e.StartedAt += pausedFor;
+                foreach (var e in banners) e.StartedAt += pausedFor;
                 pauseStartedAt = null;
             }
         }
     }
 
-    public void Show(string text, ToastKind kind = ToastKind.Info, double duration = 3.0, string? tag = null)
+    public void Announce(string title, string? detail, ToastKind kind, Vector4? color = null, Vector4? color2 = null, double duration = 4.5)
+    {
+        if (BannersMuted) return;
+        if (!BannersEnabled)
+        {
+            Show(title, kind, duration, null, detail, color, color2);
+            return;
+        }
+
+        lock (sync)
+        {
+            AddHistory(detail != null ? $"{title} · {detail}" : title, kind);
+            var start = DateTime.Now;
+            if (banners.Count > 0)
+            {
+                var last = banners[^1];
+                var lastEnd = last.StartedAt + TimeSpan.FromSeconds(last.Duration);
+                if (lastEnd > start) start = lastEnd;
+            }
+            banners.Add(new ToastEntry
+            {
+                Text = title,
+                Detail = detail,
+                Kind = kind,
+                Color = color,
+                Color2 = color2,
+                Banner = true,
+                StartedAt = start,
+                Duration = duration * DurationMultiplier,
+            });
+        }
+    }
+
+    public ToastEntry? ActiveBanner
+    {
+        get
+        {
+            lock (sync)
+            {
+                banners.RemoveAll(e => (DateTime.Now - e.StartedAt).TotalSeconds > e.Duration);
+                return banners.Count > 0 && banners[0].StartedAt <= DateTime.Now ? banners[0] : null;
+            }
+        }
+    }
+
+    private void AddHistory(string text, ToastKind kind)
+    {
+        history.Add(new HistoryEntry(text, kind, DateTime.Now));
+        if (history.Count > MaxHistory)
+            history.RemoveAt(0);
+    }
+
+    public void Show(string text, ToastKind kind = ToastKind.Info, double duration = 3.0, string? tag = null,
+        string? detail = null, Vector4? color = null, Vector4? color2 = null)
     {
         lock (sync)
         {
-            history.Add(new HistoryEntry(text, kind, DateTime.Now));
+            history.Add(new HistoryEntry(detail != null ? $"{text} · {detail}" : text, kind, DateTime.Now));
             if (history.Count > MaxHistory)
                 history.RemoveAt(0);
 
@@ -92,6 +155,9 @@ public sealed class ToastManager
                 StartedAt = DateTime.Now,
                 Duration = duration * DurationMultiplier,
                 Tag = tag,
+                Detail = detail,
+                Color = color,
+                Color2 = color2,
             });
 
             while (MaxVisible > 0 && entries.Count > MaxVisible)
@@ -144,5 +210,16 @@ public sealed class ToastManager
     public void ClearHistory()
     {
         lock (sync) history.Clear();
+    }
+
+    public void DismissAll(bool includeBanners)
+    {
+        lock (sync)
+        {
+            entries.Clear();
+            retiring.Clear();
+            recentTrims.Clear();
+            if (includeBanners) banners.Clear();
+        }
     }
 }

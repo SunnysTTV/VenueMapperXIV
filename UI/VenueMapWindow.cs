@@ -1,9 +1,11 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Numerics;
 using Dalamud.Interface;
 using Dalamud.Interface.Textures.TextureWraps;
+using Dalamud.Interface.Utility;
+using Dalamud.Interface.Utility.Raii;
 using Dalamud.Interface.Windowing;
 using Dalamud.Bindings.ImGui;
 using VenueMapper.Models;
@@ -11,7 +13,7 @@ using VenueMapper.Services;
 
 namespace VenueMapper.UI;
 
-public class VenueMapWindow : Window, IDisposable
+public partial class VenueMapWindow : Window, IDisposable
 {
     private readonly VenueMapperPlugin plugin;
     private string currentFloorName = string.Empty;
@@ -20,19 +22,17 @@ public class VenueMapWindow : Window, IDisposable
     private float _fadeAlpha = 0f;
     private bool  _wasClosed = true;
 
-    private float bMinX, bMaxX, bMinY, bMaxY;
-    private string boundsVenueId = string.Empty;
-
     private float mapZoom = 10.0f;
     private float mapPanX, mapPanY;
     private uint  lastMapId;
-    private readonly Dictionary<string, uint> floorMapIds = new();
     private const float ZoomMin = 8.0f;
     private const float ZoomMax = 12.0f;
     private const float ZoomDefault = 10.0f;
+    private const float WardZoomMax = 10f;
 
     private bool selectDirTab;
     private bool selectEvtTab;
+    private bool selectFesTab;
     private bool selectMapTab;
     private bool selectSettingsTab;
     private bool selectEggTab;
@@ -50,18 +50,7 @@ public class VenueMapWindow : Window, IDisposable
     private readonly Dictionary<string, double> tpAnimStart = new();
 
     private static readonly Random EggRng = new();
-    private bool pendingWobbleOpen;
-    private double wobbleOpenStart = -1;
-    private double wobbleCloseStart = -1;
-    private Vector2 wobbleOpenAnchor;
-    private Vector2 wobbleCloseAnchor;
-    private int wobbleOpenVariant;
-    private int wobbleCloseVariant;
-    private bool suppressCloseWobble;
-    private const double WobbleOpenDuration = 0.35;
-    private const double WobbleCloseDuration = 0.45;
-    private const int WobbleVariantCount = 9;
-    private const string DefaultTitle = "Venue Map";
+    private const string DefaultTitle = "VenueMapper";
     private string rawTitle = DefaultTitle;
 
     private int titleClickCount;
@@ -107,19 +96,9 @@ public class VenueMapWindow : Window, IDisposable
         "404: Subtlety Not Found",
     ];
 
-    private static readonly string[] SunnyLinePool =
-    [
-        "Home sweet home, Sunny.",
-        "The walls remember who built them.",
-        "Nice to see the owner drop by.",
-        "This place recognizes its architect.",
-    ];
-
-    public string PickSunnyLine() => SunnyLinePool[EggRng.Next(SunnyLinePool.Length)];
-
     public VenueMapWindow(VenueMapperPlugin plugin)
-        : base("Venue Map###VenueMapper",
-            ImGuiWindowFlags.NoScrollbar | ImGuiWindowFlags.NoScrollWithMouse)
+        : base(DefaultTitle + "###VenueMapper",
+            ImGuiWindowFlags.NoTitleBar | ImGuiWindowFlags.NoScrollbar | ImGuiWindowFlags.NoScrollWithMouse)
     {
         this.plugin = plugin;
         this.eventsView = new EventsView(plugin.PartakeApi);
@@ -128,26 +107,6 @@ public class VenueMapWindow : Window, IDisposable
         Size = DefaultWindowSize;
         SizeCondition = ImGuiCond.FirstUseEver;
         SizeConstraints = new WindowSizeConstraints { MinimumSize = DefaultWindowSize };
-
-        TitleBarButtons =
-        [
-            new Dalamud.Interface.Windowing.TitleBarButton
-            {
-                Icon = Dalamud.Interface.FontAwesomeIcon.FileAlt,
-                IconOffset = new Vector2(2, 1),
-                Click = _ => plugin.ChangelogWindow.Open(),
-                ShowTooltip = () => ImGui.SetTooltip("View older versions"),
-                Priority = 0,
-            },
-            new Dalamud.Interface.Windowing.TitleBarButton
-            {
-                Icon = Dalamud.Interface.FontAwesomeIcon.Bell,
-                IconOffset = new Vector2(2, 1),
-                Click = _ => plugin.NotificationHistoryWindow.Open(),
-                ShowTooltip = () => ImGui.SetTooltip(Lang.NotificationHistory),
-                Priority = 1,
-            },
-        ];
 
         var savedPos = plugin.Configuration.WindowPosition;
         if (savedPos.HasValue)
@@ -169,15 +128,93 @@ public class VenueMapWindow : Window, IDisposable
 
         WindowName = rawTitle + "###VenueMapper";
 
-        ImGui.PushStyleColor(ImGuiCol.WindowBg,      UIConstants.Background);
-        ImGui.PushStyleColor(ImGuiCol.TitleBg,       UIConstants.Background);
-        ImGui.PushStyleColor(ImGuiCol.TitleBgActive, UIConstants.CardBackground);
-        ImGui.PushStyleColor(ImGuiCol.Border,        UIConstants.WithAlpha(UIConstants.Glow, 0.55f));
+        ImGui.PushStyleColor(ImGuiCol.WindowBg,          Vector4.Zero);
+        ImGui.PushStyleColor(ImGuiCol.ResizeGrip,        Vector4.Zero);
+        ImGui.PushStyleColor(ImGuiCol.ResizeGripHovered, Vector4.Zero);
+        ImGui.PushStyleColor(ImGuiCol.ResizeGripActive,  Vector4.Zero);
 
-        var rgbActive = plugin.EasterEggManager.IsRgbOverloadActive;
-        ImGui.PushStyleVar(ImGuiStyleVar.WindowBorderSize, rgbActive ? 3f : 1.5f);
-        ImGui.PushStyleVar(ImGuiStyleVar.WindowPadding, new Vector2(10, 8));
-        ImGui.PushStyleVar(ImGuiStyleVar.WindowRounding, 8f);
+        ImGui.PushStyleVar(ImGuiStyleVar.WindowBorderSize, 0f);
+        ImGui.PushStyleVar(ImGuiStyleVar.WindowPadding, new Vector2(12, 8));
+        ImGui.PushStyleVar(ImGuiStyleVar.WindowRounding, 0f);
+    }
+
+    private const float FrameCut = 12f;
+    private const float TitleBarH = 30f;
+    private const float TitleToolSize = 24f;
+    private Vector2 titleMin, titleMax;
+
+    private void DrawWindowFrame()
+    {
+        var min = ImGui.GetWindowPos();
+        UIConstants.DrawHudFrame(ImGui.GetWindowDrawList(), min, min + ImGui.GetWindowSize(), FrameCut,
+            ImGui.GetStyle().Alpha, plugin.EasterEggManager.IsRgbOverloadActive);
+    }
+
+    private void DrawTitleBar()
+    {
+        var dl = ImGui.GetWindowDrawList();
+        var start = ImGui.GetCursorScreenPos();
+        var avail = ImGui.GetContentRegionAvail().X;
+        var lineH = ImGui.GetTextLineHeight();
+        var a = ImGui.GetStyle().Alpha;
+        const float toolGap = 2f;
+        const int toolCount = 4;
+        var toolsW = TitleToolSize * toolCount + toolGap * (toolCount - 1);
+        var dragW = Math.Max(avail - toolsW - 8f, 40f);
+
+        ImGui.Dummy(new Vector2(dragW, TitleBarH));
+        titleMin = start;
+        titleMax = start + new Vector2(dragW, TitleBarH);
+
+        HudIcons.Crystal(dl, new Vector2(start.X + 6f, start.Y + TitleBarH / 2f), lineH * 1.1f,
+            U32(UIConstants.WithAlpha(UIConstants.Glow, a)));
+        var shownTitle = UIConstants.FitText(rawTitle, dragW - 24f);
+        if (UIConstants.OverrideMode != ColorOverrideMode.Hacker)
+            dl.AddText(new Vector2(start.X + 20f, start.Y + (TitleBarH - lineH) / 2f),
+                U32(UIConstants.WithAlpha(UIConstants.Heading, a)), shownTitle);
+        if (shownTitle != rawTitle && ImGui.IsWindowHovered() && ImGui.IsMouseHoveringRect(titleMin, titleMax))
+            ImGui.SetTooltip(rawTitle);
+        if (ImGui.IsMouseDoubleClicked(ImGuiMouseButton.Left) && ImGui.IsWindowHovered() && ImGui.IsMouseHoveringRect(titleMin, titleMax))
+            ToggleMinimize();
+
+        var toolPos = new Vector2(start.X + avail - toolsW, start.Y + (TitleBarH - TitleToolSize) / 2f);
+        var step = new Vector2(TitleToolSize + toolGap, 0f);
+        ImGui.SetCursorScreenPos(toolPos);
+        if (TitleTool("##vmNotifHistory", FontAwesomeIcon.Bell, Lang.NotificationHistory))
+            plugin.NotificationHistoryWindow.Open();
+        ImGui.SetCursorScreenPos(toolPos + step);
+        if (TitleTool("##vmChangelog", FontAwesomeIcon.FileAlt, Lang.UpdateNotes))
+            plugin.UpdateNotesWindow.Open();
+        ImGui.SetCursorScreenPos(toolPos + step * 2f);
+        if (TitleTool("##vmMinimize", minimized ? FontAwesomeIcon.WindowMaximize : FontAwesomeIcon.WindowMinimize,
+                minimized ? Lang.Restore : Lang.Minimize))
+            ToggleMinimize();
+        ImGui.SetCursorScreenPos(toolPos + step * 3f);
+        if (TitleTool("##vmClose", FontAwesomeIcon.Times, Lang.Close))
+            IsOpen = false;
+
+        var winPos = ImGui.GetWindowPos();
+        var winW = ImGui.GetWindowSize().X;
+        if (!minimized)
+            UIConstants.DrawTrimRule(dl, winPos.X + 14f, winPos.X + winW - 14f, start.Y + TitleBarH + 2f);
+        ImGui.SetCursorScreenPos(new Vector2(start.X, start.Y + TitleBarH));
+        ImGui.Dummy(new Vector2(0, 8f));
+    }
+
+    private static bool TitleTool(string id, FontAwesomeIcon icon, string? tooltip)
+    {
+        var pos = ImGui.GetCursorScreenPos();
+        var size = new Vector2(TitleToolSize, TitleToolSize);
+        var clicked = ImGui.InvisibleButton(id, size);
+        var hovered = ImGui.IsItemHovered();
+        var dl = ImGui.GetWindowDrawList();
+        if (hovered)
+            dl.AddRectFilled(pos, pos + size, U32(UIConstants.CardBackground), 3f);
+        UIConstants.DrawIconCentered(dl, UiBuilder.IconFont.FontSize, pos + size / 2f, icon,
+            U32(hovered ? UIConstants.TextPrimary : UIConstants.TextSecondary));
+        if (hovered && tooltip != null)
+            ImGui.SetTooltip(tooltip);
+        return clicked;
     }
 
     public override void PostDraw()
@@ -186,13 +223,37 @@ public class VenueMapWindow : Window, IDisposable
         ImGui.PopStyleColor(4);
     }
 
+    public void Stage(string tab, Vector2 size)
+    {
+        var viewport = ImGui.GetMainViewport().Size;
+        pendingResetPos = Vector2.Max(Vector2.Zero, (viewport - size * ImGuiHelpers.GlobalScale) / 2f);
+        pendingResetSize = size;
+        rawTitle = DefaultTitle;
+        minimized = false;
+        restorePending = false;
+        SizeConstraints = new WindowSizeConstraints { MinimumSize = DefaultWindowSize };
+        selectMapTab = tab == "map";
+        selectDirTab = tab == "dir";
+        selectEvtTab = tab == "evt";
+        selectFesTab = tab == "fes";
+        selectSettingsTab = tab == "set";
+        selectEggTab = tab == "egg";
+        selectAbtTab = tab == "abt";
+        IsOpen = true;
+    }
+
+    public void ExpandFestival(string festivalId) => expandedFestivals.Add(festivalId);
+
     public void ShowDirectory() { selectDirTab = true; }
     public void HideDirectory() { selectMapTab = true; }
     public void ShowEvents() { selectEvtTab = true; }
+    public void ShowFestivals() { selectFesTab = true; }
     public void ShowSettings() { selectSettingsTab = true; }
-    public void ShowEasterEggs() { selectEggTab = true; }
 
-    public void TriggerWobblePreview() => pendingWobbleOpen = true;
+    private bool IsMapAvailable(VenueConfig config)
+        => plugin.PositionTracker.GetVenueAtCurrentPlotIncludingGarden(config) != null
+           || plugin.PositionTracker.GetFestivalHere(config) != null
+           || plugin.PositionTracker.GetWardVenues(config).Count > 0;
 
     public void TriggerRandomTitlePreview()
     {
@@ -202,10 +263,20 @@ public class VenueMapWindow : Window, IDisposable
 
     public override void OnOpen()
     {
-        var eggs = plugin.EasterEggManager;
+        otherGroupOpen = true;
+        if (minimized)
+        {
+            minimized = false;
+            restorePending = true;
+        }
 
-        if (eggs.IsEnabled(EasterEggIds.WindowWobble) && EggRng.Next(30) == 0)
-            pendingWobbleOpen = true;
+        if (plugin.ScreenshotMode)
+        {
+            rawTitle = DefaultTitle;
+            return;
+        }
+
+        var eggs = plugin.EasterEggManager;
 
         if (eggs.IsEnabled(EasterEggIds.RandomTitle))
         {
@@ -227,14 +298,14 @@ public class VenueMapWindow : Window, IDisposable
         if (effectiveTab == "map")
         {
             var cfg = plugin.ConfigManager.Config;
-            var inVenueNow = cfg != null && plugin.PositionTracker.GetCurrentVenue(cfg) != null;
-            if (!inVenueNow) effectiveTab = "dir";
+            if (cfg == null || !IsMapAvailable(cfg)) effectiveTab = "dir";
         }
 
         switch (effectiveTab)
         {
             case "dir": selectDirTab = true; break;
             case "evt": selectEvtTab = true; break;
+            case "fes": selectFesTab = true; break;
             case "set": selectSettingsTab = true; break;
             case "egg": selectEggTab = true; break;
             case "abt": selectAbtTab = true; break;
@@ -254,15 +325,7 @@ public class VenueMapWindow : Window, IDisposable
     private void CheckTitleClick()
     {
         if (!ImGui.IsMouseClicked(ImGuiMouseButton.Left)) return;
-
-        var winPos = ImGui.GetWindowPos();
-        var winWidth = ImGui.GetWindowSize().X;
-        var titleBarHeight = ImGui.GetFrameHeight();
-        var mouse = ImGui.GetMousePos();
-
-        var inTitleBar = mouse.X >= winPos.X && mouse.X <= winPos.X + winWidth
-            && mouse.Y >= winPos.Y && mouse.Y <= winPos.Y + titleBarHeight;
-        if (!inTitleBar) return;
+        if (!ImGui.IsWindowHovered() || !ImGui.IsMouseHoveringRect(titleMin, titleMax)) return;
 
         if ((DateTime.Now - lastTitleClickTime).TotalSeconds > 2.5)
             titleClickCount = 0;
@@ -278,90 +341,10 @@ public class VenueMapWindow : Window, IDisposable
 
     public override void OnClose()
     {
-        var eggs = plugin.EasterEggManager;
-        if (!suppressCloseWobble && wobbleCloseStart < 0 &&
-            eggs.IsEnabled(EasterEggIds.WindowWobble) && EggRng.Next(30) == 0)
-        {
-            IsOpen = true;
-            wobbleCloseStart = ImGui.GetTime();
-            wobbleCloseAnchor = ImGui.GetWindowPos();
-            wobbleCloseVariant = EggRng.Next(WobbleVariantCount);
-            return;
-        }
-
-        suppressCloseWobble = false;
         _wasClosed = true;
         plugin.Configuration.WindowPosition = ImGui.GetWindowPos();
-        plugin.Configuration.WindowSize = ImGui.GetWindowSize();
+        plugin.Configuration.WindowSize = minimized ? restoreSize * ImGuiHelpers.GlobalScale : ImGui.GetWindowSize();
         plugin.Configuration.Save();
-    }
-
-    private static Vector2 WobbleOffset(int variant, float t, float amplitude)
-    {
-        var decay = 1f - t;
-        return variant switch
-        {
-            0 => new Vector2(0f, MathF.Sin(t * MathF.PI * 2.5f) * decay * amplitude),
-            1 => new Vector2(MathF.Sin(t * MathF.PI * 6f) * decay * amplitude, 0f),
-            2 => new Vector2(
-                    MathF.Sin(t * MathF.PI * 4f) * decay * amplitude * 0.7f,
-                    MathF.Cos(t * MathF.PI * 3f) * decay * amplitude * 0.5f),
-            3 => new Vector2(0f, MathF.Sin(t * MathF.PI * 3f) * decay * decay * amplitude * 1.6f),
-            4 => new Vector2(MathF.Sin(t * MathF.PI * 8f) * decay * decay * amplitude, 0f),
-            5 => new Vector2(
-                    MathF.Sin(t * MathF.PI * 2f) * decay * amplitude,
-                    MathF.Sin(t * MathF.PI * 4f) * decay * amplitude * 0.6f),
-            6 => new Vector2(0f, -MathF.Abs(MathF.Sin(t * MathF.PI * 3.5f)) * decay * amplitude * 1.4f),
-            7 => new Vector2(
-                    MathF.Cos(t * MathF.PI * 5f) * decay * amplitude * 0.8f,
-                    MathF.Sin(t * MathF.PI * 5f) * decay * amplitude * 0.8f),
-            _ => new Vector2(
-                    MathF.Sin(t * MathF.PI * 6f) * decay * amplitude * 0.5f,
-                    MathF.Sin(t * MathF.PI * 2.5f) * decay * amplitude),
-        };
-    }
-
-    private void ApplyWobble()
-    {
-        if (pendingWobbleOpen)
-        {
-            wobbleOpenStart = ImGui.GetTime();
-            wobbleOpenAnchor = ImGui.GetWindowPos();
-            wobbleOpenVariant = EggRng.Next(WobbleVariantCount);
-            pendingWobbleOpen = false;
-        }
-
-        if (wobbleOpenStart >= 0)
-        {
-            var elapsed = ImGui.GetTime() - wobbleOpenStart;
-            if (elapsed < WobbleOpenDuration)
-            {
-                var t = (float)(elapsed / WobbleOpenDuration);
-                ImGui.SetWindowPos(wobbleOpenAnchor + WobbleOffset(wobbleOpenVariant, t, 16f));
-            }
-            else
-            {
-                ImGui.SetWindowPos(wobbleOpenAnchor);
-                wobbleOpenStart = -1;
-            }
-        }
-
-        if (wobbleCloseStart >= 0)
-        {
-            var elapsed = ImGui.GetTime() - wobbleCloseStart;
-            if (elapsed < WobbleCloseDuration)
-            {
-                var t = (float)(elapsed / WobbleCloseDuration);
-                ImGui.SetWindowPos(wobbleCloseAnchor + WobbleOffset(wobbleCloseVariant, t, 12f));
-            }
-            else
-            {
-                ImGui.SetWindowPos(wobbleCloseAnchor);
-                wobbleCloseStart = -1;
-                suppressCloseWobble = true;
-                IsOpen = false;
-            }
-        }
     }
 
     private readonly Dictionary<string, float> navTabAnim = new();
@@ -373,9 +356,7 @@ public class VenueMapWindow : Window, IDisposable
     {
         var iconFont = UiBuilder.IconFont;
         var iconStr = icon.ToIconString();
-        ImGui.PushFont(iconFont);
-        var iconSz = ImGui.CalcTextSize(iconStr);
-        ImGui.PopFont();
+        var iconSz = CalcIconSize(iconStr);
         var labelSz = ImGui.CalcTextSize(label);
 
         var height = ImGui.GetFrameHeight() + 6f;
@@ -391,27 +372,31 @@ public class VenueMapWindow : Window, IDisposable
         var w = collapsedW + (expandedW - collapsedW) * t;
         var pos = ImGui.GetCursorScreenPos();
 
-        if (disabled) ImGui.BeginDisabled();
-        ImGui.InvisibleButton($"##navtab_{id}", new Vector2(w, height));
-        var hovered = ImGui.IsItemHovered(ImGuiHoveredFlags.AllowWhenDisabled);
-        var clicked = !disabled && ImGui.IsItemClicked();
-        if (disabled) ImGui.EndDisabled();
+        bool hovered, clicked;
+        using (ImRaii.Disabled(disabled))
+        {
+            ImGui.InvisibleButton($"##navtab_{id}", new Vector2(w, height));
+            hovered = ImGui.IsItemHovered(ImGuiHoveredFlags.AllowWhenDisabled);
+            clicked = !disabled && ImGui.IsItemClicked();
+        }
 
         var dl = ImGui.GetWindowDrawList();
 
-        if (active)
-            dl.AddRectFilled(pos, pos + new Vector2(w, height),
-                ImGui.ColorConvertFloat4ToU32(UIConstants.WithAlpha(UIConstants.Primary, 0.3f)), UIConstants.ChipRounding);
-        else if (hovered && !disabled)
-            dl.AddRectFilled(pos, pos + new Vector2(w, height),
-                ImGui.ColorConvertFloat4ToU32(UIConstants.WithAlpha(UIConstants.Primary, 0.15f)), UIConstants.ChipRounding);
+        if (t > 0.01f)
+        {
+            var barW = w * t;
+            var barX = pos.X + (w - barW) / 2f;
+            dl.AddRectFilled(new Vector2(barX, pos.Y + height - 2f), new Vector2(barX + barW, pos.Y + height),
+                ImGui.ColorConvertFloat4ToU32(UIConstants.WithAlpha(UIConstants.Accent, t)));
+        }
 
-        var col = disabled ? UIConstants.WithAlpha(UIConstants.TextSecondary, 0.5f)
-                : active ? UIConstants.TextPrimary : UIConstants.TextSecondary;
+        var col = disabled ? UIConstants.WithAlpha(UIConstants.TextMuted, 0.6f)
+                : active || hovered ? UIConstants.TextPrimary : UIConstants.TextSecondary;
+        var iconCol = active ? UIConstants.Accent : col;
 
         var iconX = pos.X + NavTabPadX;
         var iconY = pos.Y + (height - iconSz.Y) * 0.5f;
-        dl.AddText(iconFont, iconFont.FontSize, new Vector2(iconX, iconY), ImGui.ColorConvertFloat4ToU32(col), iconStr);
+        dl.AddText(iconFont, iconFont.FontSize, new Vector2(iconX, iconY), ImGui.ColorConvertFloat4ToU32(iconCol), iconStr);
 
         if (t > 0.05f)
         {
@@ -423,9 +408,50 @@ public class VenueMapWindow : Window, IDisposable
         return clicked;
     }
 
+    private bool minimized;
+    private bool restorePending;
+    private Vector2 restoreSize = DefaultWindowSize;
+    private const float MinimizedHeight = TitleBarH + 18f;
+
+    private void ToggleMinimize()
+    {
+        if (!minimized)
+        {
+            restoreSize = ImGui.GetWindowSize() / ImGuiHelpers.GlobalScale;
+            minimized = true;
+        }
+        else
+        {
+            minimized = false;
+            restorePending = true;
+        }
+    }
+
+    private void ApplyMinimizeSize()
+    {
+        if (minimized)
+        {
+            SizeConstraints = new WindowSizeConstraints
+            {
+                MinimumSize = new Vector2(DefaultWindowSize.X, MinimizedHeight),
+                MaximumSize = new Vector2(10000f, MinimizedHeight),
+            };
+            return;
+        }
+
+        if (!restorePending) return;
+        restorePending = false;
+        SizeConstraints = new WindowSizeConstraints { MinimumSize = DefaultWindowSize };
+        Size = restoreSize;
+        SizeCondition = ImGuiCond.Always;
+        titlePinHeld = true;
+    }
+
+    public ScreenRect LastRect { get; private set; }
+
     public override void Draw()
     {
-
+        LastRect = ScreenRect.FromCurrentWindow();
         try { DrawInner(); }
         catch (Exception ex) { VenueMapperPlugin.Log.Error(ex, "[VenueMapper] VenueMapWindow draw failed"); }
     }
@@ -456,7 +482,10 @@ public class VenueMapWindow : Window, IDisposable
             titlePinHeld = false;
         }
 
-        ApplyWobble();
+        ApplyMinimizeSize();
+        DrawWindowFrame();
+        DrawTitleBar();
+        if (minimized) return;
         plugin.KonamiDetector.Update(ImGui.IsWindowFocused(ImGuiFocusedFlags.RootAndChildWindows));
 
         var config = plugin.ConfigManager.Config;
@@ -466,26 +495,36 @@ public class VenueMapWindow : Window, IDisposable
             return;
         }
 
-        var inVenue = plugin.PositionTracker.GetCurrentVenue(config) != null;
+        var inVenue = IsMapAvailable(config);
 
         if (selectMapTab) currentTab = "map";
         if (selectDirTab) currentTab = "dir";
         if (selectEvtTab) currentTab = "evt";
+        if (selectFesTab) currentTab = "fes";
         if (selectSettingsTab) currentTab = "set";
         if (selectEggTab) currentTab = "egg";
         if (selectAbtTab) currentTab = "abt";
-        selectMapTab = selectDirTab = selectEvtTab = selectSettingsTab = selectEggTab = selectAbtTab = false;
+        selectMapTab = selectDirTab = selectEvtTab = selectFesTab = selectSettingsTab = selectEggTab = selectAbtTab = false;
 
         if (currentTab == "map" && !inVenue) currentTab = "dir";
 
         var hackerBooting = plugin.EasterEggManager.IsHackerModeBooting;
-        if (hackerBooting) ImGui.BeginDisabled();
+        using (ImRaii.Disabled(hackerBooting))
+            DrawTabs(config, inVenue);
 
+        if (!hackerBooting) CheckTitleClick();
+
+        HackerModeOverlay.Draw(ref hackerModeStart, ref hackerTitleLoopStart, rawTitle, TitleBarH, FrameCut, 34f, 8f);
+    }
+
+    private void DrawTabs(VenueConfig config, bool inVenue)
+    {
         var navTabs = new (string Id, FontAwesomeIcon Icon, string Label, bool Disabled)[]
         {
             ("map", FontAwesomeIcon.Map, Lang.Map, !inVenue),
             ("dir", FontAwesomeIcon.List, Lang.Directory, false),
             ("evt", FontAwesomeIcon.CalendarAlt, Lang.Events, false),
+            ("fes", FontAwesomeIcon.Flag, Lang.Festivals, false),
             ("set", FontAwesomeIcon.Cog, Lang.Settings, false),
             ("egg", FontAwesomeIcon.Certificate, Lang.EasterEggs, false),
             ("abt", FontAwesomeIcon.InfoCircle, Lang.About, false),
@@ -501,20 +540,22 @@ public class VenueMapWindow : Window, IDisposable
 
             if (id == "map" && !inVenue && ImGui.IsItemHovered(ImGuiHoveredFlags.AllowWhenDisabled))
             {
-                ImGui.BeginTooltip();
-                ImGui.PushTextWrapPos(250f);
-                ImGui.TextColored(UIConstants.Primary, Lang.MapUnavailable);
+                using var tooltip = ImRaii.Tooltip();
+                using var wrap = ImRaii.TextWrapPos(250f);
+                ImGui.TextColored(UIConstants.TextSecondary, Lang.MapUnavailable);
                 ImGui.TextUnformatted(Lang.MapNotInVenue);
-                ImGui.PopTextWrapPos();
-                ImGui.EndTooltip();
             }
 
             if (i < navTabs.Length - 1)
-                ImGui.SameLine(0, 4);
+                ImGui.SameLine(0, 2);
         }
 
+        var tabBottom = ImGui.GetItemRectMax().Y;
+        var x0 = ImGui.GetWindowPos().X + ImGui.GetWindowContentRegionMin().X;
+        var x1 = ImGui.GetWindowPos().X + ImGui.GetWindowContentRegionMax().X;
+        ImGui.GetWindowDrawList().AddLine(new Vector2(x0, tabBottom), new Vector2(x1, tabBottom),
+            ImGui.ColorConvertFloat4ToU32(UIConstants.Line), 1f);
         ImGui.Spacing();
-        ImGui.Separator();
         ImGui.Spacing();
 
         SetActiveTab(currentTab);
@@ -527,18 +568,10 @@ public class VenueMapWindow : Window, IDisposable
                 DrawDirectoryTab(config);
                 break;
             case "evt":
-                eventsView.SetVenues(config.Venues, plugin.Configuration.HiddenVenueIds);
-                UIConstants.PushScrollbarStyle();
-                try
-                {
-                    if (ImGui.BeginChild("##eventsScroll", new Vector2(-1, -1)))
-                        eventsView.Draw(ref showHidden);
-                }
-                finally
-                {
-                    ImGui.EndChild();
-                    UIConstants.PopScrollbarStyle();
-                }
+                DrawEventsTab(config);
+                break;
+            case "fes":
+                DrawFestivalsTab(config);
                 break;
             case "set":
                 plugin.SettingsWindow.DrawSettingsTab();
@@ -550,12 +583,21 @@ public class VenueMapWindow : Window, IDisposable
                 plugin.SettingsWindow.DrawAboutTab();
                 break;
         }
+    }
 
-        if (hackerBooting) ImGui.EndDisabled();
+    private void DrawEventsTab(VenueConfig config)
+    {
+        eventsView.SetVenues(config.Venues, plugin.Configuration.HiddenVenueIds);
+        using var scrollbar = UIConstants.ScrollbarStyle();
+        using var child = ImRaii.Child("##eventsScroll", new Vector2(-1, -1));
+        if (child)
+            eventsView.Draw(ref showHidden);
+    }
 
-        if (!hackerBooting) CheckTitleClick();
-
-        HackerModeOverlay.Draw(ref hackerModeStart, ref hackerTitleLoopStart, rawTitle);
+    private static Vector2 CalcIconSize(string iconStr)
+    {
+        using (ImRaii.PushFont(UiBuilder.IconFont))
+            return ImGui.CalcTextSize(iconStr);
     }
 
     private double hackerModeStart = -1;
@@ -575,29 +617,19 @@ public class VenueMapWindow : Window, IDisposable
         return isOpen;
     }
 
-    private bool IsVenueOpenNow(Venue v)
+    private bool IsVenueOpenNow(Venue v) => plugin.GetVenueOpening(v).Open;
+
+    private readonly Dictionary<string, (bool today, double checkedAt)> openTodayCache = new();
+
+    private bool IsVenueOpenTodayCached(Venue v)
     {
-        var xivId = ExtractXivVenuesId(v.Links?.FfxivVenues);
-        if (xivId != null)
-        {
-            plugin.XivVenues.RequestSchedule(xivId);
-            var sched = plugin.XivVenues.GetSchedule(xivId);
-            if (sched != null) return sched.IsOpenNow;
-        }
+        var now = ImGui.GetTime();
+        if (openTodayCache.TryGetValue(v.VenueId, out var cached) && now - cached.checkedAt < OpenNowCacheSeconds)
+            return cached.today;
 
-        if (v.TeamId > 0)
-        {
-            _ = plugin.PartakeApi.FetchTeamAsync(v.TeamId);
-            var events = plugin.PartakeApi.GetEvents(v.TeamId);
-            if (events.Count > 0)
-            {
-                var evt = events[0];
-                var now = DateTime.UtcNow;
-                if (evt.StartTime <= now && evt.EndTime >= now) return true;
-            }
-        }
-
-        return false;
+        var today = plugin.IsOpenToday(v, DateTime.UtcNow);
+        openTodayCache[v.VenueId] = (today, now);
+        return today;
     }
 
     private void DrawDirectoryTab(VenueConfig config)
@@ -623,226 +655,449 @@ public class VenueMapWindow : Window, IDisposable
             filtered = filtered.Where(v => selectedDcs.Contains(v.Datacenter));
         if (selectedServers.Count > 0)
             filtered = filtered.Where(v => selectedServers.Any(s =>
-                v.Address.Contains(s, StringComparison.OrdinalIgnoreCase)));
+                string.Equals(s, v.Server, StringComparison.OrdinalIgnoreCase)));
 
-        var boostOpen = plugin.Configuration.BoostOpenVenues;
-        var venues = filtered
+        var now = DateTime.UtcNow;
+        var baseList = filtered.ToList();
+        DrawOverviewStats(config, baseList, now);
+        DrawQuickChips();
+
+        IEnumerable<Venue> quick = baseList;
+        if (quickOpen)
+            quick = quick.Where(IsVenueOpenCached);
+        if (quickFavorites)
+            quick = quick.Where(v => plugin.Configuration.FavoriteVenueIds.Contains(v.VenueId));
+        if (quickToday)
+            quick = quick.Where(IsVenueOpenTodayCached);
+        if (quickMyDc && plugin.PositionTracker.CurrentDatacenter is { Length: > 0 } myDc)
+            quick = quick.Where(v => string.Equals(v.Datacenter, myDc, StringComparison.OrdinalIgnoreCase));
+
+        var venues = quick
             .OrderBy(v =>
             {
                 if (!plugin.Configuration.FavoriteVenueIds.Contains(v.VenueId)) return 1;
                 if (favAnimStart.TryGetValue(v.VenueId, out var t) && ImGui.GetTime() - t < 3.0) return 1;
                 return 0;
             })
-            .ThenBy(v => boostOpen && IsVenueOpenCached(v) ? 0 : 1)
             .ToList();
 
-        UIConstants.PushScrollbarStyle();
-        try
+        using var scrollbar = UIConstants.ScrollbarStyle();
+        using var child = ImRaii.Child("##venueScroll", new Vector2(-1, -1));
+        if (!child) return;
+
+        if (venues.Count == 0)
         {
-            if (ImGui.BeginChild("##venueScroll", new Vector2(-1, -1)))
-            {
-                if (showOwnedOnly && venues.Count == 0)
-                    ImGui.TextColored(UIConstants.WithAlpha(UIConstants.TextSecondary, 0.5f), Lang.NoOwnedVenues);
-                else
-                    DrawVenueDirectory(venues);
-            }
+            ImGui.TextColored(UIConstants.TextMuted, showOwnedOnly ? Lang.NoOwnedVenues : Lang.DirNoMatch);
+            return;
         }
-        finally
+
+        if (!plugin.Configuration.BoostOpenVenues)
         {
-            ImGui.EndChild();
-            UIConstants.PopScrollbarStyle();
+            DrawVenueDirectory(config, venues);
+            return;
         }
+
+        var hereVenue = plugin.PositionTracker.GetVenueAtCurrentPlotIncludingGarden(config);
+        var open = venues.Where(IsVenueOpenCached).ToList();
+        var soon = venues.Where(v => !open.Contains(v) && NextOpening(v, now) is { } start && start - now <= SoonWindow).ToList();
+        var other = venues.Where(v => !open.Contains(v) && !soon.Contains(v)).ToList();
+
+        DrawVenueGroup(Lang.DirGroupOpen, open, hereVenue, false);
+        DrawVenueGroup(Lang.DirGroupSoon, soon, hereVenue, false);
+        DrawVenueGroup(open.Count + soon.Count > 0 ? Lang.DirGroupOther : Lang.DirGroupAll, other, hereVenue, open.Count + soon.Count > 0);
+        DrawEnterVenueHint();
+    }
+
+    private static readonly TimeSpan SoonWindow = TimeSpan.FromHours(12);
+    private bool quickOpen;
+    private bool quickFavorites;
+    private bool quickToday;
+    private bool quickMyDc;
+    private bool otherGroupOpen = true;
+
+    private DateTime? NextOpening(Venue v, DateTime now)
+        => plugin.GetVenueOpening(v, false).Next is { } start && start > now ? start : null;
+
+    private void DrawOverviewStats(VenueConfig config, List<Venue> venues, DateTime now)
+    {
+        var openCount = venues.Count(IsVenueOpenCached);
+        var todayCount = venues.Count(IsVenueOpenTodayCached);
+        var festivalCount = config.Festivals.Count(f => f.IsLive(now));
+
+        const float gap = 6f;
+        var avW = ImGui.GetContentRegionAvail().X;
+        var tileW = (avW - gap * 2f) / 3f;
+        var lineH = ImGui.GetTextLineHeight();
+        var tileH = lineH * 2.3f + 10f;
+
+        if (StatTile("##statOpen", openCount, Lang.StatOpenNow, UIConstants.Success, tileW, tileH, quickOpen))
+            quickOpen = !quickOpen;
+        ImGui.SameLine(0, gap);
+        if (StatTile("##statToday", todayCount, Lang.StatOpenToday, UIConstants.TextPrimary, tileW, tileH, quickToday))
+            quickToday = !quickToday;
+        ImGui.SameLine(0, gap);
+        if (StatTile("##statFestivals", festivalCount, Lang.StatFestivalsLive, UIConstants.Rose, tileW, tileH, false))
+            selectFesTab = true;
+        ImGui.Dummy(new Vector2(0, 2f));
+    }
+
+    private static bool StatTile(string id, int value, string label, Vector4 color, float width, float height, bool active)
+    {
+        var pos = ImGui.GetCursorScreenPos();
+        var clicked = ImGui.InvisibleButton(id, new Vector2(width, height));
+        var hovered = ImGui.IsItemHovered();
+        var dl = ImGui.GetWindowDrawList();
+        var max = pos + new Vector2(width, height);
+
+        dl.AddRectFilled(pos, max, U32(hovered ? UIConstants.Hover : UIConstants.PanelRaised), 3f);
+        dl.AddRect(pos, max, U32(active ? UIConstants.WithAlpha(UIConstants.Accent, 0.7f) : UIConstants.Line), 3f, ImDrawFlags.None, 1f);
+
+        var font = ImGui.GetFont();
+        var big = ImGui.GetFontSize() * 1.35f;
+        var text = value.ToString();
+        dl.AddText(font, big, pos + new Vector2(9f, 4f), U32(value > 0 ? color : UIConstants.TextMuted), text);
+        var labelText = UIConstants.FitText(label, width - 14f);
+        dl.AddText(pos + new Vector2(9f, 4f + big + 1f), U32(UIConstants.TextMuted), labelText);
+        if (hovered && labelText != label)
+            ImGui.SetTooltip(label);
+        return clicked;
+    }
+
+    private void DrawQuickChips()
+    {
+        QuickChip("##qOpen", Lang.ChipOpenNow, ref quickOpen, true);
+        QuickChip("##qFav", Lang.ChipFavorites, ref quickFavorites, false);
+        QuickChip("##qToday", Lang.ChipOpenToday, ref quickToday, false);
+        if (plugin.PositionTracker.CurrentDatacenter.Length > 0)
+            QuickChip("##qMyDc", Lang.ChipMyDatacenter, ref quickMyDc, false);
+        ImGui.Dummy(new Vector2(0, 2f));
+    }
+
+    private static void QuickChip(string id, string label, ref bool value, bool first)
+    {
+        var textSize = ImGui.CalcTextSize(label);
+        var size = new Vector2(textSize.X + 20f, textSize.Y + 6f);
+        if (!first)
+            UIConstants.FlowNext(size.X, 5f);
+        var pos = ImGui.GetCursorScreenPos();
+        if (ImGui.InvisibleButton(id, size))
+            value = !value;
+        var hovered = ImGui.IsItemHovered();
+        var dl = ImGui.GetWindowDrawList();
+        var max = pos + size;
+        var r = size.Y / 2f;
+        var accent = UIConstants.Accent;
+
+        dl.AddRectFilled(pos, max, U32(value ? UIConstants.WithAlpha(accent, 0.14f) : hovered ? UIConstants.Hover : UIConstants.WithAlpha(UIConstants.PanelRaised, 0.8f)), r);
+        dl.AddRect(pos, max, U32(value ? UIConstants.WithAlpha(accent, 0.7f) : UIConstants.LineStrong), r, ImDrawFlags.None, 1f);
+        dl.AddText(pos + new Vector2(10f, 3f), U32(value ? accent : hovered ? UIConstants.TextPrimary : UIConstants.TextSecondary), label);
+    }
+
+    private void DrawVenueGroup(string title, List<Venue> venues, Venue? hereVenue, bool collapsible)
+    {
+        if (venues.Count == 0) return;
+
+        var dl = ImGui.GetWindowDrawList();
+        var pos = ImGui.GetCursorScreenPos();
+        var avW = ImGui.GetContentRegionAvail().X;
+        var lineH = ImGui.GetTextLineHeight();
+        var headerH = lineH + 8f;
+        var expanded = !collapsible || otherGroupOpen;
+
+        var clicked = ImGui.InvisibleButton($"##group_{title}", new Vector2(avW, headerH));
+        var hovered = collapsible && ImGui.IsItemHovered();
+        if (clicked && collapsible)
+            otherGroupOpen = !otherGroupOpen;
+
+        var y = pos.Y + (headerH - lineH) / 2f + 2f;
+        var x = pos.X + 2f;
+        if (collapsible)
+        {
+            var chevron = (expanded ? FontAwesomeIcon.ChevronDown : FontAwesomeIcon.ChevronRight).ToIconString();
+            var iconFont = UiBuilder.IconFont;
+            var iconSize = iconFont.FontSize * 0.7f;
+            dl.AddText(iconFont, iconSize, new Vector2(x, pos.Y + (headerH - iconSize) / 2f + 2f),
+                U32(hovered ? UIConstants.Accent : UIConstants.TextMuted), chevron);
+            x += 14f;
+        }
+        dl.AddText(new Vector2(x, y), U32(UIConstants.Heading), title.ToUpperInvariant());
+        var count = venues.Count.ToString();
+        dl.AddText(new Vector2(pos.X + avW - ImGui.CalcTextSize(count).X - 4f, y), U32(UIConstants.TextMuted), count);
+
+        if (!expanded)
+        {
+            var more = Lang.DirShowMore(venues.Count);
+            var moreY = pos.Y + headerH;
+            ImGui.SetCursorScreenPos(new Vector2(pos.X, moreY));
+            if (ImGui.InvisibleButton($"##groupMore_{title}", new Vector2(avW, lineH + 10f)))
+                otherGroupOpen = true;
+            var moreHovered = ImGui.IsItemHovered();
+            dl.AddLine(new Vector2(pos.X, moreY), new Vector2(pos.X + avW, moreY), U32(UIConstants.Line));
+            dl.AddText(new Vector2(pos.X + RowPadX + 14f, moreY + 5f), U32(moreHovered ? UIConstants.Accent : UIConstants.TextMuted), more);
+            return;
+        }
+
+        for (var i = 0; i < venues.Count; i++)
+            DrawVenueRow(venues[i], i == 0, venues[i] == hereVenue);
+        ImGui.Dummy(new Vector2(0, 4f));
+    }
+
+    private void DrawEnterVenueHint()
+    {
+        ImGui.Spacing();
+        ImGui.Spacing();
+        var hint = Lang.EnterVenue;
+        var hSz = ImGui.CalcTextSize(hint);
+        ImGui.SetCursorPosX((ImGui.GetContentRegionAvail().X - hSz.X) / 2f + ImGui.GetCursorPosX());
+        ImGui.TextColored(UIConstants.TextMuted, hint);
+    }
+
+    private readonly Dictionary<string, Floor> gardenFloors = new();
+
+    private Floor GardenFloorOf(Venue venue)
+    {
+        var existing = venue.Floors.FirstOrDefault(f => HousingData.IsGarden(f.Name));
+        if (existing != null) return existing;
+        if (!gardenFloors.TryGetValue(venue.VenueId, out var floor))
+            gardenFloors[venue.VenueId] = floor = new Floor { Name = HousingData.GardenFloor };
+        return floor;
     }
 
     private void DrawMapOrDirectory(VenueConfig config)
     {
-        var currentVenue = plugin.PositionTracker.GetCurrentVenue(config);
+        var tracker = plugin.PositionTracker;
+        var currentVenue = tracker.GetVenueAtCurrentPlotIncludingGarden(config);
+
+        var wardVenues = tracker.GetWardVenues(config);
 
         if (currentVenue == null)
         {
+            var festival = tracker.GetFestivalHere(config);
+            if (festival != null)
+            {
+                DrawFestivalMapView(festival);
+                return;
+            }
+            if (wardVenues.Count > 0)
+            {
+                DrawWardHeader(wardVenues.Count);
+                ImGui.Spacing();
+                DrawWardView(wardVenues, null);
+                return;
+            }
             DrawDirectoryHeader(config.Venues.Count);
             ImGui.Spacing();
-            DrawVenueDirectory(config.Venues);
+            DrawVenueDirectory(config, config.Venues);
             return;
         }
 
-        var detectedFloor = plugin.PositionTracker.GetCurrentFloor(currentVenue);
+        var inside = tracker.IsInsideHouse;
+        var garden = GardenFloorOf(currentVenue);
+        var floors = inside
+            ? currentVenue.Floors.Where(f => !HousingData.IsGarden(f.Name)).Append(garden).ToList()
+            : new List<Floor> { garden, WardOverviewFloor };
+        var detectedFloor = inside ? tracker.GetCurrentFloor(currentVenue) : garden;
 
-        if (detectedFloor != null)
+        if (detectedFloor != null && detectedFloor.Name != lastDetectedFloor)
         {
-            foreach (var f in currentVenue.Floors)
-            {
-                if (f.MapId > 0)
-                    floorMapIds.TryAdd(f.Name, f.MapId);
-            }
-
-            var curMapId = plugin.PositionTracker.CurrentMapId;
-            if (curMapId > 0)
-                floorMapIds[detectedFloor.Name] = curMapId;
-
-            if (detectedFloor.Name != lastDetectedFloor)
-            {
-                currentFloorName = detectedFloor.Name;
-                lastDetectedFloor = detectedFloor.Name;
-            }
+            currentFloorName = detectedFloor.Name;
+            lastDetectedFloor = detectedFloor.Name;
         }
 
-        var selectedFloor = currentVenue.Floors.FirstOrDefault(f => f.Name == currentFloorName)
+        var selectedFloor = floors.FirstOrDefault(f => f.Name == currentFloorName)
                             ?? detectedFloor
-                            ?? currentVenue.Floors.FirstOrDefault();
+                            ?? floors.FirstOrDefault();
 
-        if (currentVenue.VenueId != boundsVenueId) ComputeBounds(currentVenue);
-
-        DrawHeaderBar(currentVenue, selectedFloor);
+        DrawHeaderBar(currentVenue, UIConstants.DisplayName(currentVenue.Name).ToUpperInvariant(),
+            selectedFloor != null ? TranslateFloorName(selectedFloor.Name) : "-");
         ImGui.Spacing();
-        DrawFloorTabs(currentVenue, ref selectedFloor);
+        DrawFloorTabs(floors, ref selectedFloor);
         currentFloorName = selectedFloor?.Name ?? string.Empty;
 
         ImGui.Spacing();
+        DrawGuideBar();
 
         if (selectedFloor != null)
         {
-            floorMapIds.TryGetValue(selectedFloor.Name, out var floorMapId);
-            DrawMapPanel(currentVenue, selectedFloor, plugin.PositionTracker.CurrentTerritoryId, floorMapId);
+            if (selectedFloor == WardOverviewFloor)
+            {
+                DrawWardView(wardVenues, currentVenue);
+            }
+            else if (HousingData.IsGarden(selectedFloor.Name))
+            {
+                DrawGardenMap(currentVenue, selectedFloor);
+            }
+            else
+            {
+                var territoryId = tracker.CurrentTerritoryId;
+                var floorMapId = plugin.HousingData.FloorMapId(territoryId, selectedFloor.Name);
+                if (floorMapId == 0) floorMapId = selectedFloor.MapId;
+                if (floorMapId == 0 && selectedFloor == detectedFloor) floorMapId = tracker.CurrentMapId;
+                DrawMapPanel(selectedFloor.Services, territoryId, floorMapId);
+            }
         }
 
-        DrawFilterChips(currentVenue);
+        DrawFilterChips(currentVenue.Floors.SelectMany(f => f.Services));
+    }
+
+    private static readonly Floor WardOverviewFloor = new() { Name = "ward" };
+
+    private sealed record MapPin(Vector2 World, Vector4 Color, Vector4 Edge, string Label, Venue Venue);
+
+    private void DrawWardHeader(int count)
+    {
+        var tracker = plugin.PositionTracker;
+        var title = $"{HousingData.EnglishName(tracker.CurrentDistrict)} · {Lang.WardLabel} {tracker.CurrentWard + 1}";
+        DrawHeaderBar(null, title.ToUpperInvariant(), $"{tracker.CurrentServerName}{Lang.Location(count)}");
+    }
+
+    private void DrawWardView(IReadOnlyList<Venue> venues, Venue? current)
+    {
+        var tracker = plugin.PositionTracker;
+        var district = tracker.CurrentDistrict;
+        var territoryId = tracker.CurrentTerritoryId;
+
+        var pinsByMap = new Dictionary<uint, List<MapPin>>();
+        foreach (var venue in venues)
+        {
+            if (!plugin.HousingData.TryGetPlotMapLink(district, venue.Plot, out _, out var pinMap, out var pos)) continue;
+            if (!pinsByMap.TryGetValue(pinMap, out var list))
+                pinsByMap[pinMap] = list = new List<MapPin>();
+            list.Add(new MapPin(new Vector2(pos.X, pos.Z), VenueAccent(venue), VenuePalette(venue).Secondary, UIConstants.DisplayName(venue.Name), venue));
+        }
+
+        if (pinsByMap.Count == 0)
+        {
+            ImGui.TextColored(UIConstants.TextMuted, Lang.GardenNoMap);
+            return;
+        }
+
+        var mapId = pinsByMap.ContainsKey(tracker.CurrentMapId)
+            ? tracker.CurrentMapId
+            : pinsByMap.OrderByDescending(kv => kv.Value.Count).First().Key;
+        var pins = pinsByMap[mapId];
+
+        var mapInfo = plugin.MapLoader.GetMapInfoByMapId(mapId);
+        var sizeFactor = mapInfo?.SizeFactor > 0 ? mapInfo.SizeFactor : (ushort)200;
+        var center = new Vector2(-(mapInfo?.OffsetX ?? 0), -(mapInfo?.OffsetY ?? 0));
+        var span = 2048f * 100f / sizeFactor;
+
+        var services = current != null ? GardenFloorOf(current).Services : (IReadOnlyList<Service>)Array.Empty<Service>();
+        DrawMapPanel(services, territoryId, mapId, center, span, 0f, pins, current, fullMap: true);
+    }
+
+    private void DrawGardenMap(Venue venue, Floor floor)
+    {
+        var district = plugin.PositionTracker.GetVenueDistrict(venue);
+        if (!plugin.HousingData.TryGetPlotMapLink(district, venue.Plot, out var territoryId, out var mapId, out var plotPos))
+        {
+            ImGui.TextColored(UIConstants.TextMuted, Lang.GardenNoMap);
+            return;
+        }
+
+        var span = venue.HouseSize switch
+        {
+            "L" => 70f,
+            "M" => 55f,
+            _   => 42f,
+        };
+        DrawMapPanel(floor.Services, territoryId, mapId, new Vector2(plotPos.X, plotPos.Z), span);
+    }
+
+    private void DrawFestivalMapView(Festival festival)
+    {
+        var now = DateTime.UtcNow;
+        var status = festival.CurrentDay(now) is { } today
+            ? $"{Lang.FestivalLive} · {Lang.FestivalUntil(UIConstants.FormatServerTime(today.End))}"
+            : FestivalWhenText(festival, now);
+        DrawHeaderBar(null, festival.Name.ToUpperInvariant(), status);
+        ImGui.Spacing();
+        DrawGuideBar();
+
+        var (territoryId, mapId) = plugin.FestivalMap(festival);
+        var location = festival.Location;
+        DrawMapPanel(festival.Services, territoryId, mapId, new Vector2(location.X, location.Y),
+            Math.Max(40f, location.Radius * 2.4f), location.Radius);
+        DrawFilterChips(festival.Services);
     }
 
     private void DrawDirectoryHeader(int count)
     {
-        var dl   = ImGui.GetWindowDrawList();
-        var winP = ImGui.GetWindowPos();
-        var winW = ImGui.GetWindowWidth();
-        var cy   = ImGui.GetCursorScreenPos().Y;
+        var dl = ImGui.GetWindowDrawList();
+        var lineH = ImGui.GetTextLineHeight();
 
-        dl.AddRectFilledMultiColor(
-            new Vector2(winP.X, cy - 2),
-            new Vector2(winP.X + winW, cy + 44),
-            ImGui.ColorConvertFloat4ToU32(UIConstants.WithAlpha(UIConstants.Secondary, 0.18f)),
-            ImGui.ColorConvertFloat4ToU32(UIConstants.WithAlpha(UIConstants.Primary, 0.10f)),
-            ImGui.ColorConvertFloat4ToU32(UIConstants.WithAlpha(UIConstants.Primary, 0f)),
-            ImGui.ColorConvertFloat4ToU32(UIConstants.WithAlpha(UIConstants.Secondary, 0f)));
-
-        var shimmerPhase = (float)(ImGui.GetTime() % 3.0) / 3.0f;
-        var shimmerX     = winP.X + shimmerPhase * (winW + 80) - 40;
-        dl.AddRectFilledMultiColor(
-            new Vector2(shimmerX,      cy - 2),
-            new Vector2(shimmerX + 60, cy + 44),
-            ImGui.ColorConvertFloat4ToU32(new Vector4(1f, 1f, 1f, 0f)),
-            ImGui.ColorConvertFloat4ToU32(new Vector4(1f, 1f, 1f, 0.05f)),
-            ImGui.ColorConvertFloat4ToU32(new Vector4(1f, 1f, 1f, 0.05f)),
-            ImGui.ColorConvertFloat4ToU32(new Vector4(1f, 1f, 1f, 0f)));
-
-        var title = Lang.VenueDirectory;
-        var sub   = Lang.Location(count);
-        var tW    = ImGui.CalcTextSize(title).X + ImGui.CalcTextSize(sub).X;
-        ImGui.SetCursorPosX(Math.Max(0f, (winW - tW) / 2f));
-        ImGui.TextColored(UIConstants.Secondary, title);
+        ImGui.TextColored(UIConstants.Heading, Lang.VenueDirectory);
         ImGui.SameLine(0, 0);
-        ImGui.TextColored(UIConstants.TextSecondary, sub);
+        ImGui.TextColored(UIConstants.TextMuted, Lang.Location(count));
 
         var lsLoaded = plugin.Lifestream.IsLoaded;
-        if (lsLoaded)
-        {
-            const string prefix  = "  Lifestream: ";
-            var active  = Lang.Active;
-            var prefixW = ImGui.CalcTextSize(prefix).X;
-            var activeW = ImGui.CalcTextSize(active).X;
-            ImGui.SetCursorPosX(Math.Max(0f, (winW - prefixW - activeW) / 2f));
-            ImGui.TextColored(UIConstants.TextSecondary, prefix);
-            ImGui.SameLine(0, 0);
-            var activeScreenStart = ImGui.GetCursorScreenPos();
-            var t = (float)ImGui.GetTime() * 0.15f;
-            for (var i = 0; i < active.Length; i++)
-            {
-                var hue = (t + i * (1f / active.Length) * 0.5f) % 1.0f;
-                ImGui.TextColored(HsvToRgba(hue, 0.9f, 1.0f), active[i].ToString());
-                ImGui.SameLine(0, 0);
-            }
-            var dotPulse  = (MathF.Sin((float)ImGui.GetTime() * 2.5f) + 1f) / 2f;
-            var dotCenter = new Vector2(
-                ImGui.GetCursorScreenPos().X + 5,
-                activeScreenStart.Y + ImGui.GetTextLineHeight() * 0.5f);
-            dl.AddCircleFilled(dotCenter, 3.5f,
-                ImGui.ColorConvertFloat4ToU32(new Vector4(0.1f, 1f, 0.55f, 0.35f + 0.65f * dotPulse)));
-            ImGui.NewLine();
-        }
-        else
-        {
-            const string prefix2 = "  Lifestream: ";
-            var notInst = Lang.NotInstalled;
-            var offW = ImGui.CalcTextSize(prefix2).X + ImGui.CalcTextSize(notInst).X + 14;
-            ImGui.SetCursorPosX(Math.Max(0f, (winW - offW) / 2f));
-            ImGui.TextColored(UIConstants.TextSecondary, prefix2);
-            ImGui.SameLine(0, 0);
-            var redPulse = (MathF.Sin((float)ImGui.GetTime() * 4f) + 1f) / 2f;
-            ImGui.TextColored(new Vector4(0.9f, 0.3f, 0.3f, 0.5f + 0.5f * redPulse), notInst);
-            ImGui.SameLine(0, 4);
-            var rdCenter = new Vector2(
-                ImGui.GetCursorScreenPos().X + 4,
-                ImGui.GetCursorScreenPos().Y + ImGui.GetTextLineHeight() * 0.5f);
-            dl.AddCircleFilled(rdCenter, 3f,
-                ImGui.ColorConvertFloat4ToU32(new Vector4(1f, 0.15f, 0.15f, 0.4f + 0.6f * redPulse)));
-            ImGui.NewLine();
-        }
+        var lsLabel = lsLoaded ? "Lifestream" : $"Lifestream: {Lang.NotInstalled}";
+        const float dotSpace = 12f;
+        ImGui.SameLine(Math.Max(ImGui.GetCursorPosX(), ImGui.GetContentRegionMax().X - ImGui.CalcTextSize(lsLabel).X - dotSpace));
+        var dotPos = ImGui.GetCursorScreenPos() + new Vector2(3f, lineH * 0.5f);
+        var pulse = (MathF.Sin((float)ImGui.GetTime() * 2.5f) + 1f) / 2f;
+        dl.AddCircleFilled(dotPos, 3f, ImGui.ColorConvertFloat4ToU32(lsLoaded
+            ? UIConstants.WithAlpha(UIConstants.Success, 0.35f + 0.65f * pulse)
+            : UIConstants.Rose));
+        ImGui.SetCursorPosX(ImGui.GetCursorPosX() + dotSpace);
+        ImGui.TextColored(lsLoaded ? UIConstants.TextSecondary : UIConstants.Rose, lsLabel);
+        if (lsLoaded && ImGui.IsItemHovered())
+            ImGui.SetTooltip($"Lifestream: {Lang.Active}");
 
-        var lineY = ImGui.GetCursorScreenPos().Y;
-        dl.AddLine(new Vector2(winP.X + 8, lineY), new Vector2(winP.X + winW - 8, lineY),
-            ImGui.ColorConvertFloat4ToU32(UIConstants.WithAlpha(UIConstants.Secondary, 0.4f)), 1f);
-        dl.AddLine(new Vector2(winP.X + 8, lineY + 2), new Vector2(winP.X + winW - 8, lineY + 2),
-            ImGui.ColorConvertFloat4ToU32(UIConstants.WithAlpha(UIConstants.Secondary, 0.1f)), 2f);
+        var y = ImGui.GetCursorScreenPos().Y;
+        var x0 = ImGui.GetWindowPos().X + ImGui.GetWindowContentRegionMin().X;
+        var x1 = ImGui.GetWindowPos().X + ImGui.GetWindowContentRegionMax().X;
+        dl.AddLine(new Vector2(x0, y), new Vector2(x1, y), ImGui.ColorConvertFloat4ToU32(UIConstants.Line), 1f);
+        ImGui.Dummy(new Vector2(0, 2));
     }
 
     private void DrawDirectoryFilters()
     {
         var avW = ImGui.GetContentRegionAvail().X;
 
-        ImGui.PushStyleColor(ImGuiCol.FrameBg, UIConstants.WithAlpha(UIConstants.CardBackground, 0.9f));
-        ImGui.PushStyleColor(ImGuiCol.Border, UIConstants.GlowDim);
-        ImGui.PushStyleVar(ImGuiStyleVar.FrameBorderSize, 1f);
-        ImGui.PushStyleVar(ImGuiStyleVar.FrameRounding, UIConstants.ChipRounding);
+        using var colors = ImRaii.PushColor(ImGuiCol.FrameBg, UIConstants.WithAlpha(UIConstants.CardBackground, 0.9f))
+                                 .Push(ImGuiCol.Border, UIConstants.GlowDim);
+        using var style = ImRaii.PushStyle(ImGuiStyleVar.FrameBorderSize, 1f)
+                                .Push(ImGuiStyleVar.FrameRounding, UIConstants.ChipRounding);
 
         var toggleGlyph = (showHidden ? FontAwesomeIcon.Eye : FontAwesomeIcon.EyeSlash).ToIconString();
         var crownGlyph = FontAwesomeIcon.Crown.ToIconString();
-        var iconFont = UiBuilder.IconFont;
-        ImGui.PushFont(iconFont);
-        var toggleW = ImGui.CalcTextSize(toggleGlyph).X + 12f;
-        var crownW = ImGui.CalcTextSize(crownGlyph).X + 12f;
-        ImGui.PopFont();
+        var toggleW = CalcIconSize(toggleGlyph).X + 12f;
+        var crownW = CalcIconSize(crownGlyph).X + 12f;
 
         ImGui.SetNextItemWidth(avW - toggleW - crownW - 8);
         ImGui.InputTextWithHint("##venueSearch", Lang.Search, ref searchText, 128);
 
         ImGui.SameLine(0, 4);
-        ImGui.PushStyleColor(ImGuiCol.Button, showHidden
-            ? UIConstants.WithAlpha(UIConstants.Glow, 0.3f)
-            : UIConstants.WithAlpha(UIConstants.CardBackground, 0.9f));
-        ImGui.PushStyleColor(ImGuiCol.ButtonHovered, UIConstants.WithAlpha(UIConstants.Glow, 0.4f));
-        ImGui.PushStyleColor(ImGuiCol.ButtonActive, UIConstants.WithAlpha(UIConstants.Glow, 0.5f));
-        ImGui.PushFont(iconFont);
-        if (ImGui.Button($"{toggleGlyph}##showHidden", new Vector2(toggleW, 0)))
+        if (FilterIconButton($"{toggleGlyph}##showHidden", toggleW, showHidden, UIConstants.Glow, null))
             showHidden = !showHidden;
-        ImGui.PopFont();
-        ImGui.PopStyleColor(3);
         if (ImGui.IsItemHovered())
             ImGui.SetTooltip(Lang.ShowHidden);
 
         ImGui.SameLine(0, 4);
-        ImGui.PushStyleColor(ImGuiCol.Button, showOwnedOnly
-            ? UIConstants.WithAlpha(UIConstants.GoldAccent, 0.3f)
-            : UIConstants.WithAlpha(UIConstants.CardBackground, 0.9f));
-        ImGui.PushStyleColor(ImGuiCol.ButtonHovered, UIConstants.WithAlpha(UIConstants.GoldAccent, 0.4f));
-        ImGui.PushStyleColor(ImGuiCol.ButtonActive, UIConstants.WithAlpha(UIConstants.GoldAccent, 0.5f));
-        ImGui.PushStyleColor(ImGuiCol.Text, showOwnedOnly ? UIConstants.GoldAccent : UIConstants.TextPrimary);
-        ImGui.PushFont(iconFont);
-        if (ImGui.Button($"{crownGlyph}##showOwnedOnly", new Vector2(crownW, 0)))
+        if (FilterIconButton($"{crownGlyph}##showOwnedOnly", crownW, showOwnedOnly, UIConstants.GoldAccent,
+                showOwnedOnly ? UIConstants.GoldAccent : UIConstants.TextPrimary))
             showOwnedOnly = !showOwnedOnly;
-        ImGui.PopFont();
-        ImGui.PopStyleColor(4);
         if (ImGui.IsItemHovered())
             ImGui.SetTooltip(Lang.ShowOwnedOnly);
 
+        DrawServerFilters(avW);
+    }
+
+    private static bool FilterIconButton(string label, float width, bool active, Vector4 accent, Vector4? text)
+    {
+        using var colors = ImRaii.PushColor(ImGuiCol.Button, active
+                                     ? UIConstants.WithAlpha(accent, 0.3f)
+                                     : UIConstants.WithAlpha(UIConstants.CardBackground, 0.9f))
+                                 .Push(ImGuiCol.ButtonHovered, UIConstants.WithAlpha(accent, 0.4f))
+                                 .Push(ImGuiCol.ButtonActive, UIConstants.WithAlpha(accent, 0.5f))
+                                 .Push(ImGuiCol.Text, text ?? Vector4.Zero, text.HasValue);
+        using var font = ImRaii.PushFont(UiBuilder.IconFont);
+        return ImGui.Button(label, new Vector2(width, 0));
+    }
+
+    private void DrawServerFilters(float avW)
+    {
         var hasServerFilter = selectedDcs.Count > 0;
         var dcW = hasServerFilter ? 0.5f : 1.0f;
 
@@ -882,7 +1137,7 @@ public class VenueMapWindow : Window, IDisposable
                 ImGui.Separator();
                 foreach (var dc in selectedDcs)
                 {
-                    ImGui.TextColored(UIConstants.Secondary, dc);
+                    ImGui.TextColored(UIConstants.Heading, dc);
                     foreach (var srv in Models.ServerData.GetServers(dc))
                     {
                         var on = selectedServers.Contains(srv);
@@ -896,714 +1151,677 @@ public class VenueMapWindow : Window, IDisposable
                 }
             });
         }
-
-        ImGui.PopStyleVar(2);
-        ImGui.PopStyleColor(2);
     }
 
-    private void DrawVenueDirectory(System.Collections.Generic.List<Venue> venues)
+    private const float RowPadX = 12f;
+    private const float RowPadY = 9f;
+    private const float RowLineGap = 3f;
+
+    private static uint U32(Vector4 c) => ImGui.ColorConvertFloat4ToU32(c);
+
+    private void DrawVenueDirectory(VenueConfig config, List<Venue> venues)
     {
-        var dl      = ImGui.GetWindowDrawList();
-        var avW     = ImGui.GetContentRegionAvail().X;
-        const float padX    = 6f;
-        const float padY    = 4f;
-        const float gap     = 3f;
-        const float btnW    = 46f;
-        const float btnGap  = 3f;
-        var lineH = ImGui.GetTextLineHeight();
-
-        ImGui.PushStyleVar(ImGuiStyleVar.ItemSpacing, new Vector2(0, gap));
-
+        var tracker = plugin.PositionTracker;
+        var hereVenue = tracker.GetVenueAtCurrentPlotIncludingGarden(config);
         for (var i = 0; i < venues.Count; i++)
+            DrawVenueRow(venues[i], i == 0, venues[i] == hereVenue);
+        DrawEnterVenueHint();
+    }
+
+    private (string Text, bool Open) GetVenueStatus(Venue v)
+    {
+        var status = plugin.GetVenueStatus(v);
+        return (status.Text, status.Open);
+    }
+
+    private VenueEvent? GetNextEvent(Venue v)
+    {
+        if (v.TeamId <= 0) return null;
+        var now = DateTime.UtcNow;
+        VenueEvent? next = null;
+        foreach (var e in plugin.PartakeApi.GetEvents(v.TeamId))
         {
-            var v = venues[i];
+            if (e.EndTime < now || e.StartTime - now > TimeSpan.FromDays(7) || string.IsNullOrWhiteSpace(e.Title)) continue;
+            if (next == null || e.StartTime < next.StartTime) next = e;
+        }
+        return next;
+    }
 
-            var cardW    = Math.Max(avW - btnW - btnGap, 60f);
-            var addrRaw   = string.IsNullOrEmpty(v.Address) ? ""
-                : v.Address.Replace("Ward ", "W").Replace("Plot ", "P");
+    private static (Vector4 Primary, Vector4 Secondary, Vector4 Accent) VenuePalette(Venue v)
+    {
+        if (UIConstants.OverrideMode != ColorOverrideMode.None)
+            return (UIConstants.Accent, UIConstants.Accent, UIConstants.Accent);
+        if (v.Colors == null)
+            return (UIConstants.TextPrimary, UIConstants.TextSecondary, UIConstants.TextPrimary);
+        return (v.Colors.PrimaryVec, v.Colors.SecondaryVec, v.Colors.AccentVec);
+    }
 
-            var xivId = ExtractXivVenuesId(v.Links?.FfxivVenues);
-            string schedText = "";
-            var schedIsOpen = false;
-            if (xivId != null)
+    private static Vector4 VenueAccent(Venue v)
+        => UIConstants.OverrideMode != ColorOverrideMode.None ? UIConstants.Accent
+            : v.Colors == null ? UIConstants.TextPrimary
+            : v.Colors.PrimaryVec;
+
+    private static string FormatAddress(string? address)
+    {
+        if (string.IsNullOrEmpty(address)) return "";
+        var parts = address.Split(" - ");
+        return parts.Length == 5
+            ? $"{parts[1]} · {parts[2]} · {parts[3]}, {parts[4]}"
+            : string.Join(" · ", parts);
+    }
+
+    private static Vector2 TeleportButtonSize(bool prominent, float lineH)
+        => prominent
+            ? new Vector2(ImGui.CalcTextSize(Lang.Visit).X + lineH + 22f, lineH + 12f)
+            : new Vector2(lineH + 14f, lineH + 12f);
+
+    private void DrawVenueRow(Venue v, bool first, bool isHere)
+    {
+        var dl = ImGui.GetWindowDrawList();
+        var lineH = ImGui.GetTextLineHeight();
+        var avW = ImGui.GetContentRegionAvail().X;
+        var time = ImGui.GetTime();
+
+        var (statusText, isOpen) = GetVenueStatus(v);
+        var nextEvent = GetNextEvent(v);
+        var isFav = plugin.Configuration.FavoriteVenueIds.Contains(v.VenueId);
+        var isHiddenVenue = plugin.Configuration.HiddenVenueIds.Contains(v.VenueId);
+        var hasAddr = !string.IsNullOrEmpty(v.Address);
+        var tpActive = tpAnimStart.TryGetValue(v.VenueId, out var tpT) && time - tpT < 4.0;
+
+        var rowH = RowPadY * 2 + lineH * 2 + RowLineGap + (nextEvent != null ? lineH + RowLineGap : 0f);
+        var tpSize = TeleportButtonSize(isOpen && hasAddr, lineH);
+        var rowMin = ImGui.GetCursorScreenPos();
+        var rowMax = rowMin + new Vector2(avW, rowH);
+        var hitW = Math.Max(avW - tpSize.X - 10f, 60f);
+
+        ImGui.InvisibleButton($"##venue_{v.VenueId}", new Vector2(hitW, rowH));
+        ImGui.SetItemAllowOverlap();
+        var hovered = ImGui.IsItemHovered();
+        var clicked = ImGui.IsItemClicked();
+        var rowHot = hovered || (ImGui.IsWindowHovered() && ImGui.IsMouseHoveringRect(rowMin, rowMax));
+        var (accent, secondary, gem) = VenuePalette(v);
+
+        if (!first)
+            dl.AddLine(rowMin, new Vector2(rowMax.X, rowMin.Y), U32(UIConstants.Line));
+        if (rowHot || isHere)
+        {
+            var strength = rowHot ? 0.12f : 0.07f;
+            var left = U32(UIConstants.Mix(UIConstants.Background, accent, strength));
+            var right = U32(UIConstants.Mix(UIConstants.Background, secondary, strength * 0.5f));
+            dl.AddRectFilledMultiColor(rowMin, rowMax, left, right, right, left);
+        }
+        var barMin = new Vector2(rowMin.X, rowMin.Y + 7f);
+        var barMax = new Vector2(rowMin.X + 3f, rowMax.Y - 7f);
+        if (rowHot)
+            dl.AddRectFilled(barMin - new Vector2(0f, 2f), barMax + new Vector2(3f, 2f), U32(UIConstants.WithAlpha(accent, 0.25f)), 2f);
+        var barAlpha = rowHot || isHere ? 1f : 0.85f;
+        var barTop = U32(UIConstants.WithAlpha(accent, barAlpha));
+        var barBottom = U32(UIConstants.WithAlpha(secondary, barAlpha));
+        dl.AddRectFilledMultiColor(barMin, barMax, barTop, barTop, barBottom, barBottom);
+        if (UIConstants.IsDark(accent) || UIConstants.IsDark(secondary))
+            dl.AddRect(barMin - new Vector2(1f), barMax + new Vector2(1f), U32(UIConstants.WithAlpha(UIConstants.TextPrimary, 0.45f)), 2f, ImDrawFlags.None, 1f);
+
+        var textRight = rowMin.X + hitW - 4f;
+        if (isFav)
+            textRight = DrawFavStar(dl, v.VenueId, textRight, rowMin.Y + rowH / 2f, lineH) - 8f;
+        var adSeen = plugin.PartyFinderAds.SeenAt(v.VenueId);
+        if (adSeen != null)
+        {
+            var iconMax = new Vector2(textRight, rowMin.Y + rowH / 2f + lineH / 2f);
+            textRight = DrawPartyFinderIcon(dl, textRight, rowMin.Y + rowH / 2f, lineH);
+            var iconMin = new Vector2(textRight, rowMin.Y + rowH / 2f - lineH / 2f);
+            textRight -= 8f;
+            if (ImGui.IsWindowHovered() && ImGui.IsMouseHoveringRect(iconMin, iconMax))
             {
-                plugin.XivVenues.RequestSchedule(xivId);
-                var sched = plugin.XivVenues.GetSchedule(xivId);
-                if (sched != null)
+                ImGui.SetMouseCursor(ImGuiMouseCursor.Hand);
+                ImGui.SetTooltip(Lang.PartyFinderOpenTip);
+                if (ImGui.IsMouseClicked(ImGuiMouseButton.Left))
                 {
-                    schedText = sched.GetStatusText();
-                    schedIsOpen = sched.IsOpenNow;
+                    clicked = false;
+                    OpenPartyFinder(v);
                 }
             }
+        }
+        if (rowHot && hasAddr)
+            textRight = DrawRowActions(v, textRight, rowMin.Y + rowH / 2f) - 8f;
+        else if (statusText.Length > 0)
+            textRight = DrawRowStatus(dl, statusText, isOpen, textRight, rowMin.Y + rowH / 2f, lineH) - 10f;
 
-            if (schedText.Length == 0 && v.TeamId > 0)
-            {
-                _ = plugin.PartakeApi.FetchTeamAsync(v.TeamId);
-                var events = plugin.PartakeApi.GetEvents(v.TeamId);
-                if (events.Count > 0)
-                {
-                    var evt = events[0];
-                    var now = DateTime.UtcNow;
-                    if (evt.StartTime <= now && evt.EndTime >= now)
-                    {
-                        schedText = Lang.StatusOpenNow;
-                        schedIsOpen = true;
-                    }
-                    else if (evt.StartTime > now)
-                    {
-                        var diff = evt.StartTime - now;
-                        if (diff.TotalMinutes < 60)
-                            schedText = Lang.StatusOpensInMin((int)diff.TotalMinutes);
-                        else if (diff.TotalHours < 24)
-                            schedText = Lang.StatusOpensInHours((int)diff.TotalHours);
-                        else
-                            schedText = Lang.StatusOpensInDays((int)diff.TotalDays);
-                    }
-                }
-            }
+        DrawRowText(dl, v, rowMin, rowMax, textRight, lineH, rowHot, accent, gem, isHere, nextEvent);
 
-            var rowH = padY * 2 + lineH * 2 + 2;
+        ImGui.SetCursorScreenPos(new Vector2(rowMax.X - tpSize.X, rowMin.Y + (rowH - tpSize.Y) / 2f));
+        DrawTeleportButton(v, dl, tpSize, isOpen && hasAddr, hasAddr, tpActive);
 
-            var cardMin = ImGui.GetCursorScreenPos();
-            ImGui.InvisibleButton($"##venue_{v.VenueId}", new Vector2(cardW, rowH));
-            var hovered = ImGui.IsItemHovered();
-            var clicked = ImGui.IsItemClicked();
-
-            var cardMax = new Vector2(cardMin.X + cardW, cardMin.Y + rowH);
-
-            var bgCol = hovered
-                ? UIConstants.CardBackground
-                : UIConstants.Vector4Lerp(UIConstants.Background, UIConstants.CardBackground, 0.75f);
-            var accentCol = hovered ? UIConstants.Primary : UIConstants.Secondary;
-            UIConstants.DrawCardWithAccentBar(dl, cardMin, cardMax, bgCol, accentCol, UIConstants.ChipRounding);
-
-            if (hovered)
-            {
-                var glowPulse = (MathF.Sin((float)ImGui.GetTime() * 3f) + 1f) / 2f;
-                dl.AddRect(cardMin, cardMax,
-                    ImGui.ColorConvertFloat4ToU32(UIConstants.WithAlpha(UIConstants.Glow, 0.35f + 0.35f * glowPulse)),
-                    UIConstants.ChipRounding, ImDrawFlags.None, 1.5f);
-                dl.AddRect(
-                    new Vector2(cardMin.X - 2, cardMin.Y - 2),
-                    new Vector2(cardMax.X + 2, cardMax.Y + 2),
-                    ImGui.ColorConvertFloat4ToU32(UIConstants.WithAlpha(UIConstants.Glow, 0.06f + 0.12f * glowPulse)),
-                    UIConstants.ChipRounding + 2f, ImDrawFlags.None, 2f);
-            }
-            else
-            {
-                dl.AddRect(cardMin, cardMax,
-                    ImGui.ColorConvertFloat4ToU32(UIConstants.WithAlpha(UIConstants.Glow, 0.2f)),
-                    UIConstants.ChipRounding, ImDrawFlags.None, 1f);
-            }
-
-            var tracker = plugin.PositionTracker;
-            var inDc = string.IsNullOrEmpty(v.Datacenter) || string.IsNullOrEmpty(tracker.CurrentServerName)
-                || (Models.ServerData.DatacenterServers.TryGetValue(v.Datacenter, out var dcServers)
-                    && dcServers.Contains(tracker.CurrentServerName, StringComparer.OrdinalIgnoreCase));
-            var isHere = inDc && tracker.CurrentWard >= 0
-                && v.Ward == tracker.CurrentWard + 1 && v.Plot == tracker.CurrentPlot + 1;
-            var textX  = cardMin.X + padX + 6;
-            var maxTextW = cardW - padX * 2 - 12;
-
-            var isFav = plugin.Configuration.FavoriteVenueIds.Contains(v.VenueId);
-            var isHiddenVenue = plugin.Configuration.HiddenVenueIds.Contains(v.VenueId);
-            var favAnimActive = favAnimStart.ContainsKey(v.VenueId);
-            var rightX = cardMax.X - 4;
-            var badgeCY = cardMin.Y + rowH * 0.5f;
-            var badgeY = cardMin.Y + 4;
-
-            if (isFav)
-            {
-                var iconFont = Dalamud.Interface.UiBuilder.IconFont;
-                var starSize = lineH * 1.3f;
-                var starGlyphStr = Dalamud.Interface.FontAwesomeIcon.Star.ToIconString();
-                var starCol = ImGui.ColorConvertFloat4ToU32(favAnimActive
-                    ? new Vector4(1f, 0.84f, 0f, 0.3f)
-                    : new Vector4(1f, 0.84f, 0f, 1f));
-                ImGui.PushFont(iconFont);
-                var starSz = ImGui.CalcTextSize(starGlyphStr);
-                ImGui.PopFont();
-                var starScale = starSize / iconFont.FontSize;
-                rightX -= starSz.X * starScale + 2;
-                if (!favAnimActive)
-                    dl.AddText(iconFont, starSize, new Vector2(rightX, badgeCY - starSz.Y * starScale * 0.5f), starCol, starGlyphStr);
-
-                dl.PushClipRect(cardMin, cardMax, true);
-                var shimPhase = (float)(ImGui.GetTime() % 2.5) / 2.5f;
-                var shimX = cardMin.X + shimPhase * (cardW + 40) - 20;
-                dl.AddRectFilledMultiColor(
-                    new Vector2(shimX, cardMin.Y),
-                    new Vector2(shimX + 30, cardMax.Y),
-                    ImGui.ColorConvertFloat4ToU32(new Vector4(1f, 0.84f, 0f, 0f)),
-                    ImGui.ColorConvertFloat4ToU32(new Vector4(1f, 0.84f, 0f, 0.06f)),
-                    ImGui.ColorConvertFloat4ToU32(new Vector4(1f, 0.84f, 0f, 0.06f)),
-                    ImGui.ColorConvertFloat4ToU32(new Vector4(1f, 0.84f, 0f, 0f)));
-                dl.PopClipRect();
-                rightX -= 4;
-            }
-
-            if (isHere)
-            {
-                var badge = Lang.Here2;
-                var badgeSz = ImGui.CalcTextSize(badge);
-                rightX -= badgeSz.X + 6;
-                var badgeMin = new Vector2(rightX, badgeY);
-                var badgeMax = new Vector2(rightX + badgeSz.X + 4, badgeMin.Y + badgeSz.Y + 2);
-                dl.AddRectFilled(badgeMin, badgeMax,
-                    ImGui.ColorConvertFloat4ToU32(UIConstants.WithAlpha(new Vector4(0.1f, 1f, 0.5f, 1f), 0.25f)), UIConstants.ChipRounding);
-                dl.AddRect(badgeMin, badgeMax,
-                    ImGui.ColorConvertFloat4ToU32(new Vector4(0.2f, 1f, 0.55f, 0.7f)), UIConstants.ChipRounding, ImDrawFlags.None, 1f);
-                dl.AddText(new Vector2(badgeMin.X + 2, badgeMin.Y + 1),
-                    ImGui.ColorConvertFloat4ToU32(new Vector4(0.2f, 1f, 0.55f, 1f)), badge);
-                rightX -= 4;
-            }
-
-            if (schedText.Length > 0)
-            {
-                var schedSz = ImGui.CalcTextSize(schedText);
-                rightX -= schedSz.X + 6;
-                var schedY = badgeY;
-                var schedCol = schedIsOpen
-                    ? new Vector4(0.2f, 1f, 0.5f, 1f)
-                    : UIConstants.WithAlpha(UIConstants.TextSecondary, 0.5f);
-
-                if (schedIsOpen)
-                {
-                    var glowPulse = (MathF.Sin((float)ImGui.GetTime() * 2.5f) + 1f) / 2f;
-                    dl.AddRectFilled(
-                        new Vector2(rightX - 2, schedY - 1),
-                        new Vector2(rightX + schedSz.X + 4, schedY + schedSz.Y + 1),
-                        ImGui.ColorConvertFloat4ToU32(UIConstants.WithAlpha(schedCol, 0.10f + 0.06f * glowPulse)), UIConstants.ChipRounding);
-                }
-
-                dl.AddText(new Vector2(rightX, schedY),
-                    ImGui.ColorConvertFloat4ToU32(schedCol), schedText);
-                rightX -= 4;
-            }
-
-            maxTextW = rightX - textX - 4;
-
-            if (favAnimStart.TryGetValue(v.VenueId, out var animT))
-            {
-                var elapsed = (float)(ImGui.GetTime() - animT);
-                const float dur = 3.0f;
-                if (elapsed < dur)
-                {
-                    var progress = elapsed / dur;
-                    dl.PushClipRect(cardMin, cardMax, true);
-
-                    dl.AddRectFilled(cardMin, cardMax,
-                        ImGui.ColorConvertFloat4ToU32(UIConstants.WithAlpha(UIConstants.Background, 0.5f)), UIConstants.ChipRounding);
-
-                    if (progress < 0.55f)
-                    {
-                        var fillP = progress / 0.55f;
-                        var fillW = cardW * fillP;
-                        dl.AddRectFilled(cardMin, new Vector2(cardMin.X + fillW, cardMax.Y),
-                            ImGui.ColorConvertFloat4ToU32(new Vector4(0.9f, 0.7f, 0f, 0.5f)));
-                        var edgeX = cardMin.X + fillW;
-                        dl.AddRectFilled(
-                            new Vector2(edgeX - 6, cardMin.Y),
-                            new Vector2(edgeX, cardMax.Y),
-                            ImGui.ColorConvertFloat4ToU32(new Vector4(1f, 0.95f, 0.6f, 0.9f)));
-                    }
-
-                    var animIconFont = Dalamud.Interface.UiBuilder.IconFont;
-                    var animStarStr = Dalamud.Interface.FontAwesomeIcon.Star.ToIconString();
-                    var animStarSz = lineH * 1.3f;
-                    ImGui.PushFont(animIconFont);
-                    var animGlyphSz = ImGui.CalcTextSize(animStarStr);
-                    ImGui.PopFont();
-                    var animScale2 = animStarSz / animIconFont.FontSize;
-                    var animStarX = cardMax.X - animGlyphSz.X * animScale2 - 6;
-                    var animStarCenter = new Vector2(animStarX + animGlyphSz.X * animScale2 * 0.5f, cardMin.Y + rowH * 0.5f);
-
-                    if (progress >= 0.55f && progress < 0.70f)
-                    {
-                        var flashP = (progress - 0.55f) / 0.15f;
-                        dl.AddRectFilled(cardMin, cardMax,
-                            ImGui.ColorConvertFloat4ToU32(new Vector4(1f, 0.9f, 0.4f, 0.6f * (1f - flashP))), UIConstants.ChipRounding);
-
-                        var popScale = 1f + 0.5f * (1f - flashP);
-                        var popAlpha = Math.Min(1f, flashP * 3f);
-                        var popSize = animStarSz * popScale;
-                        var popGlyphScale = popSize / animIconFont.FontSize;
-                        dl.AddText(animIconFont, popSize,
-                            new Vector2(animStarCenter.X - animGlyphSz.X * popGlyphScale * 0.5f,
-                                        animStarCenter.Y - animGlyphSz.Y * popGlyphScale * 0.5f),
-                            ImGui.ColorConvertFloat4ToU32(new Vector4(1f, 0.84f, 0f, popAlpha)), animStarStr);
-
-                        for (var p = 0; p < 10; p++)
-                        {
-                            var angle = p / 10f * MathF.PI * 2f + 0.3f;
-                            var dist = 8f + 35f * flashP;
-                            var pPos = animStarCenter + new Vector2(MathF.Cos(angle) * dist, MathF.Sin(angle) * dist);
-                            dl.AddCircleFilled(pPos, 3.5f * (1f - flashP),
-                                ImGui.ColorConvertFloat4ToU32(new Vector4(1f, 0.84f, 0f, 1f - flashP)), 8);
-                        }
-                    }
-
-                    if (progress >= 0.70f)
-                    {
-                        var fadeP = (progress - 0.70f) / 0.30f;
-                        dl.AddRectFilled(cardMin, cardMax,
-                            ImGui.ColorConvertFloat4ToU32(new Vector4(1f, 0.84f, 0f, 0.12f * (1f - fadeP))), UIConstants.ChipRounding);
-
-                        var finalY = cardMin.Y + (rowH - animGlyphSz.Y * animScale2) * 0.5f;
-                        dl.AddText(animIconFont, animStarSz, new Vector2(animStarX, finalY),
-                            ImGui.ColorConvertFloat4ToU32(new Vector4(1f, 0.84f, 0f, 1f)), animStarStr);
-                    }
-
-                    dl.PopClipRect();
-                }
-                else
-                {
-                    favAnimStart.Remove(v.VenueId);
-                }
-            }
-
-            var nameX = textX;
-
-            var colors = v.Colors;
-            uint nameCol;
-            if (UIConstants.OverrideMode != ColorOverrideMode.None)
-            {
-                nameCol = ImGui.ColorConvertFloat4ToU32(UIConstants.ApplyOverride(UIConstants.Primary));
-            }
-            else if (colors != null)
-            {
-                var t = (float)(ImGui.GetTime() % 6.0) / 6.0f;
-                nameCol = t < 0.33f
-                    ? LerpColor(colors.PrimaryVec, colors.AccentVec, t / 0.33f)
-                    : t < 0.66f
-                        ? LerpColor(colors.AccentVec, colors.SecondaryVec, (t - 0.33f) / 0.33f)
-                        : LerpColor(colors.SecondaryVec, colors.PrimaryVec, (t - 0.66f) / 0.34f);
-            }
-            else
-            {
-                nameCol = ImGui.ColorConvertFloat4ToU32(hovered ? UIConstants.Primary : UIConstants.TextPrimary);
-            }
-            var upperName = v.Name.ToUpperInvariant();
-            dl.AddText(new Vector2(nameX, cardMin.Y + padY), nameCol, upperName);
-
-            {
-                var nameSz = ImGui.CalcTextSize(upperName);
-                const float badgeScale = 0.75f;
-                var badgeText = v.Nsfw ? Lang.NsfwBadge : Lang.SfwBadge;
-                var badgeFont = ImGui.GetFont();
-                var badgeFontSize = ImGui.GetFontSize() * badgeScale;
-                var badgeTextSz = ImGui.CalcTextSize(badgeText) * badgeScale;
-                var badgePad = new Vector2(4, 1);
-                var badgeH = badgeTextSz.Y + badgePad.Y * 2;
-                var badgeMin = new Vector2(nameX + nameSz.X + 8, cardMin.Y + padY + (lineH - badgeH) / 2f);
-                var badgeMax = badgeMin + new Vector2(badgeTextSz.X + badgePad.X * 2, badgeH);
-                var badgeCol = v.Nsfw ? new Vector4(0.95f, 0.35f, 0.55f, 1f) : new Vector4(0.4f, 0.85f, 0.55f, 1f);
-                dl.AddRectFilled(badgeMin, badgeMax, ImGui.ColorConvertFloat4ToU32(UIConstants.WithAlpha(badgeCol, 0.18f)), 3f);
-                dl.AddText(badgeFont, badgeFontSize, new Vector2(badgeMin.X + badgePad.X, badgeMin.Y + badgePad.Y),
-                    ImGui.ColorConvertFloat4ToU32(UIConstants.WithAlpha(badgeCol, 0.85f)), badgeText);
-            }
-
-            var addrCol = ImGui.ColorConvertFloat4ToU32(
-                hovered ? UIConstants.Glow : UIConstants.WithAlpha(UIConstants.TextSecondary, 0.7f));
-            if (addrRaw.Length > 0)
-                dl.AddText(new Vector2(textX, cardMin.Y + padY + lineH + 2), addrCol, addrRaw);
-
-            var hasAddr  = !string.IsNullOrEmpty(v.Address);
-            var tpActive = tpAnimStart.TryGetValue(v.VenueId, out var tpT) && (ImGui.GetTime() - tpT) < 4.0;
-            var btnLabel = tpActive ? $"...##{v.VenueId}_nav" : $"{Lang.Visit}##{v.VenueId}_nav";
-            var btnH     = rowH;
-
-            ImGui.SameLine(0, btnGap);
-            ImGui.SetCursorPosY(ImGui.GetCursorPosY());
-
-            ImGui.PushStyleVar(ImGuiStyleVar.FrameRounding, UIConstants.ChipRounding);
-            ImGui.PushStyleVar(ImGuiStyleVar.FrameBorderSize, 1f);
-            ImGui.PushStyleVar(ImGuiStyleVar.FramePadding, new Vector2(4, 4));
-
-            if (hasAddr)
-            {
-                var time = (float)ImGui.GetTime();
-                var pulse = (MathF.Sin(time * 2f) + 1f) / 2f;
-                var colorShift = (MathF.Sin(time * 1.2f) + 1f) / 2f;
-                var btnHovered = false;
-
-                var idleCol = new Vector4(
-                    UIConstants.Glow.X * (1f - colorShift * 0.3f) + 0.2f * colorShift,
-                    UIConstants.Glow.Y * (1f - colorShift * 0.2f) + 1f * colorShift * 0.3f,
-                    UIConstants.Glow.Z * (1f - colorShift * 0.5f),
-                    1f);
-
-                ImGui.PushStyleColor(ImGuiCol.Button,        UIConstants.WithAlpha(idleCol, 0.10f + 0.08f * pulse));
-                ImGui.PushStyleColor(ImGuiCol.ButtonHovered, UIConstants.WithAlpha(idleCol, 0.40f));
-                ImGui.PushStyleColor(ImGuiCol.ButtonActive,  UIConstants.WithAlpha(idleCol, 0.60f));
-                ImGui.PushStyleColor(ImGuiCol.Border,        UIConstants.WithAlpha(idleCol, 0.4f + 0.25f * pulse));
-                ImGui.PushStyleColor(ImGuiCol.Text,          UIConstants.WithAlpha(idleCol, 0.7f + 0.3f * pulse));
-
-                if (ImGui.Button(btnLabel, new Vector2(btnW, btnH)) && !tpActive)
-                {
-                    if (!plugin.Lifestream.IsLoaded)
-                    {
-                        plugin.Toasts.Show(Lang.ToastLifestreamMissing, ToastKind.Warning, 3.5);
-                    }
-                    else
-                    {
-                        var teleportOk = plugin.Lifestream.NavigateTo(v.Address);
-                        plugin.Toasts.Show(
-                            teleportOk ? Lang.ToastTeleportingTo(v.Name) : Lang.ToastTeleportFailed,
-                            teleportOk ? ToastKind.Success : ToastKind.Warning, 2.5);
-                        tpAnimStart[v.VenueId] = ImGui.GetTime();
-                    }
-                }
-                btnHovered = ImGui.IsItemHovered();
-
-                var btnMin = ImGui.GetItemRectMin();
-                var btnMax = ImGui.GetItemRectMax();
-                var btnW2 = btnMax.X - btnMin.X;
-                var btnH2 = btnMax.Y - btnMin.Y;
-
-                var shimPhase = (time % 2.5f) / 2.5f;
-                var shimX = btnMin.X + shimPhase * (btnW2 + 30) - 15;
-                dl.PushClipRect(btnMin, btnMax, true);
-                dl.AddRectFilledMultiColor(
-                    new Vector2(shimX, btnMin.Y),
-                    new Vector2(shimX + 20, btnMax.Y),
-                    ImGui.ColorConvertFloat4ToU32(new Vector4(1f, 1f, 1f, 0f)),
-                    ImGui.ColorConvertFloat4ToU32(new Vector4(1f, 1f, 1f, 0.05f)),
-                    ImGui.ColorConvertFloat4ToU32(new Vector4(1f, 1f, 1f, 0.05f)),
-                    ImGui.ColorConvertFloat4ToU32(new Vector4(1f, 1f, 1f, 0f)));
-                dl.PopClipRect();
-
-                ImGui.PopStyleColor(5);
-
-                if (btnHovered)
-                {
-                    ImGui.BeginTooltip();
-                    ImGui.TextColored(UIConstants.Glow, Lang.TeleportVia);
-                    ImGui.TextColored(UIConstants.TextSecondary, v.Address);
-                    ImGui.EndTooltip();
-                }
-            }
-            else
-            {
-                ImGui.PushStyleColor(ImGuiCol.Button,        UIConstants.WithAlpha(UIConstants.CardBackground, 0.4f));
-                ImGui.PushStyleColor(ImGuiCol.ButtonHovered, UIConstants.WithAlpha(UIConstants.CardBackground, 0.4f));
-                ImGui.PushStyleColor(ImGuiCol.ButtonActive,  UIConstants.WithAlpha(UIConstants.CardBackground, 0.4f));
-                ImGui.PushStyleColor(ImGuiCol.Border,        UIConstants.WithAlpha(UIConstants.GlowDim, 0.2f));
-                ImGui.PushStyleColor(ImGuiCol.Text,          UIConstants.WithAlpha(UIConstants.TextSecondary, 0.25f));
-                ImGui.Button(btnLabel, new Vector2(btnW, btnH));
-                ImGui.PopStyleColor(5);
-            }
-
-            ImGui.PopStyleVar(3);
-
-            if (clicked)
-            {
-                if (isHere)
-                    selectMapTab = true;
-            }
-
-            if (hovered && ImGui.IsMouseClicked(ImGuiMouseButton.Right))
-                ImGui.OpenPopup($"##ctx_{v.VenueId}");
-            UIConstants.PushMenuStyle();
-            if (ImGui.BeginPopup($"##ctx_{v.VenueId}"))
-            {
-                if (ImGui.MenuItem(Lang.ViewVenueDetails))
-                {
-                    plugin.VenueDetailWindow.Open(v);
-                    ImGui.CloseCurrentPopup();
-                }
-                if (ImGui.MenuItem(isFav ? Lang.RemoveFavorite : Lang.AddFavorite))
-                {
-                    if (isFav)
-                    {
-                        plugin.Configuration.FavoriteVenueIds.Remove(v.VenueId);
-                        favAnimStart.Remove(v.VenueId);
-                        plugin.Toasts.Show(Lang.ToastFavoriteRemoved(v.Name), ToastKind.Info, 2.0);
-                    }
-                    else
-                    {
-                        plugin.Configuration.FavoriteVenueIds.Add(v.VenueId);
-                        favAnimStart[v.VenueId] = ImGui.GetTime();
-                        plugin.Toasts.Show(Lang.ToastFavoriteAdded(v.Name), ToastKind.Success, 2.0);
-                    }
-                    plugin.Configuration.Save();
-                }
-                if (!string.IsNullOrEmpty(v.Address) && ImGui.MenuItem(Lang.CopyAddress))
-                {
-                    ImGui.SetClipboardText($"{v.Name} // {v.Address}");
-                    copyAnimStart[v.VenueId] = ImGui.GetTime();
-                    plugin.Toasts.Show(Lang.ToastAddressCopied, ToastKind.Success, 2.0);
-                }
-                if (ImGui.MenuItem(isHiddenVenue ? Lang.UnhideVenue : Lang.HideVenue))
-                {
-                    if (isHiddenVenue)
-                    {
-                        plugin.Configuration.HiddenVenueIds.Remove(v.VenueId);
-                        plugin.Toasts.Show(Lang.ToastVenueUnhidden(v.Name), ToastKind.Info, 2.0);
-                    }
-                    else
-                    {
-                        plugin.Configuration.HiddenVenueIds.Add(v.VenueId);
-                        plugin.Toasts.Show(Lang.ToastVenueHidden(v.Name), ToastKind.Info, 2.0);
-                    }
-                    plugin.Configuration.Save();
-                }
-                ImGui.EndPopup();
-            }
-            UIConstants.PopMenuStyle();
-
-            if (isHiddenVenue)
-                dl.AddRectFilled(cardMin, cardMax,
-                    ImGui.ColorConvertFloat4ToU32(UIConstants.WithAlpha(UIConstants.Background, 0.55f)), UIConstants.ChipRounding);
-
-            if (hovered)
-            {
-                ImGui.BeginTooltip();
-                ImGui.TextColored(UIConstants.Primary, v.Name);
-                if (!string.IsNullOrEmpty(v.Address))
-                    ImGui.TextColored(UIConstants.Glow, v.Address);
-                ImGui.TextColored(UIConstants.WithAlpha(UIConstants.TextSecondary, 0.5f),
-                    Lang.RightClickHint);
-                ImGui.EndTooltip();
-            }
-
-            if (copyAnimStart.TryGetValue(v.VenueId, out var copyT))
-            {
-                var copyElapsed = (float)(ImGui.GetTime() - copyT);
-                const float copyDur = 2.5f;
-                if (copyElapsed < copyDur)
-                {
-                    var copyP = copyElapsed / copyDur;
-                    var copiedAlpha = copyP < 0.1f ? copyP / 0.1f : Math.Clamp(1f - (copyP - 0.7f) / 0.3f, 0f, 1f);
-
-                    dl.AddRectFilled(cardMin, cardMax,
-                        ImGui.ColorConvertFloat4ToU32(UIConstants.WithAlpha(UIConstants.Background, 0.75f * copiedAlpha)), UIConstants.ChipRounding);
-
-                    var copiedText = Lang.Copied;
-                    var copiedSz = ImGui.CalcTextSize(copiedText);
-                    var floatUp = copyP * 6f;
-                    var startX = cardMin.X + (cardW - copiedSz.X) * 0.5f;
-                    var startY = cardMin.Y + (rowH - copiedSz.Y) * 0.5f - floatUp;
-                    var rainT = (float)ImGui.GetTime() * 0.5f;
-                    for (var ci = 0; ci < copiedText.Length; ci++)
-                    {
-                        var hue = (rainT + ci * 0.1f) % 1.0f;
-                        var charCol = HsvToRgba(hue, 0.85f, 1.0f);
-                        charCol.W = copiedAlpha;
-                        var charX = startX + ImGui.CalcTextSize(copiedText[..ci]).X;
-                        dl.AddText(new Vector2(charX, startY),
-                            ImGui.ColorConvertFloat4ToU32(charCol), copiedText[ci].ToString());
-                    }
-                }
-                else
-                {
-                    copyAnimStart.Remove(v.VenueId);
-                }
-            }
-
-            if (tpAnimStart.TryGetValue(v.VenueId, out var tpAnimT))
-            {
-                var tpElapsed = (float)(ImGui.GetTime() - tpAnimT);
-                const float tpDur = 4.0f;
-                if (tpElapsed < tpDur)
-                {
-                    var tpP = tpElapsed / tpDur;
-                    var tpAlpha = tpP < 0.1f ? tpP / 0.1f : Math.Clamp(1f - (tpP - 0.6f) / 0.4f, 0f, 1f);
-
-                    dl.AddRectFilled(cardMin, cardMax,
-                        ImGui.ColorConvertFloat4ToU32(UIConstants.WithAlpha(UIConstants.Background, 0.6f * tpAlpha)), UIConstants.ChipRounding);
-
-                    var dots = ((int)(tpElapsed * 3f) % 4);
-                    var tpText = Lang.Teleporting.TrimEnd('.') + new string('.', dots);
-                    var tpSz = ImGui.CalcTextSize(tpText);
-                    var tpX = cardMin.X + (cardW - tpSz.X) * 0.5f;
-                    var tpY = cardMin.Y + (rowH - tpSz.Y) * 0.5f;
-
-                    dl.AddText(new Vector2(tpX, tpY),
-                        ImGui.ColorConvertFloat4ToU32(UIConstants.WithAlpha(UIConstants.Glow, tpAlpha)),
-                        tpText);
-                }
-                else
-                {
-                    tpAnimStart.Remove(v.VenueId);
-                }
-            }
-
-            if (v.Links != null && v.Links.HasAny)
-            {
-                var linkCount = 0;
-                if (!string.IsNullOrEmpty(v.Links.Discord)) linkCount++;
-                if (!string.IsNullOrEmpty(v.Links.Partake)) linkCount++;
-                if (!string.IsNullOrEmpty(v.Links.FfxivVenues)) linkCount++;
-                if (!string.IsNullOrEmpty(v.Links.Website)) linkCount++;
-
-                if (linkCount > 0)
-                {
-                    ImGui.TextColored(UIConstants.WithAlpha(UIConstants.Glow, 0.5f), " └─");
-                    ImGui.SameLine(0, 4);
-
-                    var curX = ImGui.GetCursorPosX();
-                    var lnkW = (avW - curX - 4f * (linkCount - 1)) / linkCount;
-
-                    void SocialLnk(string label, string url, Vector4 col)
-                    {
-                        if (string.IsNullOrEmpty(url)) return;
-                        ImGui.PushStyleColor(ImGuiCol.Button, UIConstants.WithAlpha(col, 0.12f));
-                        ImGui.PushStyleColor(ImGuiCol.ButtonHovered, UIConstants.WithAlpha(col, 0.3f));
-                        ImGui.PushStyleColor(ImGuiCol.ButtonActive, UIConstants.WithAlpha(col, 0.5f));
-                        ImGui.PushStyleColor(ImGuiCol.Text, col);
-                        ImGui.PushStyleVar(ImGuiStyleVar.FrameRounding, 10f);
-                        ImGui.PushStyleVar(ImGuiStyleVar.FramePadding, new Vector2(4, 2));
-                        var clicked = ImGui.Button($"{label}##{v.VenueId}_{label}", new Vector2(lnkW, 20));
-                        if (clicked)
-                        {
-                            try { System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo
-                                { FileName = url, UseShellExecute = true }); } catch { }
-                        }
-                        UIConstants.DrawHoverPulseOverlay($"{v.VenueId}_{label}", ImGui.IsItemHovered(), clicked, col);
-                        ImGui.PopStyleVar(2);
-                        ImGui.PopStyleColor(4);
-                        ImGui.SameLine(0, 4);
-                    }
-
-                    SocialLnk("Discord",    v.Links.Discord,     new Vector4(0.34f, 0.40f, 0.93f, 1f));
-                    SocialLnk("Partake",    v.Links.Partake,     new Vector4(0.95f, 0.55f, 0.15f, 1f));
-                    SocialLnk("XIVVenues",  v.Links.FfxivVenues, new Vector4(0.7f, 0.3f, 0.9f, 1f));
-                    SocialLnk("Website",    v.Links.Website,     UIConstants.Glow);
-                    ImGui.NewLine();
-                }
-            }
-
-            ImGui.Spacing();
+        if (clicked)
+        {
+            if (isHere) selectMapTab = true;
+            else plugin.VenueDetailWindow.Open(v);
         }
 
-        ImGui.PopStyleVar();
+        if (hovered && ImGui.IsMouseClicked(ImGuiMouseButton.Right))
+            ImGui.OpenPopup($"##ctx_{v.VenueId}");
+        DrawVenueContextMenu(v, isFav, isHiddenVenue);
+        VenueShare.Popup(plugin, v, $"##share_{v.VenueId}");
 
-        ImGui.Spacing();
-        var hint = Lang.EnterVenue;
-        var hSz  = ImGui.CalcTextSize(hint);
-        ImGui.SetCursorPosX((ImGui.GetContentRegionAvail().X - hSz.X) / 2f + ImGui.GetCursorPosX());
-        ImGui.TextColored(UIConstants.WithAlpha(UIConstants.TextSecondary, 0.35f), hint);
+        if (hovered)
+        {
+            using var tooltip = ImRaii.Tooltip();
+            var (banner, _) = VenueBanner.Get(plugin, v);
+            if (banner != null)
+            {
+                var size = new Vector2(280f, 84f);
+                var (uv0, uv1) = VenueBanner.CoverUv(banner, size);
+                ImGui.Image(banner.Handle, size, uv0, uv1);
+            }
+            UIConstants.TextReadable(VenueAccent(v), UIConstants.DisplayName(v.Name));
+            if (hasAddr)
+                ImGui.TextColored(UIConstants.TextSecondary, v.Address);
+            if (adSeen is { } seen)
+                ImGui.TextColored(UIConstants.Glow, Lang.PartyFinderSeen(MinutesAgo(seen)));
+            ImGui.TextColored(UIConstants.TextMuted, Lang.ViewVenueDetails);
+            ImGui.TextColored(UIConstants.TextMuted, Lang.RightClickHint);
+        }
+
+        DrawFavAnimation(dl, v.VenueId, rowMin, rowMax);
+        if (isHiddenVenue)
+            dl.AddRectFilled(rowMin, rowMax, U32(UIConstants.WithAlpha(UIConstants.Background, 0.55f)));
+        DrawCopyAnimation(dl, v.VenueId, rowMin, rowMax);
+        DrawTeleportAnimation(dl, v.VenueId, rowMin, rowMax);
+
+        ImGui.SetCursorScreenPos(new Vector2(rowMin.X, rowMax.Y));
     }
 
-    private void DrawHeaderBar(Venue venue, Floor? floor)
+    private float DrawRowActions(Venue v, float right, float centerY)
+    {
+        var size = ImGui.GetFrameHeight();
+        const float gap = 2f;
+        var actions = new List<(string Id, FontAwesomeIcon Icon, string Tip, Action Click)>
+        {
+            ("share", FontAwesomeIcon.ShareAlt, Lang.Share, () => ImGui.OpenPopup($"##share_{v.VenueId}")),
+        };
+        var links = v.Links;
+        if (!string.IsNullOrEmpty(links?.Partake)) actions.Add(("partake", FontAwesomeIcon.CalendarAlt, "Partake", () => UIConstants.OpenUrl(links!.Partake)));
+        if (!string.IsNullOrEmpty(links?.Website)) actions.Add(("web", FontAwesomeIcon.Globe, Lang.Website, () => UIConstants.OpenUrl(links!.Website)));
+        if (!string.IsNullOrEmpty(links?.Discord)) actions.Add(("discord", FontAwesomeIcon.Comments, "Discord", () => UIConstants.OpenUrl(links!.Discord)));
+
+        var restore = ImGui.GetCursorScreenPos();
+        var x = right;
+        foreach (var (id, icon, tip, click) in actions)
+        {
+            x -= size;
+            if (VenueShare.IconButton($"##{id}_{v.VenueId}", icon, tip, new Vector2(x, centerY - size / 2f), size))
+                click();
+            x -= gap;
+        }
+        ImGui.SetCursorScreenPos(restore);
+        return x;
+    }
+
+    private static float DrawRowStatus(ImDrawListPtr dl, string statusText, bool isOpen, float right, float centerY, float lineH)
+    {
+        var size = ImGui.CalcTextSize(statusText);
+        var x = right - size.X;
+        var y = centerY - lineH / 2f;
+        dl.AddText(new Vector2(x, y), U32(isOpen ? UIConstants.Success : UIConstants.TextSecondary), statusText);
+        if (!isOpen) return x;
+
+        var pulse = (MathF.Sin((float)ImGui.GetTime() * 3f) + 1f) / 2f;
+        dl.AddCircleFilled(new Vector2(x - 8f, centerY), 3f, U32(UIConstants.WithAlpha(UIConstants.Success, 0.35f + 0.65f * pulse)));
+        return x - 13f;
+    }
+
+    private static void DrawRowText(ImDrawListPtr dl, Venue v, Vector2 rowMin, Vector2 rowMax, float textRight, float lineH,
+        bool rowHot, Vector4 accent, Vector4 gem, bool isHere, VenueEvent? nextEvent)
+    {
+        var x = rowMin.X + RowPadX;
+        var y = rowMin.Y + RowPadY;
+        var nameX = x + 14f;
+
+        dl.PushClipRect(new Vector2(x - 4f, rowMin.Y), new Vector2(textRight, rowMax.Y), true);
+
+        var gemCenter = new Vector2(x + 3.5f, y + lineH / 2f);
+        UIConstants.DrawGem(dl, gemCenter, 3.5f, gem);
+        if (UIConstants.IsDark(gem))
+            dl.AddQuad(gemCenter + new Vector2(0, -3.5f), gemCenter + new Vector2(3.5f, 0), gemCenter + new Vector2(0, 3.5f), gemCenter + new Vector2(-3.5f, 0),
+                U32(UIConstants.WithAlpha(UIConstants.TextPrimary, 0.6f)), 1f);
+        var name = UIConstants.DisplayName(v.Name);
+        UIConstants.AddTextReadable(dl, new Vector2(nameX, y), rowHot ? UIConstants.Lighten(accent, 0.12f) : accent, name);
+
+        var cx = nameX + ImGui.CalcTextSize(name).X + 10f;
+        if (isHere)
+            cx = DrawPill(dl, cx, y, Lang.Here2.Trim(), UIConstants.Success) + 6f;
+        if (v.Nsfw)
+            DrawPill(dl, cx, y, Lang.NsfwBadge, UIConstants.Rose);
+
+        var addrY = y + lineH + RowLineGap;
+        dl.AddText(new Vector2(nameX, addrY), U32(UIConstants.TextMuted), FormatAddress(v.Address));
+
+        if (nextEvent != null)
+        {
+            var evY = addrY + lineH + RowLineGap;
+            var iconFont = UiBuilder.IconFont;
+            var iconSize = lineH * 0.8f;
+            dl.AddText(iconFont, iconSize, new Vector2(nameX, evY + (lineH - iconSize) / 2f),
+                U32(UIConstants.Accent), FontAwesomeIcon.CalendarAlt.ToIconString());
+            var when = $"{nextEvent.StartTime.ToString("ddd", Lang.Culture)} {UIConstants.FormatServerTime(nextEvent.StartTime)}";
+            dl.AddText(new Vector2(nameX + iconSize + 6f, evY), U32(UIConstants.TextSecondary), $"{UIConstants.DisplayName(nextEvent.Title)} · {when}");
+        }
+
+        dl.PopClipRect();
+    }
+
+    private static float DrawPill(ImDrawListPtr dl, float x, float y, string text, Vector4 color)
+    {
+        const float scale = 0.8f;
+        var font = ImGui.GetFont();
+        var fontSize = ImGui.GetFontSize() * scale;
+        var size = ImGui.CalcTextSize(text) * scale;
+        var lineH = ImGui.GetTextLineHeight();
+        var pad = new Vector2(5f, 1f);
+        var min = new Vector2(x, y + (lineH - size.Y - pad.Y * 2) / 2f);
+        var max = min + size + pad * 2;
+        dl.AddRectFilled(min, max, U32(UIConstants.WithAlpha(color, 0.14f)), 2f);
+        dl.AddText(font, fontSize, min + pad, U32(color), text);
+        return max.X;
+    }
+
+    private void OpenPartyFinder(Venue v)
+    {
+        if (!plugin.PartyFinderAds.OpenListing(v.VenueId))
+            plugin.Toasts.Show(Lang.PartyFinderGone, ToastKind.Warning, 3.0);
+    }
+
+    internal static int MinutesAgo(DateTime utc) => Math.Max(1, (int)Math.Round((DateTime.UtcNow - utc).TotalMinutes));
+
+    private static float DrawPartyFinderIcon(ImDrawListPtr dl, float right, float centerY, float lineH)
+    {
+        var size = lineH * 0.95f;
+        UIConstants.DrawIconCentered(dl, size, new Vector2(right - size / 2f, centerY), FontAwesomeIcon.Bullhorn, U32(UIConstants.Glow));
+        return right - size;
+    }
+
+    private float DrawFavStar(ImDrawListPtr dl, string venueId, float right, float centerY, float lineH)
+    {
+        var iconFont = UiBuilder.IconFont;
+        var glyph = FontAwesomeIcon.Star.ToIconString();
+        var size = lineH * 1.05f;
+        var glyphSz = CalcIconSize(glyph) * (size / iconFont.FontSize);
+        var pos = new Vector2(right - glyphSz.X, centerY - glyphSz.Y / 2f);
+        var animating = favAnimStart.TryGetValue(venueId, out var t) && ImGui.GetTime() - t < 1.6;
+        if (!animating)
+            dl.AddText(iconFont, size, pos, U32(UIConstants.GoldAccent), glyph);
+        return pos.X;
+    }
+
+    private void DrawFavAnimation(ImDrawListPtr dl, string venueId, Vector2 rowMin, Vector2 rowMax)
+    {
+        if (!favAnimStart.TryGetValue(venueId, out var animT)) return;
+        var elapsed = (float)(ImGui.GetTime() - animT);
+        const float dur = 3.0f;
+        if (elapsed >= dur)
+        {
+            favAnimStart.Remove(venueId);
+            return;
+        }
+
+        var progress = elapsed / dur;
+        var gold = UIConstants.GoldAccent;
+        var rowW = rowMax.X - rowMin.X;
+        dl.PushClipRect(rowMin, rowMax, true);
+
+        if (progress < 0.45f)
+        {
+            var fillW = rowW * (progress / 0.45f);
+            dl.AddRectFilled(rowMin, new Vector2(rowMin.X + fillW, rowMax.Y), U32(UIConstants.WithAlpha(gold, 0.12f)));
+            dl.AddRectFilled(new Vector2(rowMin.X + fillW - 2f, rowMin.Y), new Vector2(rowMin.X + fillW, rowMax.Y),
+                U32(UIConstants.WithAlpha(gold, 0.8f)));
+        }
+        else if (progress < 0.6f)
+        {
+            var flashP = (progress - 0.45f) / 0.15f;
+            dl.AddRectFilled(rowMin, rowMax, U32(UIConstants.WithAlpha(gold, 0.18f * (1f - flashP))));
+        }
+
+        dl.PopClipRect();
+    }
+
+    private void DrawCopyAnimation(ImDrawListPtr dl, string venueId, Vector2 rowMin, Vector2 rowMax)
+    {
+        if (!copyAnimStart.TryGetValue(venueId, out var copyT)) return;
+        var copyElapsed = (float)(ImGui.GetTime() - copyT);
+        const float copyDur = 2.5f;
+        if (copyElapsed >= copyDur)
+        {
+            copyAnimStart.Remove(venueId);
+            return;
+        }
+
+        var copyP = copyElapsed / copyDur;
+        var copiedAlpha = copyP < 0.1f ? copyP / 0.1f : Math.Clamp(1f - (copyP - 0.7f) / 0.3f, 0f, 1f);
+        dl.AddRectFilled(rowMin, rowMax, U32(UIConstants.WithAlpha(UIConstants.Background, 0.75f * copiedAlpha)));
+
+        var copiedText = Lang.Copied;
+        var copiedSz = ImGui.CalcTextSize(copiedText);
+        var startX = rowMin.X + (rowMax.X - rowMin.X - copiedSz.X) * 0.5f;
+        var startY = rowMin.Y + (rowMax.Y - rowMin.Y - copiedSz.Y) * 0.5f - copyP * 6f;
+        var rainT = (float)ImGui.GetTime() * 0.5f;
+        for (var ci = 0; ci < copiedText.Length; ci++)
+        {
+            var charCol = HsvToRgba((rainT + ci * 0.1f) % 1.0f, 0.85f, 1.0f);
+            charCol.W = copiedAlpha;
+            var charX = startX + ImGui.CalcTextSize(copiedText[..ci]).X;
+            dl.AddText(new Vector2(charX, startY), U32(charCol), copiedText[ci].ToString());
+        }
+    }
+
+    private void DrawTeleportAnimation(ImDrawListPtr dl, string venueId, Vector2 rowMin, Vector2 rowMax)
+    {
+        if (!tpAnimStart.TryGetValue(venueId, out var tpAnimT)) return;
+        var tpElapsed = (float)(ImGui.GetTime() - tpAnimT);
+        const float tpDur = 4.0f;
+        if (tpElapsed >= tpDur)
+        {
+            tpAnimStart.Remove(venueId);
+            return;
+        }
+
+        var tpP = tpElapsed / tpDur;
+        var tpAlpha = tpP < 0.1f ? tpP / 0.1f : Math.Clamp(1f - (tpP - 0.6f) / 0.4f, 0f, 1f);
+        dl.AddRectFilled(rowMin, rowMax, U32(UIConstants.WithAlpha(UIConstants.Background, 0.6f * tpAlpha)));
+
+        var dots = (int)(tpElapsed * 3f) % 4;
+        var tpText = Lang.Teleporting.TrimEnd('.') + new string('.', dots);
+        var tpSz = ImGui.CalcTextSize(tpText);
+        var lineH = ImGui.GetTextLineHeight();
+        var totalW = lineH + 8f + tpSz.X;
+        var x = rowMin.X + (rowMax.X - rowMin.X - totalW) * 0.5f;
+        var y = rowMin.Y + (rowMax.Y - rowMin.Y - tpSz.Y) * 0.5f;
+        var col = U32(UIConstants.WithAlpha(UIConstants.Glow, tpAlpha));
+        HudIcons.Aetheryte(dl, new Vector2(x + lineH / 2f, y + lineH / 2f), lineH, col);
+        dl.AddText(new Vector2(x + lineH + 8f, y), col, tpText);
+    }
+
+    private static (bool Pressed, bool Hovered) TeleportGlyphButton(string id, ImDrawListPtr dl, Vector2 size,
+        bool prominent, bool enabled, bool running)
+    {
+        var pos = ImGui.GetCursorScreenPos();
+        bool pressed, hovered;
+        using (ImRaii.Disabled(!enabled))
+        {
+            pressed = ImGui.InvisibleButton(id, size);
+            hovered = enabled && ImGui.IsItemHovered();
+        }
+
+        var max = pos + size;
+        var aether = UIConstants.Glow;
+        if (enabled && (prominent || hovered))
+        {
+            UIConstants.Chamfer(dl, pos, max, 6f);
+            dl.PathFillConvex(U32(UIConstants.WithAlpha(aether, hovered ? 0.2f : 0.08f)));
+            UIConstants.Chamfer(dl, pos, max, 6f);
+            dl.PathStroke(U32(UIConstants.WithAlpha(aether, hovered ? 1f : 0.8f)), ImDrawFlags.Closed, 1f);
+        }
+
+        var lineH = ImGui.GetTextLineHeight();
+        var col = !enabled ? UIConstants.WithAlpha(UIConstants.TextMuted, 0.35f)
+                : prominent || hovered || running ? aether : UIConstants.TextMuted;
+        if (running)
+            col = UIConstants.WithAlpha(col, 0.55f + 0.45f * (MathF.Sin((float)ImGui.GetTime() * 5f) + 1f) / 2f);
+        var iconCenter = prominent
+            ? new Vector2(pos.X + 8f + lineH / 2f, pos.Y + size.Y / 2f)
+            : pos + size / 2f;
+        HudIcons.Aetheryte(dl, iconCenter, lineH, U32(col));
+        if (prominent)
+            dl.AddText(new Vector2(pos.X + 8f + lineH + 5f, pos.Y + (size.Y - lineH) / 2f), U32(col), running ? "..." : Lang.Visit);
+
+        return (pressed && enabled, hovered);
+    }
+
+    private void DrawTeleportButton(Venue v, ImDrawListPtr dl, Vector2 size, bool prominent, bool enabled, bool tpActive)
+    {
+        var running = IsTeleportRunning(v, tpActive);
+        var (pressed, hovered) = TeleportGlyphButton($"##tp_{v.VenueId}", dl, size, prominent, enabled, running);
+
+        if (pressed)
+        {
+            if (running) CancelTeleport(v);
+            else TeleportTo(v);
+        }
+
+        if (!hovered) return;
+        using var tooltip = ImRaii.Tooltip();
+        if (running)
+        {
+            ImGui.TextColored(UIConstants.Glow, Lang.TeleportCancelTip);
+            return;
+        }
+        ImGui.TextColored(UIConstants.Glow, Lang.TeleportVia);
+        ImGui.TextColored(UIConstants.TextSecondary, v.Address);
+    }
+
+    private string? activeTeleportVenueId;
+
+    private bool IsTeleportRunning(Venue v, bool tpActive)
+    {
+        if (activeTeleportVenueId != v.VenueId) return false;
+        if (tpActive || plugin.Lifestream.IsBusyCached) return true;
+        activeTeleportVenueId = null;
+        return false;
+    }
+
+    private void CancelTeleport(Venue v)
+    {
+        plugin.CancelTeleport();
+        tpAnimStart.Remove(v.VenueId);
+        activeTeleportVenueId = null;
+    }
+
+    private void TeleportTo(Venue v)
+    {
+        if (!plugin.Lifestream.IsLoaded)
+        {
+            plugin.Toasts.Show(Lang.ToastLifestreamMissing, ToastKind.Warning, 3.5);
+            return;
+        }
+
+        var teleportOk = plugin.Lifestream.NavigateTo(v.Address);
+        plugin.Toasts.Show(
+            teleportOk ? Lang.ToastTeleportingTo(v.Name) : Lang.ToastTeleportFailed,
+            teleportOk ? ToastKind.Success : ToastKind.Warning, 2.5);
+        tpAnimStart[v.VenueId] = ImGui.GetTime();
+        if (teleportOk) activeTeleportVenueId = v.VenueId;
+    }
+
+    private void DrawVenueContextMenu(Venue v, bool isFav, bool isHiddenVenue)
+    {
+        using var menuStyle = UIConstants.MenuStyle();
+        using var popup = ImRaii.Popup($"##ctx_{v.VenueId}");
+        if (!popup) return;
+
+        if (ImGui.MenuItem(Lang.ViewVenueDetails))
+        {
+            plugin.VenueDetailWindow.Open(v);
+            ImGui.CloseCurrentPopup();
+        }
+        if (ImGui.MenuItem(Lang.ShowOnMap))
+        {
+            plugin.ShowVenueOnMap(v);
+            ImGui.CloseCurrentPopup();
+        }
+        if (ImGui.MenuItem(isFav ? Lang.RemoveFavorite : Lang.AddFavorite))
+        {
+            if (isFav)
+            {
+                plugin.Configuration.FavoriteVenueIds.Remove(v.VenueId);
+                favAnimStart.Remove(v.VenueId);
+                plugin.Toasts.Show(Lang.ToastFavoriteRemoved(v.Name), ToastKind.Info, 2.0);
+            }
+            else
+            {
+                plugin.Configuration.FavoriteVenueIds.Add(v.VenueId);
+                favAnimStart[v.VenueId] = ImGui.GetTime();
+                plugin.Toasts.Show(Lang.ToastFavoriteAdded(v.Name), ToastKind.Success, 2.0);
+            }
+            plugin.Configuration.Save();
+        }
+        if (!string.IsNullOrEmpty(v.Address))
+        {
+            using var share = ImRaii.Menu(Lang.Share);
+            if (share)
+                VenueShare.DrawMenu(plugin, v);
+        }
+        if (!string.IsNullOrEmpty(v.Address) && ImGui.MenuItem(Lang.CopyAddress))
+        {
+            ImGui.SetClipboardText($"{v.Name} // {v.Address}");
+            copyAnimStart[v.VenueId] = ImGui.GetTime();
+            plugin.Toasts.Show(Lang.ToastAddressCopied, ToastKind.Success, 2.0);
+        }
+        if (ImGui.MenuItem(isHiddenVenue ? Lang.UnhideVenue : Lang.HideVenue))
+        {
+            if (isHiddenVenue)
+            {
+                plugin.Configuration.HiddenVenueIds.Remove(v.VenueId);
+                plugin.Toasts.Show(Lang.ToastVenueUnhidden(v.Name), ToastKind.Info, 2.0);
+            }
+            else
+            {
+                plugin.Configuration.HiddenVenueIds.Add(v.VenueId);
+                plugin.Toasts.Show(Lang.ToastVenueHidden(v.Name), ToastKind.Info, 2.0);
+            }
+            plugin.Configuration.Save();
+        }
+    }
+
+    private void DrawHeaderBar(Venue? venue, string title, string floorStr)
     {
         var dl   = ImGui.GetWindowDrawList();
         var winP = ImGui.GetWindowPos();
         var winW = ImGui.GetWindowWidth();
         var cy   = ImGui.GetCursorScreenPos().Y;
+        var tint = venue != null ? VenueAccent(venue) : UIConstants.Heading;
+        var tint2 = venue != null ? VenuePalette(venue).Secondary : UIConstants.Heading;
 
         dl.AddRectFilledMultiColor(
             new Vector2(winP.X, cy - 2),
             new Vector2(winP.X + winW, cy + 30),
-            ImGui.ColorConvertFloat4ToU32(UIConstants.WithAlpha(UIConstants.Primary, 0.16f)),
-            ImGui.ColorConvertFloat4ToU32(UIConstants.WithAlpha(UIConstants.Secondary, 0.10f)),
-            ImGui.ColorConvertFloat4ToU32(UIConstants.WithAlpha(UIConstants.Secondary, 0f)),
-            ImGui.ColorConvertFloat4ToU32(UIConstants.WithAlpha(UIConstants.Primary, 0f)));
+            ImGui.ColorConvertFloat4ToU32(UIConstants.WithAlpha(tint, 0.16f)),
+            ImGui.ColorConvertFloat4ToU32(UIConstants.WithAlpha(tint2, 0.10f)),
+            ImGui.ColorConvertFloat4ToU32(UIConstants.WithAlpha(tint2, 0f)),
+            ImGui.ColorConvertFloat4ToU32(UIConstants.WithAlpha(tint, 0f)));
 
-        var title    = venue.Name.ToUpperInvariant();
-        var floorStr = floor != null ? TranslateFloorName(floor.Name) : "-";
-
-        ImGui.PushStyleVar(ImGuiStyleVar.CellPadding, new Vector2(4, 4));
-
-        try
+        using (ImRaii.PushStyle(ImGuiStyleVar.CellPadding, new Vector2(4, 4)))
+        using (var table = ImRaii.Table("##mapHeader", 3))
         {
-        if (ImGui.BeginTable("##mapHeader", 3))
-        {
-            ImGui.TableSetupColumn("##hName",  ImGuiTableColumnFlags.WidthStretch);
-            ImGui.TableSetupColumn("##hFloor", ImGuiTableColumnFlags.WidthStretch);
-            ImGui.TableSetupColumn("##h3D",    ImGuiTableColumnFlags.WidthFixed, 50);
-
-            ImGui.TableNextRow();
-
-            ImGui.TableSetColumnIndex(0);
-            var iconFont = UiBuilder.IconFont;
-            var infoGlyph = Dalamud.Interface.FontAwesomeIcon.InfoCircle.ToIconString();
-            ImGui.PushFont(iconFont);
-            var infoIconSz = ImGui.CalcTextSize(infoGlyph);
-            ImGui.PopFont();
-            const float infoGap = 5f;
-
-            var nameW = ImGui.CalcTextSize(title).X;
-            var lineH = ImGui.GetTextLineHeight();
-            var totalW = infoIconSz.X + infoGap + nameW;
-            var colW  = ImGui.GetColumnWidth();
-            ImGui.SetCursorPosX(ImGui.GetCursorPosX() + Math.Max(0, (colW - totalW) / 2f));
-
-            var namePos = ImGui.GetCursorScreenPos();
-            ImGui.InvisibleButton("##venueInfoBtn", new Vector2(totalW, lineH));
-            var nameHovered = ImGui.IsItemHovered();
-            if (ImGui.IsItemClicked()) plugin.VenueDetailWindow.Open(venue);
-            UIConstants.DrawHoverPulseOverlay("venueInfoBtn", nameHovered, false, UIConstants.Glow);
-
-            var infoCol = nameHovered ? UIConstants.Glow : UIConstants.WithAlpha(UIConstants.Primary, 0.6f);
-            var iconY = namePos.Y + (lineH - infoIconSz.Y) * 0.5f;
-            dl.AddText(iconFont, iconFont.FontSize, new Vector2(namePos.X, iconY), ImGui.ColorConvertFloat4ToU32(infoCol), infoGlyph);
-            dl.AddText(new Vector2(namePos.X + infoIconSz.X + infoGap, namePos.Y),
-                ImGui.ColorConvertFloat4ToU32(nameHovered ? UIConstants.Glow : UIConstants.Primary), title);
-            if (nameHovered) ImGui.SetTooltip(Lang.ViewVenueDetails);
-
-            ImGui.TableSetColumnIndex(1);
-            var floorW = ImGui.CalcTextSize(floorStr).X;
-            colW = ImGui.GetColumnWidth();
-            ImGui.SetCursorPosX(ImGui.GetCursorPosX() + Math.Max(0, (colW - floorW) / 2f));
-            ImGui.TextColored(UIConstants.Glow, floorStr);
-
-            ImGui.TableSetColumnIndex(2);
-            ImGui.PushStyleColor(ImGuiCol.CheckMark, UIConstants.Glow);
-            var markers3d = plugin.PictomancyMarkers.Enabled;
-            if (ImGui.Checkbox("3D##markers", ref markers3d))
-            {
-                plugin.PictomancyMarkers.Enabled = markers3d;
-                plugin.Configuration.Markers3DEnabled = markers3d;
-                plugin.Configuration.Save();
-            }
-            ImGui.PopStyleColor();
-
-            ImGui.EndTable();
-        }
-        }
-        finally
-        {
-            ImGui.PopStyleVar();
+            if (table)
+                DrawHeaderColumns(venue, dl, title, floorStr);
         }
 
         var lineY = ImGui.GetCursorScreenPos().Y;
         dl.AddLine(
             new Vector2(winP.X + 8, lineY),
             new Vector2(winP.X + winW - 8, lineY),
-            ImGui.ColorConvertFloat4ToU32(UIConstants.WithAlpha(UIConstants.Glow, 0.45f)), 1f);
-        dl.AddLine(
-            new Vector2(winP.X + 8, lineY + 2),
-            new Vector2(winP.X + winW - 8, lineY + 2),
-            ImGui.ColorConvertFloat4ToU32(UIConstants.WithAlpha(UIConstants.Glow, 0.12f)), 2f);
+            ImGui.ColorConvertFloat4ToU32(UIConstants.WithAlpha(UIConstants.Trim, 0.8f)), 1f);
     }
 
-    private void DrawFloorTabs(Venue venue, ref Floor? selectedFloor)
+    private void DrawHeaderColumns(Venue? venue, ImDrawListPtr dl, string title, string floorStr)
     {
-        const float gap = 6f;
-        var totalGap = gap * (venue.Floors.Count - 1);
-        var tabW = (ImGui.GetContentRegionAvail().X - totalGap) / venue.Floors.Count;
+        ImGui.TableSetupColumn("##hName",  ImGuiTableColumnFlags.WidthStretch);
+        ImGui.TableSetupColumn("##hFloor", ImGuiTableColumnFlags.WidthStretch);
+        ImGui.TableSetupColumn("##h3D",    ImGuiTableColumnFlags.WidthFixed, 50);
 
-        for (var i = 0; i < venue.Floors.Count; i++)
+        ImGui.TableNextRow();
+
+        ImGui.TableSetColumnIndex(0);
+        var iconFont = UiBuilder.IconFont;
+        var infoGlyph = FontAwesomeIcon.InfoCircle.ToIconString();
+        var infoIconSz = CalcIconSize(infoGlyph);
+        const float infoGap = 5f;
+
+        var nameW = ImGui.CalcTextSize(title).X;
+        var lineH = ImGui.GetTextLineHeight();
+        var totalW = infoIconSz.X + infoGap + nameW;
+        var colW  = ImGui.GetColumnWidth();
+        ImGui.SetCursorPosX(ImGui.GetCursorPosX() + Math.Max(0, (colW - totalW) / 2f));
+
+        var namePos = ImGui.GetCursorScreenPos();
+        ImGui.InvisibleButton("##venueInfoBtn", new Vector2(totalW, lineH));
+        var nameHovered = venue != null && ImGui.IsItemHovered();
+        if (venue != null && ImGui.IsItemClicked()) plugin.VenueDetailWindow.Open(venue);
+        if (venue != null)
+            UIConstants.DrawHoverPulseOverlay("venueInfoBtn", nameHovered, false, UIConstants.Glow);
+
+        var titleCol = venue != null ? VenueAccent(venue) : UIConstants.Heading;
+        var infoCol = nameHovered ? UIConstants.Accent : UIConstants.WithAlpha(titleCol, 0.6f);
+        var iconY = namePos.Y + (lineH - infoIconSz.Y) * 0.5f;
+        dl.AddText(iconFont, iconFont.FontSize, new Vector2(namePos.X, iconY), ImGui.ColorConvertFloat4ToU32(infoCol),
+            venue != null ? infoGlyph : FontAwesomeIcon.Flag.ToIconString());
+        UIConstants.AddTextReadable(dl, new Vector2(namePos.X + infoIconSz.X + infoGap, namePos.Y),
+            nameHovered ? UIConstants.Lighten(titleCol, 0.12f) : titleCol, title);
+        if (nameHovered) ImGui.SetTooltip(Lang.ViewVenueDetails);
+
+        ImGui.TableSetColumnIndex(1);
+        var floorW = ImGui.CalcTextSize(floorStr).X;
+        colW = ImGui.GetColumnWidth();
+        var rules = venue != null ? HouseRulesCard.RulesFor(venue, plugin.Configuration.Language) : Array.Empty<VenueRule>();
+        var ruleGlyph = FontAwesomeIcon.BookOpen.ToIconString();
+        var ruleGlyphSize = CalcIconSize(ruleGlyph) * 0.75f;
+        var ruleLabel = $"{Lang.HouseRulesPill} {rules.Count}";
+        var pillW = rules.Count > 0 ? ImGui.CalcTextSize(ruleLabel).X + ruleGlyphSize.X + 18f : 0f;
+        var floorTotal = floorW + (pillW > 0f ? pillW + 8f : 0f);
+        ImGui.SetCursorPosX(ImGui.GetCursorPosX() + Math.Max(0, (colW - floorTotal) / 2f));
+        ImGui.TextColored(UIConstants.TextSecondary, floorStr);
+        if (rules.Count > 0 && venue != null)
         {
-            var f      = venue.Floors[i];
+            ImGui.SameLine(0, 8f);
+            var pillPos = ImGui.GetCursorScreenPos();
+            var pillSize = new Vector2(pillW, lineH);
+            if (ImGui.InvisibleButton("##rulesPill", pillSize))
+                plugin.HouseRules.Show(venue);
+            var pillHot = ImGui.IsItemHovered();
+            var amber = UIConstants.Warning;
+            dl.AddRectFilled(pillPos, pillPos + pillSize, ImGui.ColorConvertFloat4ToU32(UIConstants.WithAlpha(amber, pillHot ? 0.22f : 0.1f)), lineH / 2f);
+            dl.AddRect(pillPos, pillPos + pillSize, ImGui.ColorConvertFloat4ToU32(UIConstants.WithAlpha(amber, 0.55f)), lineH / 2f, ImDrawFlags.None, 1f);
+            dl.AddText(iconFont, iconFont.FontSize * 0.75f, new Vector2(pillPos.X + 7f, pillPos.Y + (lineH - ruleGlyphSize.Y) / 2f),
+                ImGui.ColorConvertFloat4ToU32(amber), ruleGlyph);
+            dl.AddText(new Vector2(pillPos.X + 11f + ruleGlyphSize.X, pillPos.Y), ImGui.ColorConvertFloat4ToU32(amber), ruleLabel);
+            if (pillHot) ImGui.SetTooltip(Lang.HouseRulesShow);
+        }
+
+        ImGui.TableSetColumnIndex(2);
+        using var checkMark = ImRaii.PushColor(ImGuiCol.CheckMark, UIConstants.Glow);
+        var markers3d = plugin.PictomancyMarkers.Enabled;
+        if (ImGui.Checkbox("3D##markers", ref markers3d))
+        {
+            plugin.PictomancyMarkers.Enabled = markers3d;
+            plugin.Configuration.Markers3DEnabled = markers3d;
+            plugin.Configuration.Save();
+        }
+    }
+
+    private void DrawFloorTabs(IReadOnlyList<Floor> floors, ref Floor? selectedFloor)
+    {
+        if (floors.Count == 0) return;
+        const float gap = 6f;
+        var totalGap = gap * (floors.Count - 1);
+        var tabW = (ImGui.GetContentRegionAvail().X - totalGap) / floors.Count;
+
+        for (var i = 0; i < floors.Count; i++)
+        {
+            var f      = floors[i];
             var active = f == selectedFloor;
             if (i > 0) ImGui.SameLine(0, gap);
 
-            ImGui.PushStyleColor(ImGuiCol.Text,          active ? UIConstants.TextPrimary   : UIConstants.TextSecondary);
-            ImGui.PushStyleColor(ImGuiCol.Button,        active ? UIConstants.WithAlpha(UIConstants.Primary, 0.25f)  : UIConstants.WithAlpha(UIConstants.CardBackground, 0.9f));
-            ImGui.PushStyleColor(ImGuiCol.ButtonHovered, active ? UIConstants.WithAlpha(UIConstants.Primary, 0.4f)   : UIConstants.WithAlpha(UIConstants.Glow, 0.12f));
-            ImGui.PushStyleColor(ImGuiCol.ButtonActive,  UIConstants.Primary);
-            ImGui.PushStyleColor(ImGuiCol.Border,        active ? UIConstants.GlowBright    : UIConstants.GlowDim);
-            ImGui.PushStyleVar(ImGuiStyleVar.FrameBorderSize, active ? 2f : 1f);
-            ImGui.PushStyleVar(ImGuiStyleVar.FrameRounding, 0f);
-
-            if (ImGui.Button(TranslateFloorName(f.Name), new Vector2(tabW, 28)))
-                selectedFloor = f;
-
-            ImGui.PopStyleVar(2);
-            ImGui.PopStyleColor(5);
+            using (ImRaii.PushColor(ImGuiCol.Text,          active ? UIConstants.TextPrimary : UIConstants.TextSecondary)
+                         .Push(ImGuiCol.Button,        active ? UIConstants.WithAlpha(UIConstants.Accent, 0.25f) : UIConstants.WithAlpha(UIConstants.CardBackground, 0.9f))
+                         .Push(ImGuiCol.ButtonHovered, active ? UIConstants.WithAlpha(UIConstants.Accent, 0.4f)  : UIConstants.WithAlpha(UIConstants.Glow, 0.12f))
+                         .Push(ImGuiCol.ButtonActive,  UIConstants.Accent)
+                         .Push(ImGuiCol.Border,        active ? UIConstants.GlowBright : UIConstants.GlowDim))
+            using (ImRaii.PushStyle(ImGuiStyleVar.FrameBorderSize, active ? 2f : 1f).Push(ImGuiStyleVar.FrameRounding, 0f))
+            {
+                if (ImGui.Button(TranslateFloorName(f.Name), new Vector2(tabW, 28)))
+                    selectedFloor = f;
+            }
 
             if (active)
             {
@@ -1611,29 +1829,28 @@ public class VenueMapWindow : Window, IDisposable
                 var imin = ImGui.GetItemRectMin();
                 var imax = ImGui.GetItemRectMax();
                 dl.AddLine(new Vector2(imin.X, imax.Y + 2), new Vector2(imax.X, imax.Y + 2),
-                    ImGui.ColorConvertFloat4ToU32(UIConstants.Primary), 3f);
+                    ImGui.ColorConvertFloat4ToU32(UIConstants.Accent), 3f);
                 dl.AddLine(new Vector2(imin.X, imax.Y + 6), new Vector2(imax.X, imax.Y + 6),
                     ImGui.ColorConvertFloat4ToU32(UIConstants.WithAlpha(UIConstants.Glow, 0.3f)), 2f);
             }
         }
     }
 
-    private void DrawMapPanel(Venue venue, Floor floor, uint territoryId, uint mapId = 0)
+    private Vector2? lastMapFocus;
+
+    private void DrawMapPanel(IReadOnlyList<Service> services, uint territoryId, uint mapId = 0,
+        Vector2? focus = null, float focusSpan = 0f, float areaRadius = 0f,
+        IReadOnlyList<MapPin>? pins = null, Venue? highlight = null, bool fullMap = false)
     {
         var tracker = plugin.PositionTracker;
+        var zoomMin = fullMap ? ZoomDefault : ZoomMin;
+        var zoomMax = fullMap ? ZoomDefault * WardZoomMax : ZoomMax;
         var outdoorDistrict = tracker.IsInsideHouse ? null : tracker.CurrentHousingDistrict;
 
         var filters = plugin.Configuration.ServiceFilters;
-        var visible = floor.Services
+        var visible = services
             .Where(s => !filters.TryGetValue(s.Type, out var v) || v)
             .ToList();
-
-        if (mapId != lastMapId)
-        {
-            lastMapId = mapId;
-            mapPanX = 0f;
-            mapPanY = 0f;
-        }
 
         var avW   = ImGui.GetContentRegionAvail().X;
         var avH   = ImGui.GetContentRegionAvail().Y - 52f;
@@ -1645,6 +1862,31 @@ public class VenueMapWindow : Window, IDisposable
         var offsetX    = mapInfo?.OffsetX ?? (short)0;
         var offsetY    = mapInfo?.OffsetY ?? (short)0;
 
+        void ResetView()
+        {
+            mapPanX = 0f;
+            mapPanY = 0f;
+            if (!fullMap)
+            {
+                mapZoom = ZoomDefault;
+                return;
+            }
+            mapZoom = ZoomDefault * Math.Clamp(plugin.Configuration.WardMapZoom, 1f, WardZoomMax);
+        }
+
+        if (mapId != lastMapId || focus != lastMapFocus)
+        {
+            lastMapId = mapId;
+            lastMapFocus = focus;
+            if (fullMap) ResetView();
+            else
+            {
+                mapPanX = 0f;
+                mapPanY = 0f;
+            }
+        }
+        mapZoom = Math.Clamp(mapZoom, zoomMin, zoomMax);
+
         var padX = (avW - mapSz) / 2f;
         if (padX > 0f) ImGui.SetCursorPosX(ImGui.GetCursorPosX() + padX);
 
@@ -1654,30 +1896,36 @@ public class VenueMapWindow : Window, IDisposable
         ImGui.InvisibleButton("##mapArea", new Vector2(mapSz, mapSz));
         var hovering = ImGui.IsItemHovered();
 
+        var focused = focus.HasValue && focusSpan > 0f;
+        var zoomFactor = focused
+            ? 2048f / (focusSpan * sizeFactor / 100f) * (mapZoom / ZoomDefault)
+            : mapZoom;
+
+        if (ImGui.IsItemActive() && ImGui.IsMouseDragging(ImGuiMouseButton.Left))
+        {
+            var delta = ImGui.GetIO().MouseDelta;
+            mapPanX -= delta.X / mapSz / zoomFactor;
+            mapPanY -= delta.Y / mapSz / zoomFactor;
+        }
+
         if (hovering)
         {
             var wheel = ImGui.GetIO().MouseWheel;
             if (MathF.Abs(wheel) > 0.01f)
-                mapZoom = Math.Clamp(mapZoom * (1f + wheel * 0.12f), ZoomMin, ZoomMax);
-
-            if (ImGui.IsMouseDragging(ImGuiMouseButton.Left))
-            {
-                var delta = ImGui.GetIO().MouseDelta;
-                mapPanX -= delta.X / mapSz / mapZoom;
-                mapPanY -= delta.Y / mapSz / mapZoom;
-            }
+                mapZoom = Math.Clamp(mapZoom * (1f + wheel * 0.12f), zoomMin, zoomMax);
 
             if (ImGui.IsMouseDoubleClicked(ImGuiMouseButton.Left))
-            {
-                mapZoom = ZoomDefault;
-                mapPanX = 0f;
-                mapPanY = 0f;
-            }
+                ResetView();
         }
 
-        var halfUV = 0.5f / mapZoom;
-        var viewCX = 0.5f + mapPanX;
-        var viewCY = 0.5f + mapPanY;
+        zoomFactor = focused
+            ? 2048f / (focusSpan * sizeFactor / 100f) * (mapZoom / ZoomDefault)
+            : mapZoom;
+        var focusU = focused ? HousingMapLoader.WorldToUV(focus!.Value.X, offsetX, sizeFactor) : 0.5f;
+        var focusV = focused ? HousingMapLoader.WorldToUV(focus!.Value.Y, offsetY, sizeFactor) : 0.5f;
+        var halfUV = 0.5f / zoomFactor;
+        var viewCX = focusU + mapPanX;
+        var viewCY = focusV + mapPanY;
         var uv0 = new Vector2(viewCX - halfUV, viewCY - halfUV);
         var uv1 = new Vector2(viewCX + halfUV, viewCY + halfUV);
 
@@ -1693,21 +1941,50 @@ public class VenueMapWindow : Window, IDisposable
         }
 
         if (!hasTexture)
-        {
-            if (venue.VenueId != boundsVenueId) ComputeBounds(venue);
             DrawSchematic(dl, mapMin, mapMax, mapSz);
+
+        if (focused && areaRadius > 0f)
+        {
+            var center = UvToScreen(focusU, focusV, uv0, uv1, mapMin, mapSz);
+            var radiusPx = areaRadius * (sizeFactor / 100f) / 2048f / (uv1.X - uv0.X) * mapSz;
+            dl.AddCircleFilled(center, radiusPx, U32(UIConstants.WithAlpha(UIConstants.Accent, 0.08f)), 64);
+            dl.AddCircle(center, radiusPx, U32(UIConstants.WithAlpha(UIConstants.Accent, 0.7f)), 64, 1.5f);
         }
 
         Service? hoveredSvc = null;
         Vector2 hoveredPos = default;
+        Vector2? guideScreen = null;
+        Vector2? guideFrom = null;
+        var guideOnFloor = false;
+        var waypoint = plugin.Guide.Current is { Final: false } wp ? wp.Goal : (Vector3?)null;
         foreach (var svc in visible)
         {
             var svcU = HousingMapLoader.WorldToUV(svc.X, offsetX, sizeFactor);
             var svcV = HousingMapLoader.WorldToUV(svc.Y, offsetY, sizeFactor);
             var screenPos = UvToScreen(svcU, svcV, uv0, uv1, mapMin, mapSz);
+            if (plugin.Guide.IsTarget(svc)) { guideScreen = screenPos; guideOnFloor = true; }
+            else if (!guideOnFloor && waypoint is { } goal && Vector3.Distance(IndoorGuide.World(svc), goal) < 0.05f) guideScreen = screenPos;
             var isHovered = DrawMarkerBase(dl, screenPos, svc, mapSz);
             if (isHovered) { hoveredSvc = svc; hoveredPos = screenPos; }
         }
+
+        if (guideOnFloor && waypoint is { } arrival)
+        {
+            var stairs = services
+                .Where(s => s.Type is "upstairs" or "downstairs")
+                .OrderBy(s => new Vector2(s.X - arrival.X, s.Y - arrival.Z).LengthSquared())
+                .FirstOrDefault();
+            if (stairs != null)
+                guideFrom = UvToScreen(HousingMapLoader.WorldToUV(stairs.X, offsetX, sizeFactor),
+                    HousingMapLoader.WorldToUV(stairs.Y, offsetY, sizeFactor), uv0, uv1, mapMin, mapSz);
+        }
+
+        if (hoveredSvc != null && hovering && ImGui.IsMouseReleased(ImGuiMouseButton.Left)
+            && ImGui.GetMouseDragDelta(ImGuiMouseButton.Left, 0f).Length() < 4f)
+            ToggleGuide(hoveredSvc);
+
+        if (pins != null)
+            DrawMapPins(dl, pins, highlight, uv0, uv1, mapMin, mapSz, offsetX, offsetY, sizeFactor, hovering);
 
         if (tracker.CurrentTerritoryId == territoryId)
         {
@@ -1716,16 +1993,46 @@ public class VenueMapWindow : Window, IDisposable
             var playerScreen = UvToScreen(pU, pV, uv0, uv1, mapMin, mapSz);
 
             var time = (float)ImGui.GetTime();
+            if (guideScreen is { } target)
+            {
+                var line = new List<Vector2>();
+                if (plugin.Guide.Current is not { Final: true } && !guideOnFloor)
+                {
+                    line.Add(playerScreen);
+                    line.Add(target);
+                }
+                else if (plugin.Guide.Current is not { Final: true } && guideFrom is { } from)
+                {
+                    line.Add(from);
+                    line.Add(target);
+                }
+                else if (plugin.Guide.Current is { Final: true } route)
+                {
+                    line.Add(playerScreen);
+                    for (var i = 0; i < route.Points.Count; i++)
+                        line.Add(route.Complete && i == route.Points.Count - 1
+                            ? target
+                            : UvToScreen(HousingMapLoader.WorldToUV(route.Points[i].X, offsetX, sizeFactor),
+                                HousingMapLoader.WorldToUV(route.Points[i].Z, offsetY, sizeFactor), uv0, uv1, mapMin, mapSz));
+                }
+                for (var i = 1; i < line.Count; i++)
+                {
+                    dl.AddLine(line[i - 1], line[i], U32(UIConstants.WithAlpha(UIConstants.Accent, 0.22f)), 6f);
+                    dl.AddLine(line[i - 1], line[i], U32(UIConstants.WithAlpha(UIConstants.Accent, 0.9f)), 2f);
+                }
+                var ring = MarkerRadius(mapSz) + 4f + (time * 0.8f % 1f) * 6f;
+                dl.AddCircle(target, ring, U32(UIConstants.WithAlpha(UIConstants.Accent, 0.7f)), 32, 1.5f);
+            }
             for (var wave = 0; wave < 3; wave++)
             {
                 var progress = ((time * 0.25f + wave * 0.33f) % 1.0f);
                 var radius = 6f + progress * 22f;
                 var alpha  = (1f - progress) * 0.4f;
                 dl.AddCircle(playerScreen, radius,
-                    ImGui.ColorConvertFloat4ToU32(UIConstants.WithAlpha(UIConstants.Primary, alpha)), 24, 1.5f);
+                    ImGui.ColorConvertFloat4ToU32(UIConstants.WithAlpha(UIConstants.Accent, alpha)), 24, 1.5f);
             }
             dl.AddCircleFilled(playerScreen, 5f,
-                ImGui.ColorConvertFloat4ToU32(UIConstants.Primary), 16);
+                ImGui.ColorConvertFloat4ToU32(UIConstants.Accent), 16);
             dl.AddCircle(playerScreen, 5f,
                 ImGui.ColorConvertFloat4ToU32(UIConstants.GlowBright), 16, 1.5f);
         }
@@ -1743,14 +2050,69 @@ public class VenueMapWindow : Window, IDisposable
         dl.AddRect(mapMin, mapMax,
             ImGui.ColorConvertFloat4ToU32(UIConstants.GlowDim), 0f, ImDrawFlags.None, 1.5f);
 
-        if (MathF.Abs(mapZoom - ZoomDefault) > 0.05f)
+        if (fullMap || MathF.Abs(mapZoom - ZoomDefault) > 0.05f)
         {
-            var badge = $"{mapZoom:0.0}x";
+            var badge = $"{mapZoom / ZoomDefault:0.0}x";
             var bSz   = ImGui.CalcTextSize(badge);
-            var bMin  = new Vector2(mapMax.X - bSz.X - 6, mapMax.Y - bSz.Y - 4);
+            var bMin  = new Vector2(mapMax.X - bSz.X - 8, mapMax.Y - bSz.Y - 5);
+            dl.AddRectFilled(bMin - new Vector2(4f, 2f), bMin + bSz + new Vector2(4f, 2f),
+                ImGui.ColorConvertFloat4ToU32(UIConstants.WithAlpha(UIConstants.Background, fullMap ? 0.75f : 0f)), 3f);
             dl.AddText(bMin,
-                ImGui.ColorConvertFloat4ToU32(UIConstants.WithAlpha(UIConstants.TextSecondary, 0.3f)), badge);
+                ImGui.ColorConvertFloat4ToU32(UIConstants.WithAlpha(UIConstants.TextSecondary, fullMap ? 0.9f : 0.3f)), badge);
         }
+    }
+
+    private void DrawMapPins(ImDrawListPtr dl, IReadOnlyList<MapPin> pins, Venue? highlight, Vector2 uv0, Vector2 uv1,
+        Vector2 mapMin, float mapSz, short offsetX, short offsetY, ushort sizeFactor, bool mapHovered)
+    {
+        var lineH = ImGui.GetTextLineHeight();
+        var mouse = ImGui.GetMousePos();
+        MapPin? hoveredPin = null;
+
+        foreach (var pin in pins)
+        {
+            var u = HousingMapLoader.WorldToUV(pin.World.X, offsetX, sizeFactor);
+            var v = HousingMapLoader.WorldToUV(pin.World.Y, offsetY, sizeFactor);
+            var pos = UvToScreen(u, v, uv0, uv1, mapMin, mapSz);
+            var isCurrent = pin.Venue == highlight;
+            var radius = isCurrent ? 7f : 5.5f;
+
+            if (mapHovered && Vector2.DistanceSquared(mouse, pos) <= 12f * 12f)
+                hoveredPin = pin;
+            var hot = hoveredPin == pin || isCurrent;
+
+            UIConstants.DrawGem(dl, pos, radius + 3f, UIConstants.Background);
+            UIConstants.DrawGem(dl, pos, radius + 1.5f, pin.Edge);
+            UIConstants.DrawGem(dl, pos, radius, pin.Color);
+            if (UIConstants.IsDark(pin.Color))
+                dl.AddQuad(pos + new Vector2(0, -radius), pos + new Vector2(radius, 0), pos + new Vector2(0, radius), pos + new Vector2(-radius, 0),
+                    U32(UIConstants.WithAlpha(UIConstants.TextPrimary, 0.6f)), 1f);
+            if (hot)
+                dl.AddQuad(pos + new Vector2(0, -radius - 3f), pos + new Vector2(radius + 3f, 0),
+                    pos + new Vector2(0, radius + 3f), pos + new Vector2(-radius - 3f, 0), U32(UIConstants.Accent), 1.2f);
+
+            var label = UIConstants.FitText(pin.Label, 120f);
+            var labelSz = ImGui.CalcTextSize(label);
+            var labelPos = new Vector2(pos.X + radius + 6f, pos.Y - lineH / 2f);
+            dl.AddRectFilled(labelPos - new Vector2(3f, 1f), labelPos + labelSz + new Vector2(3f, 1f),
+                U32(UIConstants.WithAlpha(UIConstants.Background, 0.78f)), 2f);
+            dl.AddText(labelPos, U32(hot ? UIConstants.Lighten(pin.Color, 0.12f) : UIConstants.TextPrimary), label);
+        }
+
+        if (hoveredPin == null) return;
+
+        var (statusText, isOpen) = GetVenueStatus(hoveredPin.Venue);
+        using (ImRaii.Tooltip())
+        {
+            UIConstants.TextReadable(hoveredPin.Color, UIConstants.DisplayName(hoveredPin.Venue.Name));
+            ImGui.TextColored(UIConstants.TextSecondary, FormatAddress(hoveredPin.Venue.Address));
+            if (statusText.Length > 0)
+                ImGui.TextColored(isOpen ? UIConstants.Success : UIConstants.TextSecondary, statusText);
+            ImGui.TextColored(UIConstants.TextMuted, Lang.ViewVenueDetails);
+        }
+
+        if (ImGui.IsMouseReleased(ImGuiMouseButton.Left) && ImGui.GetMouseDragDelta(ImGuiMouseButton.Left, 0f).Length() < 4f)
+            plugin.VenueDetailWindow.Open(hoveredPin.Venue);
     }
 
     private static Vector2 UvToScreen(float u, float v, Vector2 uv0, Vector2 uv1, Vector2 mapMin, float mapSz)
@@ -1787,16 +2149,6 @@ public class VenueMapWindow : Window, IDisposable
         dl.AddLine(new Vector2(mapMin.X, mapMax.Y), new Vector2(mapMin.X, mapMax.Y - cL), acc, 2f);
         dl.AddLine(mapMax, new Vector2(mapMax.X - cL, mapMax.Y), acc, 2f);
         dl.AddLine(mapMax, new Vector2(mapMax.X, mapMax.Y - cL), acc, 2f);
-
-        if (MathF.Abs(mapZoom - 1f) < 0.05f)
-        {
-            var hint = Lang.ScrollZoom;
-            var hSz  = ImGui.CalcTextSize(hint);
-            dl.AddText(
-                new Vector2(mapMin.X + (mapMax.X - mapMin.X - hSz.X) / 2f, mapMax.Y - hSz.Y - 6),
-                ImGui.ColorConvertFloat4ToU32(UIConstants.WithAlpha(UIConstants.TextSecondary, 0.25f)),
-                hint);
-        }
     }
 
     private static float MarkerRadius(float mapSz) => Math.Clamp(mapSz * 0.035f, 9f, 18f);
@@ -1820,25 +2172,14 @@ public class VenueMapWindow : Window, IDisposable
             ImGui.ColorConvertFloat4ToU32(UIConstants.WithAlpha(UIConstants.Glow, hovered ? 0.35f : 0.15f)), 24);
 
         dl.AddCircleFilled(pos, r,
-            ImGui.ColorConvertFloat4ToU32(hovered ? UIConstants.Primary : UIConstants.CardBackground), 24);
+            ImGui.ColorConvertFloat4ToU32(hovered ? UIConstants.Accent : UIConstants.CardBackground), 24);
 
         dl.AddCircle(pos, r,
             ImGui.ColorConvertFloat4ToU32(hovered ? UIConstants.GlowBright : UIConstants.Glow), 24,
             hovered ? 2.5f : 1.5f);
 
-        var iconFont = Dalamud.Interface.UiBuilder.IconFont;
-        var iconSz   = r * 1.1f;
-        var glyph    = ServiceIcons.GetIcon(svc.Type).ToIconString();
-        var iconCol  = ImGui.ColorConvertFloat4ToU32(hovered ? UIConstants.Background : UIConstants.Glow);
-        ImGui.PushFont(iconFont);
-        var nativeSz = ImGui.CalcTextSize(glyph);
-        ImGui.PopFont();
-        var scale  = iconSz / iconFont.FontSize;
-        var glyphW = nativeSz.X * scale;
-        var glyphH = nativeSz.Y * scale;
-        dl.AddText(iconFont, iconSz,
-            new Vector2(pos.X - glyphW * 0.5f, pos.Y - glyphH * 0.43f),
-            iconCol, glyph);
+        var iconCol = ImGui.ColorConvertFloat4ToU32(hovered ? UIConstants.Background : UIConstants.Glow);
+        UIConstants.DrawIconCentered(dl, r * 1.1f, pos, ServiceIcons.GetIcon(svc.Type), iconCol);
 
         if (hovered)
         {
@@ -1870,15 +2211,80 @@ public class VenueMapWindow : Window, IDisposable
         dl.AddText(new Vector2(lx, ly),
             ImGui.ColorConvertFloat4ToU32(UIConstants.TextPrimary), labelText);
 
-        ImGui.BeginTooltip();
-        ImGui.TextColored(UIConstants.Primary, svc.Label.ToUpperInvariant());
-        ImGui.TextColored(UIConstants.TextSecondary, $"x: {svc.X:0.0}  z: {svc.Y:0.0}");
+        using var tooltip = ImRaii.Tooltip();
+        ImGui.TextColored(UIConstants.Accent, svc.Label.ToUpperInvariant());
         if (!string.IsNullOrEmpty(svc.Description))
             ImGui.TextColored(UIConstants.TextSecondary, svc.Description);
-        ImGui.EndTooltip();
+        ImGui.TextColored(UIConstants.TextMuted, plugin.Guide.IsTarget(svc) ? Lang.GuideClickStop : Lang.GuideClickHint);
     }
 
-    private void DrawFilterChips(Venue venue)
+    private void ToggleGuide(Service svc)
+    {
+        if (plugin.Guide.IsTarget(svc))
+        {
+            plugin.Guide.Stop(notify: true);
+            return;
+        }
+        var config = plugin.ConfigManager.Config;
+        if (config == null) return;
+        var tracker = plugin.PositionTracker;
+        var venue = tracker.GetVenueAtCurrentPlotIncludingGarden(config);
+        if (venue != null && venue.Floors.Any(f => f.Services.Contains(svc)))
+        {
+            plugin.Guide.Start(svc, venue, null);
+            return;
+        }
+        if (venue != null && GardenFloorOf(venue).Services.Contains(svc))
+        {
+            plugin.Guide.Start(svc, venue, null);
+            return;
+        }
+        var festival = tracker.GetFestivalHere(config);
+        if (festival != null && festival.Services.Contains(svc))
+            plugin.Guide.Start(svc, null, festival);
+    }
+
+    private void DrawGuideBar()
+    {
+        var guide = plugin.Guide;
+        if (!guide.Active) return;
+
+        var dl = ImGui.GetWindowDrawList();
+        var start = ImGui.GetCursorScreenPos();
+        var width = ImGui.GetContentRegionAvail().X;
+        var height = ImGui.GetFrameHeight() + 6f;
+        var max = start + new Vector2(width, height);
+        dl.AddRectFilled(start, max, U32(UIConstants.WithAlpha(UIConstants.Accent, 0.1f)), 3f);
+        dl.AddRectFilled(start, new Vector2(start.X + 3f, max.Y), U32(UIConstants.Accent), 3f, ImDrawFlags.RoundCornersLeft);
+
+        var glyph = FontAwesomeIcon.Route.ToIconString();
+        Vector2 glyphSize;
+        using (ImRaii.PushFont(UiBuilder.IconFont))
+            glyphSize = ImGui.CalcTextSize(glyph);
+        dl.AddText(UiBuilder.IconFont, UiBuilder.IconFont.FontSize, new Vector2(start.X + 12f, start.Y + (height - glyphSize.Y) / 2f), U32(UIConstants.Accent), glyph);
+
+        var lineH = ImGui.GetTextLineHeight();
+        var stopLabel = Lang.GuideStop.ToUpperInvariant();
+        var stopW = ImGui.CalcTextSize(stopLabel).X + 32f;
+        var stopH = height - 8f;
+        var stopPos = new Vector2(max.X - stopW - 4f, start.Y + (height - stopH) / 2f);
+
+        var textX = start.X + 20f + glyphSize.X;
+        var hint = UIConstants.FitText(guide.Hint, MathF.Max(40f, stopPos.X - 10f - textX));
+        dl.AddText(new Vector2(textX, start.Y + (height - lineH) / 2f), U32(UIConstants.TextPrimary), hint);
+
+        ImGui.SetCursorScreenPos(stopPos);
+        using (ImRaii.PushStyle(ImGuiStyleVar.ButtonTextAlign, new Vector2(0.5f, 0.5f)))
+        {
+            if (UIConstants.AccentButton($"{stopLabel}##guideStop", null, stopW, height: stopH))
+                guide.Stop(notify: true);
+        }
+
+        ImGui.SetCursorScreenPos(new Vector2(start.X, max.Y + 4f));
+        ImGui.Dummy(new Vector2(width, 1f));
+    }
+
+    private void DrawFilterChips(IEnumerable<Service> services)
     {
         ImGui.Spacing();
 
@@ -1886,22 +2292,29 @@ public class VenueMapWindow : Window, IDisposable
         var lineP = ImGui.GetCursorScreenPos();
         var lineW = ImGui.GetContentRegionAvail().X;
         dl.AddLine(lineP, new Vector2(lineP.X + lineW, lineP.Y),
-            ImGui.ColorConvertFloat4ToU32(UIConstants.WithAlpha(UIConstants.Glow, 0.2f)), 1f);
+            ImGui.ColorConvertFloat4ToU32(UIConstants.Line), 1f);
         ImGui.SetCursorPosY(ImGui.GetCursorPosY() + 4);
 
-        var allTypes = venue.Floors
-            .SelectMany(f => f.Services)
+        var allTypes = services
             .Select(s => s.Type)
             .Distinct()
             .ToList();
 
         var filters = plugin.Configuration.ServiceFilters;
+        bool changed;
+        using (ImRaii.PushStyle(ImGuiStyleVar.FrameRounding, UIConstants.ChipRounding)
+                     .Push(ImGuiStyleVar.FrameBorderSize, 1f)
+                     .Push(ImGuiStyleVar.ItemSpacing, new Vector2(4, 4)))
+            changed = DrawServiceChips(allTypes, filters);
+
+        ImGui.NewLine();
+
+        if (changed) plugin.Configuration.Save();
+    }
+
+    private static bool DrawServiceChips(List<string> allTypes, Dictionary<string, bool> filters)
+    {
         var changed = false;
-
-        ImGui.PushStyleVar(ImGuiStyleVar.FrameRounding, UIConstants.ChipRounding);
-        ImGui.PushStyleVar(ImGuiStyleVar.FrameBorderSize, 1f);
-        ImGui.PushStyleVar(ImGuiStyleVar.ItemSpacing, new Vector2(4, 4));
-
         var iconFont = Dalamud.Interface.UiBuilder.IconFont;
 
         foreach (var type in allTypes)
@@ -1910,23 +2323,23 @@ public class VenueMapWindow : Window, IDisposable
             var label = ChipLabel(type);
             var icon  = ServiceIcons.GetIcon(type).ToIconString();
 
-            ImGui.PushStyleColor(ImGuiCol.Button,
-                on ? UIConstants.WithAlpha(UIConstants.Primary, 0.22f)
-                   : UIConstants.WithAlpha(UIConstants.CardBackground, 0.85f));
-            ImGui.PushStyleColor(ImGuiCol.ButtonHovered,
-                on ? UIConstants.WithAlpha(UIConstants.Primary, 0.38f)
-                   : UIConstants.WithAlpha(UIConstants.Glow, 0.10f));
-            ImGui.PushStyleColor(ImGuiCol.ButtonActive, UIConstants.WithAlpha(UIConstants.Primary, 0.55f));
-            ImGui.PushStyleColor(ImGuiCol.Border,
-                on ? UIConstants.WithAlpha(UIConstants.Primary, 0.75f) : UIConstants.GlowDim);
-
             var chipW = ImGui.CalcTextSize(label).X + 28f;
-            if (ImGui.Button($"##{type}_chip", new Vector2(chipW, 26)))
+            using (ImRaii.PushColor(ImGuiCol.Button,
+                             on ? UIConstants.WithAlpha(UIConstants.Accent, 0.22f)
+                                : UIConstants.WithAlpha(UIConstants.CardBackground, 0.85f))
+                         .Push(ImGuiCol.ButtonHovered,
+                             on ? UIConstants.WithAlpha(UIConstants.Accent, 0.38f)
+                                : UIConstants.WithAlpha(UIConstants.Glow, 0.10f))
+                         .Push(ImGuiCol.ButtonActive, UIConstants.WithAlpha(UIConstants.Accent, 0.55f))
+                         .Push(ImGuiCol.Border,
+                             on ? UIConstants.WithAlpha(UIConstants.Accent, 0.75f) : UIConstants.GlowDim))
             {
-                filters[type] = !on;
-                changed = true;
+                if (ImGui.Button($"##{type}_chip", new Vector2(chipW, 26)))
+                {
+                    filters[type] = !on;
+                    changed = true;
+                }
             }
-            ImGui.PopStyleColor(4);
 
             var bMin = ImGui.GetItemRectMin();
             var bMax = ImGui.GetItemRectMax();
@@ -1946,10 +2359,7 @@ public class VenueMapWindow : Window, IDisposable
                 ImGui.NewLine();
         }
 
-        ImGui.PopStyleVar(3);
-        ImGui.NewLine();
-
-        if (changed) plugin.Configuration.Save();
+        return changed;
     }
 
     internal static string? ExtractXivVenuesId(string? url)
@@ -1977,80 +2387,22 @@ public class VenueMapWindow : Window, IDisposable
         "event"      => Lang.SvcEvent,
         "upstairs"   => Lang.SvcUpstairs,
         "downstairs" => Lang.SvcDownstairs,
+        "stall"      => Lang.SvcStall,
         _ => char.ToUpperInvariant(type.Replace('_', ' ')[0]) + type.Replace('_', ' ')[1..],
     };
 
-    private static List<string> WrapAddress(string addr, float maxW)
-    {
-        if (ImGui.CalcTextSize(addr).X <= maxW)
-            return [addr];
-
-        var parts = addr.Split(" - ");
-        var lines = new List<string>();
-        var current = "";
-        foreach (var part in parts)
-        {
-            var candidate = current.Length == 0 ? part : $"{current} - {part}";
-            if (ImGui.CalcTextSize(candidate).X > maxW && current.Length > 0)
-            {
-                lines.Add(current);
-                current = part;
-            }
-            else
-            {
-                current = candidate;
-            }
-        }
-        if (current.Length > 0)
-            lines.Add(current);
-
-        return lines.Count > 0 ? lines : [addr];
-    }
-
-    private void ComputeBounds(Venue venue)
-    {
-        var pts = venue.Floors.SelectMany(f => f.Services).ToList();
-        if (pts.Count == 0)
-        {
-            bMinX = -10; bMaxX = 10; bMinY = -10; bMaxY = 10;
-            boundsVenueId = venue.VenueId;
-            return;
-        }
-
-        bMinX = pts.Min(p => p.X); bMaxX = pts.Max(p => p.X);
-        bMinY = pts.Min(p => p.Y); bMaxY = pts.Max(p => p.Y);
-
-        var px = Math.Max((bMaxX - bMinX) * 0.20f, 4f);
-        var py = Math.Max((bMaxY - bMinY) * 0.20f, 4f);
-        bMinX -= px; bMaxX += px;
-        bMinY -= py; bMaxY += py;
-
-        var rx = bMaxX - bMinX; var ry = bMaxY - bMinY;
-        if (rx > ry) { var e = (rx - ry) / 2f; bMinY -= e; bMaxY += e; }
-        else         { var e = (ry - rx) / 2f; bMinX -= e; bMaxX += e; }
-
-        boundsVenueId = venue.VenueId;
-    }
 
     public void Dispose() { }
 
     private static Vector4 HsvToRgba(float h, float s, float v) => UIConstants.HsvToRgba(h, s, v);
-
-    private static uint LerpColor(Vector4 from, Vector4 to, float t)
-    {
-        var c = new Vector4(
-            from.X + (to.X - from.X) * t,
-            from.Y + (to.Y - from.Y) * t,
-            from.Z + (to.Z - from.Z) * t,
-            1f);
-        return ImGui.ColorConvertFloat4ToU32(c);
-    }
 
     internal static string TranslateFloorName(string name) => name.ToLowerInvariant() switch
     {
         "ground" => Lang.FloorGround,
         "second" => Lang.FloorSecond,
         "cellar" => Lang.FloorCellar,
+        "garden" => Lang.FloorGarden,
+        "ward"   => Lang.FloorWard,
         _        => name.ToUpperInvariant(),
     };
 }

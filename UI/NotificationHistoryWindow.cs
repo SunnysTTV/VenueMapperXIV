@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Numerics;
+using Dalamud.Interface.Utility.Raii;
 using Dalamud.Interface.Windowing;
 using Dalamud.Bindings.ImGui;
 using VenueMapper.Services;
@@ -25,20 +26,8 @@ public class NotificationHistoryWindow : Window, IDisposable
 
     public void Open() => IsOpen = true;
 
-    public override void PreDraw()
-    {
-        ImGui.PushStyleColor(ImGuiCol.WindowBg, UIConstants.Background);
-        ImGui.PushStyleColor(ImGuiCol.TitleBg, UIConstants.WithAlpha(UIConstants.Primary, 0.2f));
-        ImGui.PushStyleColor(ImGuiCol.TitleBgActive, UIConstants.WithAlpha(UIConstants.Primary, 0.3f));
-        ImGui.PushStyleColor(ImGuiCol.Border, UIConstants.WithAlpha(UIConstants.Glow, 0.5f));
-        ImGui.PushStyleVar(ImGuiStyleVar.WindowBorderSize, 1.5f);
-    }
-
-    public override void PostDraw()
-    {
-        ImGui.PopStyleVar();
-        ImGui.PopStyleColor(4);
-    }
+    public override void PreDraw() => UIConstants.PushWindowChrome();
+    public override void PostDraw() => UIConstants.PopWindowChrome();
 
     public override void Draw()
     {
@@ -71,49 +60,33 @@ public class NotificationHistoryWindow : Window, IDisposable
         ImGui.Separator();
         ImGui.Spacing();
 
-        UIConstants.PushScrollbarStyle();
-        try
-        {
-        if (ImGui.BeginChild("##notifHistoryScroll", new Vector2(-1, -1)))
-        {
-            var display = BuildDisplayList(history);
-            if (display.Count == 0)
-            {
-                ImGui.TextColored(UIConstants.WithAlpha(UIConstants.TextSecondary, 0.5f), Lang.NoNotificationHistory);
-            }
-            else
-            {
-                ImGui.PushTextWrapPos(0);
-                try
-                {
-                    var lastDate = DateTime.MinValue;
-                    foreach (var d in display)
-                    {
-                        if (d.Timestamp.Date != lastDate)
-                        {
-                            if (lastDate != DateTime.MinValue) ImGui.Spacing();
-                            ImGui.TextColored(UIConstants.WithAlpha(UIConstants.TextSecondary, 0.5f), DateLabel(d.Timestamp.Date));
-                            ImGui.Separator();
-                            lastDate = d.Timestamp.Date;
-                        }
+        using var scrollbar = UIConstants.ScrollbarStyle();
+        using var child = ImRaii.Child("##notifHistoryScroll", new Vector2(-1, -1));
+        if (!child) return;
 
-                        DrawKindTag(d.Kind);
-                        ImGui.TextColored(UIConstants.WithAlpha(UIConstants.TextSecondary, 0.45f), d.Timestamp.ToString("HH:mm"));
-                        ImGui.SameLine(0, 6);
-                        ImGui.TextWrapped(d.Text);
-                    }
-                }
-                finally
-                {
-                    ImGui.PopTextWrapPos();
-                }
-            }
-        }
-        }
-        finally
+        var display = BuildDisplayList(history);
+        if (display.Count == 0)
         {
-            ImGui.EndChild();
-            UIConstants.PopScrollbarStyle();
+            ImGui.TextColored(UIConstants.WithAlpha(UIConstants.TextSecondary, 0.5f), Lang.NoNotificationHistory);
+            return;
+        }
+
+        using var wrap = ImRaii.TextWrapPos(0);
+        var lastDate = DateTime.MinValue;
+        foreach (var d in display)
+        {
+            if (d.Timestamp.Date != lastDate)
+            {
+                if (lastDate != DateTime.MinValue) ImGui.Spacing();
+                ImGui.TextColored(UIConstants.WithAlpha(UIConstants.TextSecondary, 0.5f), DateLabel(d.Timestamp.Date));
+                ImGui.Separator();
+                lastDate = d.Timestamp.Date;
+            }
+
+            DrawKindTag(d.Kind);
+            ImGui.TextColored(UIConstants.WithAlpha(UIConstants.TextSecondary, 0.45f), d.Timestamp.ToString("HH:mm"));
+            ImGui.SameLine(0, 6);
+            ImGui.TextWrapped(d.Text);
         }
     }
 
@@ -139,17 +112,15 @@ public class NotificationHistoryWindow : Window, IDisposable
 
     private static void DrawFilterChip(string label, Vector4 accent, ref bool active)
     {
-        ImGui.PushStyleColor(ImGuiCol.Button, active ? UIConstants.WithAlpha(accent, 0.30f) : UIConstants.WithAlpha(accent, 0.06f));
-        ImGui.PushStyleColor(ImGuiCol.ButtonHovered, UIConstants.WithAlpha(accent, 0.45f));
-        ImGui.PushStyleColor(ImGuiCol.ButtonActive, UIConstants.WithAlpha(accent, 0.55f));
-        ImGui.PushStyleColor(ImGuiCol.Text, active ? accent : UIConstants.WithAlpha(accent, 0.5f));
-        ImGui.PushStyleColor(ImGuiCol.Border, UIConstants.WithAlpha(accent, active ? 0.6f : 0.2f));
-        ImGui.PushStyleVar(ImGuiStyleVar.FrameRounding, UIConstants.ChipRounding);
-        ImGui.PushStyleVar(ImGuiStyleVar.FrameBorderSize, 1f);
+        using var colors = ImRaii.PushColor(ImGuiCol.Button, UIConstants.WithAlpha(accent, active ? 0.30f : 0.06f))
+                                 .Push(ImGuiCol.ButtonHovered, UIConstants.WithAlpha(accent, 0.45f))
+                                 .Push(ImGuiCol.ButtonActive, UIConstants.WithAlpha(accent, 0.55f))
+                                 .Push(ImGuiCol.Text, active ? accent : UIConstants.WithAlpha(accent, 0.5f))
+                                 .Push(ImGuiCol.Border, UIConstants.WithAlpha(accent, active ? 0.6f : 0.2f));
+        using var style = ImRaii.PushStyle(ImGuiStyleVar.FrameRounding, UIConstants.ChipRounding)
+                                .Push(ImGuiStyleVar.FrameBorderSize, 1f);
         if (ImGui.Button(label))
             active = !active;
-        ImGui.PopStyleVar(2);
-        ImGui.PopStyleColor(5);
     }
 
     private static string DateLabel(DateTime date)

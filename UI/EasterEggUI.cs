@@ -8,8 +8,6 @@ public static class EasterEggUI
     {
         EasterEggIds.RgbOverload    => Lang.EggRgbName,
         EasterEggIds.HackerMode     => Lang.EggHackerName,
-        EasterEggIds.SunnyDetection => Lang.EggSunnyName,
-        EasterEggIds.WindowWobble   => Lang.EggWobbleName,
         EasterEggIds.RandomTitle    => Lang.EggTitleName,
         _ => id,
     };
@@ -18,8 +16,6 @@ public static class EasterEggUI
     {
         EasterEggIds.RgbOverload    => Lang.EggRgbHint,
         EasterEggIds.HackerMode     => Lang.EggHackerHint,
-        EasterEggIds.SunnyDetection => Lang.EggSunnyHint,
-        EasterEggIds.WindowWobble   => Lang.EggWobbleHint,
         EasterEggIds.RandomTitle    => Lang.EggTitleHint,
         _ => "???",
     };

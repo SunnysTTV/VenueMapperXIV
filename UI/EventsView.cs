@@ -39,8 +39,8 @@ public class EventsView
             new Vector2(winP.X, cy - 2),
             new Vector2(winP.X + winW, cy + 30),
             ImGui.ColorConvertFloat4ToU32(UIConstants.WithAlpha(UIConstants.Secondary, 0.15f)),
-            ImGui.ColorConvertFloat4ToU32(UIConstants.WithAlpha(UIConstants.Primary, 0.08f)),
-            ImGui.ColorConvertFloat4ToU32(UIConstants.WithAlpha(UIConstants.Primary, 0f)),
+            ImGui.ColorConvertFloat4ToU32(UIConstants.WithAlpha(UIConstants.Accent, 0.08f)),
+            ImGui.ColorConvertFloat4ToU32(UIConstants.WithAlpha(UIConstants.Accent, 0f)),
             ImGui.ColorConvertFloat4ToU32(UIConstants.WithAlpha(UIConstants.Secondary, 0f)));
 
         var titleRowY = ImGui.GetCursorPosY();
@@ -76,7 +76,7 @@ public class EventsView
 
         foreach (var venue in visibleVenues)
         {
-            _ = api.FetchTeamAsync(venue.TeamId);
+            api.RequestTeam(venue.TeamId);
 
             if (api.IsLoading(venue.TeamId))
             {
@@ -128,10 +128,9 @@ public class EventsView
         const float cardH = 72f;
         var cardMax = new Vector2(cardMin.X + avW, cardMin.Y + cardH);
 
-        var primary   = UIConstants.ApplyOverride(colors?.PrimaryVec ?? UIConstants.Primary);
+        var primary   = UIConstants.ApplyOverride(colors?.PrimaryVec ?? UIConstants.Accent);
         var accent    = UIConstants.ApplyOverride(colors?.AccentVec ?? UIConstants.Glow);
         var secondary = UIConstants.ApplyOverride(colors?.SecondaryVec ?? UIConstants.Secondary);
-        var gold      = UIConstants.GoldAccent;
 
         var cardBody = UIConstants.Vector4Lerp(UIConstants.Background, UIConstants.CardBackground, 0.75f);
         UIConstants.DrawCardWithAccentBar(dl, cardMin, cardMax, cardBody, primary, UIConstants.CardRounding);
@@ -139,7 +138,7 @@ public class EventsView
         ImGui.InvisibleButton($"##evt_{evt.EventId}", new Vector2(avW, cardH));
         var hovered = ImGui.IsItemHovered();
         if (hovered && ImGui.IsItemClicked())
-            OpenUrl($"https://partake.gg/events/{evt.EventId}");
+            UIConstants.OpenUrl($"https://partake.gg/events/{evt.EventId}");
 
         var borderPulse = (MathF.Sin((float)ImGui.GetTime() * 1.5f) + 1f) / 2f;
         var borderCol = hovered ? primary : UIConstants.WithAlpha(primary, 0.15f + 0.1f * borderPulse);
@@ -182,9 +181,9 @@ public class EventsView
         dl.AddRectFilled(new Vector2(cardMin.X + 3, cardMin.Y), dateBlockMax,
             ImGui.ColorConvertFloat4ToU32(UIConstants.WithAlpha(primary, 0.15f)));
 
-        var dayStr  = evtTime.ToString("dd");
-        var monStr  = evtTime.ToString("MMM").ToUpperInvariant();
-        var timeStr = evtTime.ToString("h tt") + " ST";
+        var dayStr  = evtTime.ToString("dd", Lang.Culture);
+        var monStr  = evtTime.ToString("MMM", Lang.Culture).ToUpperInvariant();
+        var timeStr = UIConstants.FormatServerTime(evtTime);
 
         var font = ImGui.GetFont();
         var dayFontSz = lineH * 1.5f;
@@ -210,27 +209,13 @@ public class EventsView
         var isNow = evt.StartTime <= DateTime.UtcNow && evt.EndTime >= DateTime.UtcNow;
         var nowCol = UIConstants.Warning;
 
-        var badge = $" {evt.EventType} ";
-        var badgeSz = ImGui.CalcTextSize(badge);
         var nowBadge = " NOW ";
         var nowSz = ImGui.CalcTextSize(nowBadge);
-        var totalBadgeW = badgeSz.X + 4 + (isNow ? nowSz.X + 8 : 0);
-
-        var badgeX = cardMax.X - totalBadgeW - 4;
-        dl.AddRectFilled(
-            new Vector2(badgeX - 2, cardMin.Y + 4),
-            new Vector2(badgeX + badgeSz.X + 2, cardMin.Y + 4 + badgeSz.Y + 2),
-            ImGui.ColorConvertFloat4ToU32(UIConstants.WithAlpha(gold, 0.2f)), UIConstants.ChipRounding);
-        dl.AddRect(
-            new Vector2(badgeX - 2, cardMin.Y + 4),
-            new Vector2(badgeX + badgeSz.X + 2, cardMin.Y + 4 + badgeSz.Y + 2),
-            ImGui.ColorConvertFloat4ToU32(UIConstants.WithAlpha(gold, 0.5f)), UIConstants.ChipRounding, ImDrawFlags.None, 1f);
-        dl.AddText(new Vector2(badgeX, cardMin.Y + 5),
-            ImGui.ColorConvertFloat4ToU32(gold), badge);
+        var totalBadgeW = isNow ? nowSz.X + 8 : 0f;
 
         if (isNow)
         {
-            var nowX = badgeX + badgeSz.X + 6;
+            var nowX = cardMax.X - nowSz.X - 6;
             var nowPulse = (MathF.Sin((float)ImGui.GetTime() * 3f) + 1f) / 2f;
             var nowAlpha = 0.7f + 0.3f * nowPulse;
             dl.AddRectFilled(
@@ -264,7 +249,7 @@ public class EventsView
         if (!string.IsNullOrEmpty(evt.Host))
         {
             dl.AddText(new Vector2(contentX, contentY + titleFontSz + 3),
-                ImGui.ColorConvertFloat4ToU32(UIConstants.TextSecondary), evt.Host);
+                ImGui.ColorConvertFloat4ToU32(UIConstants.TextSecondary), UIConstants.DisplayName(evt.Host));
         }
 
         dl.AddText(font, linkFontSz, new Vector2(contentX, contentY + titleFontSz + 3 + lineH + 3),
@@ -273,6 +258,7 @@ public class EventsView
 
         if (!string.IsNullOrEmpty(venueName))
         {
+            venueName = UIConstants.DisplayName(venueName);
             var vnSz = ImGui.CalcTextSize(venueName);
             dl.AddText(font, lineH * 0.85f,
                 new Vector2(cardMax.X - vnSz.X * 0.85f - 6, cardMax.Y - lineH * 0.85f - 4),
@@ -285,23 +271,5 @@ public class EventsView
                 ImGui.ColorConvertFloat4ToU32(UIConstants.WithAlpha(UIConstants.Background, 0.55f)), UIConstants.CardRounding);
     }
 
-    internal static string StripEmoji(string text)
-    {
-        if (string.IsNullOrEmpty(text)) return text;
-        var sb = new System.Text.StringBuilder(text.Length);
-        foreach (var c in text)
-        {
-            if (c <= 0x7E || (c >= 0xA0 && c <= 0xFF) || char.IsLetterOrDigit(c) || char.IsPunctuation(c) || char.IsWhiteSpace(c))
-                sb.Append(c);
-        }
-        return sb.ToString().Trim();
-    }
-
-    private static void OpenUrl(string url)
-    {
-        if (!Uri.TryCreate(url, UriKind.Absolute, out var u) ||
-            (u.Scheme != Uri.UriSchemeHttp && u.Scheme != Uri.UriSchemeHttps)) return;
-        try { System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo
-            { FileName = url, UseShellExecute = true }); } catch { }
-    }
+    internal static string StripEmoji(string text) => UIConstants.DisplayName(text);
 }

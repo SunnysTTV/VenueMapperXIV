@@ -4,6 +4,7 @@ using System.Linq;
 using System.Numerics;
 using Dalamud.Bindings.ImGui;
 using Dalamud.Interface;
+using Dalamud.Interface.Utility.Raii;
 
 namespace VenueMapper.UI;
 
@@ -15,23 +16,29 @@ public static class UIConstants
     public static float RgbHue;
     public static bool IsHackerBooting;
 
-    private static readonly Vector4 BasePrimary    = HexToVec4("#4A7EBB");
-    private static readonly Vector4 BaseGlow       = HexToVec4("#00F5FF");
-    private static readonly Vector4 BaseSecondary  = HexToVec4("#9D4EDD");
+    private static readonly Vector4 BasePrimary    = HexToVec4("#E2C27E");
+    private static readonly Vector4 BaseGlow       = HexToVec4("#56D6EE");
+    private static readonly Vector4 BaseSecondary  = HexToVec4("#B08D57");
+    private static readonly Vector4 BaseTrim       = HexToVec4("#7D6640");
     internal static readonly Vector4 HackerGreen   = new(0.15f, 1f, 0.35f, 1f);
 
-    public static readonly Vector4 Background      = HexToVec4("#0a0e27");
-    public static readonly Vector4 TextPrimary     = HexToVec4("#FFFFFF");
-    public static readonly Vector4 TextSecondary   = HexToVec4("#B0B0B0");
-    public static readonly Vector4 CardBackground  = HexToVec4("#1a1f3a");
+    public static readonly Vector4 Background      = HexToVec4("#0D0F14");
+    public static readonly Vector4 PanelRaised     = HexToVec4("#13161D");
+    public static readonly Vector4 CardBackground  = HexToVec4("#191D26");
+    public static readonly Vector4 TextPrimary     = HexToVec4("#EFE6D2");
+    public static readonly Vector4 TextSecondary   = HexToVec4("#A9A08D");
+    public static readonly Vector4 TextMuted       = HexToVec4("#6F685B");
+    public static readonly Vector4 Line            = HexToVec4("#EFE6D214");
+    public static readonly Vector4 LineStrong      = HexToVec4("#EFE6D224");
 
-    public static readonly Vector4 Success    = HexToVec4("#4DDE73");
-    public static readonly Vector4 Danger     = HexToVec4("#FF4D4D");
-    public static readonly Vector4 Warning    = HexToVec4("#FFAA33");
-    public static readonly Vector4 GoldAccent = HexToVec4("#FFD700");
+    public static readonly Vector4 Success    = HexToVec4("#5FE0A2");
+    public static readonly Vector4 Danger     = HexToVec4("#FF6F6F");
+    public static readonly Vector4 Warning    = HexToVec4("#F2B35B");
+    public static readonly Vector4 GoldAccent = HexToVec4("#E2C27E");
+    public static readonly Vector4 Rose       = HexToVec4("#FF6F9C");
 
-    public const float CardRounding = 10f;
-    public const float ChipRounding = 6f;
+    public const float CardRounding = 4f;
+    public const float ChipRounding = 4f;
 
     public static Vector4 ApplyOverride(Vector4 original) => OverrideMode switch
     {
@@ -40,13 +47,14 @@ public static class UIConstants
         _ => original,
     };
 
-    public static Vector4 Primary   => ApplyOverride(BasePrimary);
+    public static Vector4 Heading   => ApplyOverride(BasePrimary);
+    public static Vector4 Accent    => ApplyOverride(BaseGlow);
     public static Vector4 Secondary => ApplyOverride(BaseSecondary);
     public static Vector4 Glow      => ApplyOverride(BaseGlow);
+    public static Vector4 Trim      => ApplyOverride(BaseTrim);
 
-    public static Vector4 GlowDim         => WithAlpha(Glow, 0.35f);
-    public static Vector4 GlowBright      => WithAlpha(Glow, 1.0f);
-    public static Vector4 PrimaryHover    => Lighten(Primary, 0.15f);
+    public static Vector4 GlowDim         => WithAlpha(Trim, 0.7f);
+    public static Vector4 GlowBright      => WithAlpha(Accent, 1.0f);
 
     public static Vector4 HexToVec4(string hex)
     {
@@ -104,29 +112,32 @@ public static class UIConstants
         }
     }
 
-    private static void PushComboStyles()
+    private sealed class StyleScope(IDisposable colors, IDisposable styles) : IDisposable
     {
-        ImGui.PushStyleColor(ImGuiCol.FrameBg,        Lighten(CardBackground, 0.30f));
-        ImGui.PushStyleColor(ImGuiCol.FrameBgHovered, Lighten(CardBackground, 0.38f));
-        ImGui.PushStyleColor(ImGuiCol.FrameBgActive,  Lighten(CardBackground, 0.46f));
-        ImGui.PushStyleColor(ImGuiCol.Text,           TextPrimary);
-        ImGui.PushStyleColor(ImGuiCol.PopupBg,        Lighten(CardBackground, 0.16f));
-        ImGui.PushStyleColor(ImGuiCol.HeaderHovered,  WithAlpha(Primary, 0.30f));
-        ImGui.PushStyleColor(ImGuiCol.HeaderActive,   WithAlpha(Primary, 0.45f));
-        ImGui.PushStyleColor(ImGuiCol.Border,         GlowDim);
-        ImGui.PushStyleVar(ImGuiStyleVar.FrameBorderSize, 1f);
-        ImGui.PushStyleVar(ImGuiStyleVar.FrameRounding, 6f);
-        ImGui.PushStyleVar(ImGuiStyleVar.PopupRounding, 8f);
-        ImGui.PushStyleVar(ImGuiStyleVar.PopupBorderSize, 0f);
-        ImGui.PushStyleVar(ImGuiStyleVar.WindowPadding, new Vector2(8, 8));
-        ImGui.PushStyleVar(ImGuiStyleVar.ItemSpacing, new Vector2(6, 7));
+        public void Dispose()
+        {
+            styles.Dispose();
+            colors.Dispose();
+        }
     }
 
-    private static void PopComboStyles()
-    {
-        ImGui.PopStyleVar(6);
-        ImGui.PopStyleColor(8);
-    }
+    public static IDisposable Scope(IDisposable colors, IDisposable styles) => new StyleScope(colors, styles);
+
+    private static IDisposable ComboStyle() => new StyleScope(
+        ImRaii.PushColor(ImGuiCol.FrameBg,        Lighten(CardBackground, 0.30f))
+              .Push(ImGuiCol.FrameBgHovered, Lighten(CardBackground, 0.38f))
+              .Push(ImGuiCol.FrameBgActive,  Lighten(CardBackground, 0.46f))
+              .Push(ImGuiCol.Text,           TextPrimary)
+              .Push(ImGuiCol.PopupBg,        Lighten(CardBackground, 0.16f))
+              .Push(ImGuiCol.HeaderHovered,  WithAlpha(Accent, 0.30f))
+              .Push(ImGuiCol.HeaderActive,   WithAlpha(Accent, 0.45f))
+              .Push(ImGuiCol.Border,         GlowDim),
+        ImRaii.PushStyle(ImGuiStyleVar.FrameBorderSize, 1f)
+              .Push(ImGuiStyleVar.FrameRounding, 6f)
+              .Push(ImGuiStyleVar.PopupRounding, 8f)
+              .Push(ImGuiStyleVar.PopupBorderSize, 0f)
+              .Push(ImGuiStyleVar.WindowPadding, new Vector2(8, 8))
+              .Push(ImGuiStyleVar.ItemSpacing, new Vector2(6, 7)));
 
     private static readonly Vector2[] ShadowOffsets = { new(1, 2), new(2, 4), new(3, 6) };
     private static readonly float[] ShadowAlphas = { 0.22f, 0.14f, 0.07f };
@@ -143,7 +154,7 @@ public static class UIConstants
 
     public static void StyledCombo(string id, string preview, float width, Action drawItems)
     {
-        PushComboStyles();
+        using var style = ComboStyle();
 
         var parentDl = ImGui.GetWindowDrawList();
         var pos = ImGui.GetCursorScreenPos();
@@ -152,17 +163,13 @@ public static class UIConstants
 
         ImGui.SetNextItemWidth(width);
         var wasOpen = ImGui.IsPopupOpen(id);
-        var opened = ImGui.BeginCombo(id, preview);
+        using var combo = ImRaii.Combo(id, preview);
+        bool opened = combo;
 
-        DrawHoverPulseOverlayOnList(parentDl, id, ImGui.IsItemHovered(), opened && !wasOpen, Primary, pos, pos + size);
+        DrawHoverPulseOverlayOnList(parentDl, id, ImGui.IsItemHovered(), opened && !wasOpen, Accent, pos, pos + size);
 
         if (opened)
-        {
             drawItems();
-            ImGui.EndCombo();
-        }
-
-        PopComboStyles();
     }
 
     public static bool StyledCombo(string id, string[] options, ref int index, float width)
@@ -183,38 +190,145 @@ public static class UIConstants
         return true;
     }
 
-    public static void PushScrollbarStyle()
+    public static readonly Vector4 Hover = HexToVec4("#1F2430");
+
+    private static readonly Dictionary<string, string> DisplayNames = new();
+
+    public static unsafe string DisplayName(string? name)
     {
-        ImGui.PushStyleColor(ImGuiCol.ScrollbarBg,          WithAlpha(Background, 0f));
-        ImGui.PushStyleColor(ImGuiCol.ScrollbarGrab,        WithAlpha(Glow, 0.25f));
-        ImGui.PushStyleColor(ImGuiCol.ScrollbarGrabHovered, WithAlpha(Glow, 0.45f));
-        ImGui.PushStyleColor(ImGuiCol.ScrollbarGrabActive,  WithAlpha(Glow, 0.65f));
-        ImGui.PushStyleVar(ImGuiStyleVar.ScrollbarSize, 8f);
-        ImGui.PushStyleVar(ImGuiStyleVar.ScrollbarRounding, 8f);
+        if (string.IsNullOrEmpty(name)) return "";
+        if (DisplayNames.TryGetValue(name, out var cached)) return cached;
+
+        var font = ImGui.GetIO().FontDefault;
+        if (font.IsNull) font = ImGui.GetFont();
+        var sb = new System.Text.StringBuilder(name.Length);
+        foreach (var rune in name.EnumerateRunes())
+        {
+            if (rune.Value > 0xFFFF) continue;
+            var c = (char)rune.Value;
+            if (c is '‍' or '︎' or '️' or '⃣') continue;
+            if (!char.IsWhiteSpace(c) && !font.IsNull && font.FindGlyphNoFallback(c) == null) continue;
+            sb.Append(c);
+        }
+
+        var result = System.Text.RegularExpressions.Regex.Replace(sb.ToString(), @"\s{2,}", " ").Trim();
+        if (result.Length == 0) result = name;
+        if (!font.IsNull)
+            DisplayNames[name] = result;
+        return result;
     }
 
-    public static void PopScrollbarStyle()
+    private static float LinearChannel(float c) => c <= 0.03928f ? c / 12.92f : MathF.Pow((c + 0.055f) / 1.055f, 2.4f);
+
+    public static float RelativeLuminance(Vector4 c)
+        => 0.2126f * LinearChannel(c.X) + 0.7152f * LinearChannel(c.Y) + 0.0722f * LinearChannel(c.Z);
+
+    public static float Contrast(Vector4 a, Vector4 b)
     {
-        ImGui.PopStyleVar(2);
-        ImGui.PopStyleColor(4);
+        var la = RelativeLuminance(a);
+        var lb = RelativeLuminance(b);
+        return (MathF.Max(la, lb) + 0.05f) / (MathF.Min(la, lb) + 0.05f);
     }
+
+    public static bool IsDark(Vector4 c) => Contrast(c, Background) < 3f;
+
+    public static Vector4 OnColor(Vector4 background)
+    {
+        var white = new Vector4(1f, 1f, 1f, 1f);
+        return Contrast(background, white) >= Contrast(background, Background) ? white : Background;
+    }
+
+    public static Vector4 Readable(Vector4 color)
+    {
+        if (!IsDark(color)) return color;
+        var white = new Vector4(1f, 1f, 1f, color.W);
+        for (var t = 0.1f; t < 1f; t += 0.1f)
+        {
+            var mixed = Vector4Lerp(color, white, t);
+            if (Contrast(mixed, Background) >= 4f) return mixed;
+        }
+        return WithAlpha(TextPrimary, color.W);
+    }
+
+    public static void AddTextReadable(ImDrawListPtr dl, Vector2 pos, Vector4 color, string text)
+        => dl.AddText(pos, ImGui.ColorConvertFloat4ToU32(Readable(color)), text);
+
+    public static void TextReadable(Vector4 color, string text)
+    {
+        var pos = ImGui.GetCursorScreenPos();
+        var size = ImGui.CalcTextSize(text);
+        ImGui.Dummy(size);
+        AddTextReadable(ImGui.GetWindowDrawList(), pos, color, text);
+    }
+
+    public static Vector4 Mix(Vector4 a, Vector4 b, float t)
+        => new(a.X + (b.X - a.X) * t, a.Y + (b.Y - a.Y) * t, a.Z + (b.Z - a.Z) * t, 1f);
+
+    public static IDisposable PushTheme()
+    {
+        var accent = Accent;
+        return new StyleScope(
+            ImRaii.PushColor(ImGuiCol.Text, TextPrimary)
+                  .Push(ImGuiCol.TextDisabled, TextMuted)
+                  .Push(ImGuiCol.WindowBg, Background)
+                  .Push(ImGuiCol.ChildBg, Vector4.Zero)
+                  .Push(ImGuiCol.PopupBg, WithAlpha(CardBackground, 0.98f))
+                  .Push(ImGuiCol.Border, LineStrong)
+                  .Push(ImGuiCol.BorderShadow, Vector4.Zero)
+                  .Push(ImGuiCol.FrameBg, CardBackground)
+                  .Push(ImGuiCol.FrameBgHovered, Hover)
+                  .Push(ImGuiCol.FrameBgActive, Mix(CardBackground, accent, 0.18f))
+                  .Push(ImGuiCol.TitleBg, Background)
+                  .Push(ImGuiCol.TitleBgActive, PanelRaised)
+                  .Push(ImGuiCol.TitleBgCollapsed, Background)
+                  .Push(ImGuiCol.ScrollbarBg, Vector4.Zero)
+                  .Push(ImGuiCol.ScrollbarGrab, WithAlpha(TextMuted, 0.55f))
+                  .Push(ImGuiCol.ScrollbarGrabHovered, WithAlpha(accent, 0.6f))
+                  .Push(ImGuiCol.ScrollbarGrabActive, WithAlpha(accent, 0.85f))
+                  .Push(ImGuiCol.CheckMark, accent)
+                  .Push(ImGuiCol.SliderGrab, accent)
+                  .Push(ImGuiCol.SliderGrabActive, Lighten(accent, 0.15f))
+                  .Push(ImGuiCol.Button, CardBackground)
+                  .Push(ImGuiCol.ButtonHovered, Hover)
+                  .Push(ImGuiCol.ButtonActive, Mix(CardBackground, accent, 0.3f))
+                  .Push(ImGuiCol.Header, WithAlpha(accent, 0.16f))
+                  .Push(ImGuiCol.HeaderHovered, WithAlpha(accent, 0.12f))
+                  .Push(ImGuiCol.HeaderActive, WithAlpha(accent, 0.24f))
+                  .Push(ImGuiCol.Separator, LineStrong)
+                  .Push(ImGuiCol.SeparatorHovered, WithAlpha(accent, 0.6f))
+                  .Push(ImGuiCol.SeparatorActive, accent)
+                  .Push(ImGuiCol.ResizeGrip, Vector4.Zero)
+                  .Push(ImGuiCol.ResizeGripHovered, WithAlpha(accent, 0.4f))
+                  .Push(ImGuiCol.ResizeGripActive, WithAlpha(accent, 0.7f))
+                  .Push(ImGuiCol.Tab, CardBackground)
+                  .Push(ImGuiCol.TabHovered, Mix(CardBackground, accent, 0.25f))
+                  .Push(ImGuiCol.TabActive, Mix(CardBackground, accent, 0.18f))
+                  .Push(ImGuiCol.TabUnfocused, CardBackground)
+                  .Push(ImGuiCol.TabUnfocusedActive, Mix(CardBackground, accent, 0.12f))
+                  .Push(ImGuiCol.TableHeaderBg, PanelRaised)
+                  .Push(ImGuiCol.TableBorderStrong, LineStrong)
+                  .Push(ImGuiCol.TableBorderLight, Line)
+                  .Push(ImGuiCol.TableRowBgAlt, WithAlpha(TextPrimary, 0.02f))
+                  .Push(ImGuiCol.TextSelectedBg, WithAlpha(accent, 0.3f))
+                  .Push(ImGuiCol.DragDropTarget, accent)
+                  .Push(ImGuiCol.NavHighlight, accent)
+                  .Push(ImGuiCol.PlotHistogram, accent),
+            ImRaii.PushStyle(ImGuiStyleVar.FrameRounding, 3f)
+                  .Push(ImGuiStyleVar.GrabRounding, 3f)
+                  .Push(ImGuiStyleVar.PopupRounding, 4f)
+                  .Push(ImGuiStyleVar.TabRounding, 3f)
+                  .Push(ImGuiStyleVar.GrabMinSize, 10f));
+    }
+
+    public static IDisposable ScrollbarStyle() => new StyleScope(
+        ImRaii.PushColor(ImGuiCol.ScrollbarBg,          WithAlpha(Background, 0f))
+              .Push(ImGuiCol.ScrollbarGrab,        WithAlpha(Trim, 0.55f))
+              .Push(ImGuiCol.ScrollbarGrabHovered, WithAlpha(Accent, 0.55f))
+              .Push(ImGuiCol.ScrollbarGrabActive,  WithAlpha(Accent, 0.8f)),
+        ImRaii.PushStyle(ImGuiStyleVar.ScrollbarSize, 6f)
+              .Push(ImGuiStyleVar.ScrollbarRounding, 0f));
 
     public static float ToggleWidth() => ImGui.GetFrameHeight() * 0.78f * 1.8f;
-
-    public static void RightAlign(float width)
-    {
-        var avail = ImGui.GetContentRegionAvail().X;
-        if (avail > width)
-            ImGui.SetCursorPosX(ImGui.GetCursorPosX() + avail - width);
-    }
-
-    public static void RightAlignAbs(float width, float targetRightScreenX)
-    {
-        var y = ImGui.GetCursorScreenPos().Y;
-        ImGui.SetCursorScreenPos(new Vector2(targetRightScreenX - width, y));
-    }
-
-    public static float RightEdgeX() => ImGui.GetCursorScreenPos().X + ImGui.GetContentRegionAvail().X;
 
     public static void FlowNext(float neededWidth, float spacing = 20f)
     {
@@ -235,7 +349,7 @@ public static class UIConstants
 
     public static bool Toggle(string id, ref bool value, Vector4? onColor = null)
     {
-        var col = onColor ?? Primary;
+        var col = onColor ?? Accent;
         var frameH = ImGui.GetFrameHeight();
         var height = frameH * 0.78f;
         var width = height * 1.8f;
@@ -288,22 +402,75 @@ public static class UIConstants
         return changed;
     }
 
-    private static readonly Vector2[] GlowRimOffsets = { new(1, 1), new(2, 2) };
-    private static readonly float[] GlowRimAlphas = { 0.18f, 0.09f };
-
     public static void DrawCardBackground(ImDrawListPtr dl, Vector2 min, Vector2 max, float rounding = -1f, float glowAlpha = 0.35f)
     {
-        var r = rounding < 0 ? CardRounding : rounding;
+        var cut = rounding < 0 ? 8f : rounding;
+        Chamfer(dl, min, max, cut);
+        dl.PathFillConvex(ImGui.ColorConvertFloat4ToU32(PanelRaised));
+        Chamfer(dl, min, max, cut);
+        dl.PathStroke(ImGui.ColorConvertFloat4ToU32(WithAlpha(Trim, Math.Clamp(glowAlpha * 2f, 0f, 1f))), ImDrawFlags.Closed, 1f);
+    }
 
-        for (var i = GlowRimOffsets.Length - 1; i >= 0; i--)
+    public static void Chamfer(ImDrawListPtr dl, Vector2 min, Vector2 max, float cut)
+    {
+        dl.PathLineTo(new Vector2(min.X + cut, min.Y));
+        dl.PathLineTo(new Vector2(max.X, min.Y));
+        dl.PathLineTo(new Vector2(max.X, max.Y - cut));
+        dl.PathLineTo(new Vector2(max.X - cut, max.Y));
+        dl.PathLineTo(new Vector2(min.X, max.Y));
+        dl.PathLineTo(new Vector2(min.X, min.Y + cut));
+    }
+
+    public static void DrawHudFrame(ImDrawListPtr dl, Vector2 min, Vector2 max, float cut, float alpha, bool rgb = false, bool grip = true)
+    {
+        dl.PushClipRect(min, max, false);
+        Chamfer(dl, min, max, cut);
+        dl.PathFillConvex(ImGui.ColorConvertFloat4ToU32(WithAlpha(Background, alpha)));
+        var inset = new Vector2(0.5f, 0.5f);
+        Chamfer(dl, min + inset, max - inset, cut);
+        dl.PathStroke(ImGui.ColorConvertFloat4ToU32(WithAlpha(rgb ? Glow : Trim, alpha)), ImDrawFlags.Closed, rgb ? 3f : 1f);
+
+        if (!rgb)
+            DrawFrameCorner(dl, min, cut, alpha);
+
+        if (grip)
         {
-            var mn = min - GlowRimOffsets[i];
-            var mx = max + GlowRimOffsets[i];
-            dl.AddRect(mn, mx, ImGui.ColorConvertFloat4ToU32(WithAlpha(Glow, GlowRimAlphas[i])), r + GlowRimOffsets[i].X, ImDrawFlags.None, 1f);
+            var g = ImGui.ColorConvertFloat4ToU32(WithAlpha(Heading, 0.6f * alpha));
+            dl.AddLine(new Vector2(max.X - 3f, max.Y - cut - 5f), new Vector2(max.X - cut - 5f, max.Y - 3f), g, 1f);
+            dl.AddLine(new Vector2(max.X - 3f, max.Y - cut - 10f), new Vector2(max.X - cut - 10f, max.Y - 3f), g, 1f);
         }
+        dl.PopClipRect();
+    }
 
-        dl.AddRectFilled(min, max, ImGui.ColorConvertFloat4ToU32(CardBackground), r);
-        dl.AddRect(min, max, ImGui.ColorConvertFloat4ToU32(WithAlpha(Glow, glowAlpha)), r, ImDrawFlags.None, 1.2f);
+    public static void DrawFrameCorner(ImDrawListPtr dl, Vector2 min, float cut, float alpha)
+    {
+        var gold = ImGui.ColorConvertFloat4ToU32(WithAlpha(Heading, alpha));
+        var clear = ImGui.ColorConvertFloat4ToU32(WithAlpha(Heading, 0f));
+        dl.AddLine(new Vector2(min.X + 0.5f, min.Y + cut), new Vector2(min.X + cut, min.Y + 0.5f), gold, 1f);
+        dl.AddRectFilledMultiColor(new Vector2(min.X + cut, min.Y), new Vector2(min.X + cut + 180f, min.Y + 1f),
+            gold, clear, clear, gold);
+        dl.AddRectFilledMultiColor(new Vector2(min.X, min.Y + cut), new Vector2(min.X + 1f, min.Y + cut + 140f),
+            gold, gold, clear, clear);
+    }
+
+    public static void DrawGem(ImDrawListPtr dl, Vector2 center, float radius, Vector4 color)
+    {
+        dl.AddQuadFilled(
+            center + new Vector2(0, -radius), center + new Vector2(radius, 0),
+            center + new Vector2(0, radius), center + new Vector2(-radius, 0),
+            ImGui.ColorConvertFloat4ToU32(color));
+    }
+
+    public static void DrawTrimRule(ImDrawListPtr dl, float x0, float x1, float y)
+    {
+        var mid = (x0 + x1) / 2f;
+        var clear = ImGui.ColorConvertFloat4ToU32(WithAlpha(Trim, 0f));
+        var gold = ImGui.ColorConvertFloat4ToU32(Heading);
+        dl.AddRectFilledMultiColor(new Vector2(x0, y), new Vector2(mid, y + 1), clear, gold, gold, clear);
+        dl.AddRectFilledMultiColor(new Vector2(mid, y), new Vector2(x1, y + 1), gold, clear, clear, gold);
+        var c = new Vector2(mid, y + 0.5f);
+        DrawGem(dl, c, 4f, Background);
+        dl.AddQuad(c + new Vector2(0, -4), c + new Vector2(4, 0), c + new Vector2(0, 4), c + new Vector2(-4, 0), gold, 1f);
     }
 
     public static void DrawCardWithAccentBar(ImDrawListPtr dl, Vector2 cardMin, Vector2 cardMax, Vector4 body, Vector4 accent, float rounding, float barWidth = 3f)
@@ -313,44 +480,43 @@ public static class UIConstants
             ImGui.ColorConvertFloat4ToU32(WithAlpha(body, 1f)), rounding, ImDrawFlags.RoundCornersRight);
     }
 
-    public static void PushMenuStyle()
-    {
-        ImGui.PushStyleColor(ImGuiCol.PopupBg, Lighten(CardBackground, 0.10f));
-        ImGui.PushStyleColor(ImGuiCol.Border, GlowDim);
-        ImGui.PushStyleColor(ImGuiCol.HeaderHovered, WithAlpha(Primary, 0.30f));
-        ImGui.PushStyleColor(ImGuiCol.HeaderActive, WithAlpha(Primary, 0.45f));
-        ImGui.PushStyleColor(ImGuiCol.Text, TextPrimary);
-        ImGui.PushStyleVar(ImGuiStyleVar.PopupRounding, 8f);
-        ImGui.PushStyleVar(ImGuiStyleVar.PopupBorderSize, 1f);
-        ImGui.PushStyleVar(ImGuiStyleVar.WindowPadding, new Vector2(6, 6));
-        ImGui.PushStyleVar(ImGuiStyleVar.ItemSpacing, new Vector2(4, 4));
-    }
-
-    public static void PopMenuStyle()
-    {
-        ImGui.PopStyleVar(4);
-        ImGui.PopStyleColor(5);
-    }
+    public static IDisposable MenuStyle() => new StyleScope(
+        ImRaii.PushColor(ImGuiCol.PopupBg, Lighten(CardBackground, 0.10f))
+              .Push(ImGuiCol.Border, GlowDim)
+              .Push(ImGuiCol.HeaderHovered, WithAlpha(Accent, 0.30f))
+              .Push(ImGuiCol.HeaderActive, WithAlpha(Accent, 0.45f))
+              .Push(ImGuiCol.Text, TextPrimary),
+        ImRaii.PushStyle(ImGuiStyleVar.PopupRounding, 8f)
+              .Push(ImGuiStyleVar.PopupBorderSize, 1f)
+              .Push(ImGuiStyleVar.WindowPadding, new Vector2(6, 6))
+              .Push(ImGuiStyleVar.ItemSpacing, new Vector2(4, 4)));
 
     public static bool IconChip(string id, FontAwesomeIcon icon, Vector2 size, Vector4? tint = null, bool active = false)
     {
-        var col = tint ?? Primary;
-        ImGui.PushStyleColor(ImGuiCol.Button,        WithAlpha(col, active ? 0.30f : 0.12f));
-        ImGui.PushStyleColor(ImGuiCol.ButtonHovered,  WithAlpha(col, active ? 0.40f : 0.22f));
-        ImGui.PushStyleColor(ImGuiCol.ButtonActive,   WithAlpha(col, 0.50f));
-        ImGui.PushStyleColor(ImGuiCol.Text,           col);
-        ImGui.PushStyleVar(ImGuiStyleVar.FrameRounding, ChipRounding);
+        var col = tint ?? Accent;
+        using var colors = ImRaii.PushColor(ImGuiCol.Button, WithAlpha(col, active ? 0.30f : 0.12f))
+                                 .Push(ImGuiCol.ButtonHovered, WithAlpha(col, active ? 0.40f : 0.22f))
+                                 .Push(ImGuiCol.ButtonActive, WithAlpha(col, 0.50f))
+                                 .Push(ImGuiCol.Text, col);
+        using var style = ImRaii.PushStyle(ImGuiStyleVar.FrameRounding, ChipRounding);
 
-        var iconFont = UiBuilder.IconFont;
-        ImGui.PushFont(iconFont);
-        var clicked = ImGui.Button($"{icon.ToIconString()}##{id}", size);
-        ImGui.PopFont();
+        bool clicked;
+        using (ImRaii.PushFont(UiBuilder.IconFont))
+            clicked = ImGui.Button($"{icon.ToIconString()}##{id}", size);
 
         DrawHoverPulseOverlay(id, ImGui.IsItemHovered(), clicked, col);
-
-        ImGui.PopStyleVar();
-        ImGui.PopStyleColor(4);
         return clicked;
+    }
+
+    private sealed class SectionScope(float glowAlpha) : IDisposable
+    {
+        public void Dispose() => EndSection(glowAlpha);
+    }
+
+    public static IDisposable Section(float padding = 10f, float glowAlpha = 0.30f)
+    {
+        BeginSection(padding);
+        return new SectionScope(glowAlpha);
     }
 
     private static ImDrawListPtr sectionDl;
@@ -358,7 +524,7 @@ public static class UIConstants
     private static float sectionRightX;
     private static float sectionPad;
 
-    public static void BeginSection(float padding = 10f)
+    private static void BeginSection(float padding)
     {
         sectionDl = ImGui.GetWindowDrawList();
         sectionPad = padding;
@@ -372,7 +538,7 @@ public static class UIConstants
         ImGui.Indent(padding);
     }
 
-    public static void EndSection(float glowAlpha = 0.30f)
+    private static void EndSection(float glowAlpha)
     {
         ImGui.Unindent(sectionPad);
         ImGui.Dummy(new Vector2(0, sectionPad));
@@ -385,16 +551,16 @@ public static class UIConstants
         ImGui.Spacing();
     }
 
-    public static void PushWindowChrome(Vector4? accent = null, float borderSize = 1.5f)
+    public static void PushWindowChrome(Vector4? accent = null, float borderSize = 1f)
     {
-        var acc = accent ?? Glow;
+        var acc = accent ?? Trim;
         ImGui.PushStyleColor(ImGuiCol.WindowBg,      Background);
         ImGui.PushStyleColor(ImGuiCol.TitleBg,       Background);
-        ImGui.PushStyleColor(ImGuiCol.TitleBgActive, CardBackground);
-        ImGui.PushStyleColor(ImGuiCol.Border,        WithAlpha(acc, 0.55f));
+        ImGui.PushStyleColor(ImGuiCol.TitleBgActive, PanelRaised);
+        ImGui.PushStyleColor(ImGuiCol.Border,        WithAlpha(acc, 0.9f));
         ImGui.PushStyleVar(ImGuiStyleVar.WindowBorderSize, borderSize);
         ImGui.PushStyleVar(ImGuiStyleVar.WindowPadding, new Vector2(10, 8));
-        ImGui.PushStyleVar(ImGuiStyleVar.WindowRounding, 8f);
+        ImGui.PushStyleVar(ImGuiStyleVar.WindowRounding, 2f);
     }
 
     public static void PopWindowChrome()
@@ -403,26 +569,67 @@ public static class UIConstants
         ImGui.PopStyleColor(4);
     }
 
-    public static bool AccentButton(string label, Vector4? accent = null, float width = 0, bool disabled = false)
+    public static bool AccentButton(string label, Vector4? accent = null, float width = 0, bool disabled = false,
+        float height = 0, string? tooltip = null)
     {
-        var col = accent ?? Primary;
-        if (disabled) ImGui.BeginDisabled();
-        ImGui.PushStyleColor(ImGuiCol.Button, WithAlpha(col, 0.2f));
-        ImGui.PushStyleColor(ImGuiCol.ButtonHovered, WithAlpha(col, 0.35f));
-        ImGui.PushStyleColor(ImGuiCol.ButtonActive, WithAlpha(col, 0.5f));
-        ImGui.PushStyleColor(ImGuiCol.Border, WithAlpha(col, 0.6f));
-        ImGui.PushStyleColor(ImGuiCol.Text, col);
-        ImGui.PushStyleVar(ImGuiStyleVar.FrameBorderSize, 1f);
-        ImGui.PushStyleVar(ImGuiStyleVar.FrameRounding, ChipRounding);
-        ImGui.PushStyleVar(ImGuiStyleVar.FramePadding, new Vector2(14, ImGui.GetStyle().FramePadding.Y));
-        var clicked = ImGui.Button(label, new Vector2(width, ImGui.GetFrameHeight()));
-        if (!disabled)
-            DrawHoverPulseOverlay(label, ImGui.IsItemHovered(), clicked, col);
-        ImGui.PopStyleVar(3);
-        ImGui.PopStyleColor(5);
-        if (disabled) ImGui.EndDisabled();
+        var col = accent ?? Accent;
+        bool clicked;
+        using (ImRaii.Disabled(disabled))
+        {
+            var padY = ImGui.GetStyle().FramePadding.Y;
+            using var colors = ImRaii.PushColor(ImGuiCol.Button, WithAlpha(col, 0.2f))
+                                     .Push(ImGuiCol.ButtonHovered, WithAlpha(col, 0.35f))
+                                     .Push(ImGuiCol.ButtonActive, WithAlpha(col, 0.5f))
+                                     .Push(ImGuiCol.Border, WithAlpha(col, 0.6f))
+                                     .Push(ImGuiCol.Text, col);
+            using var style = ImRaii.PushStyle(ImGuiStyleVar.FrameBorderSize, 1f)
+                                    .Push(ImGuiStyleVar.FrameRounding, ChipRounding)
+                                    .Push(ImGuiStyleVar.FramePadding, new Vector2(14, padY));
+            clicked = ImGui.Button(label, new Vector2(width, height > 0 ? height : ImGui.GetFrameHeight()));
+            if (!disabled)
+                DrawHoverPulseOverlay(label, ImGui.IsItemHovered(), clicked, col);
+        }
+        if (tooltip != null && ImGui.IsItemHovered(ImGuiHoveredFlags.AllowWhenDisabled))
+            ImGui.SetTooltip(tooltip);
         return clicked;
     }
+
+    public static string FormatServerTime(DateTime utc)
+    {
+        var format = utc.Minute == 0 ? "h tt" : "h:mm tt";
+        return utc.ToString(format, System.Globalization.CultureInfo.InvariantCulture) + " ST";
+    }
+
+    public static void OpenUrl(string? url)
+    {
+        if (!Uri.TryCreate(url, UriKind.Absolute, out var u) ||
+            (u.Scheme != Uri.UriSchemeHttp && u.Scheme != Uri.UriSchemeHttps)) return;
+        try { Dalamud.Utility.Util.OpenLink(u.AbsoluteUri); } catch { }
+    }
+
+    public static string FitText(string text, float maxWidth, Func<string, float>? measure = null)
+    {
+        measure ??= s => ImGui.CalcTextSize(s).X;
+        if (string.IsNullOrEmpty(text) || measure(text) <= maxWidth) return text;
+        const string ellipsis = "...";
+        var length = text.Length;
+        while (length > 0 && measure(text[..length].TrimEnd() + ellipsis) > maxWidth)
+            length--;
+        return length > 0 ? text[..length].TrimEnd() + ellipsis : ellipsis;
+    }
+
+    public static unsafe void DrawIconCentered(ImDrawListPtr dl, ImFontPtr font, float size, Vector2 center, string glyph, uint color)
+    {
+        if (string.IsNullOrEmpty(glyph)) return;
+        var g = font.FindGlyph(glyph[0]);
+        var ink = g == null
+            ? new Vector2(size / 2f)
+            : new Vector2(g->X0 + g->X1, g->Y0 + g->Y1) * 0.5f * (size / font.FontSize);
+        dl.AddText(font, size, center - ink, color, glyph);
+    }
+
+    public static void DrawIconCentered(ImDrawListPtr dl, float size, Vector2 center, FontAwesomeIcon icon, uint color)
+        => DrawIconCentered(dl, UiBuilder.IconFont, size, center, icon.ToIconString(), color);
 
     public static List<string> WrapText(string text, float wrapWidth)
     {
@@ -467,112 +674,5 @@ public static class UIConstants
             4 => new Vector4(t2, p,  v,  1f),
             _ => new Vector4(v,  p,  q,  1f),
         };
-    }
-
-    private static int TagOrder(string tag) => tag switch
-    {
-        "ADDED"    => 0,
-        "IMPROVED" => 1,
-        "CHANGED"  => 2,
-        "FIXED"    => 3,
-        "REMOVED"  => 4,
-        _          => 5,
-    };
-
-    public static void DrawChangelog(ChangelogSection[] sections)
-    {
-        var dl    = ImGui.GetWindowDrawList();
-        var first = true;
-        foreach (var section in sections)
-        {
-            if (!first) ImGui.Dummy(new Vector2(0, 5));
-            first = false;
-
-            var lang   = ChangelogData.CurrentLanguage;
-            var sorted = section.Entries
-                .OrderBy(e => TagOrder(e.Tag))
-                .ToArray();
-
-            if (section.Title != null)
-            {
-                var sectionTitle = (lang == "DE" && section.TitleDE != null) ? section.TitleDE : section.Title;
-                const float sPadX = 7f;
-                var titleSz = ImGui.CalcTextSize(sectionTitle);
-                var pillW   = titleSz.X + sPadX * 2;
-                var pillPos = ImGui.GetCursorScreenPos();
-
-                dl.AddRectFilled(
-                    new Vector2(pillPos.X,        pillPos.Y + 1f),
-                    new Vector2(pillPos.X + pillW, pillPos.Y + titleSz.Y + 1f),
-                    ImGui.ColorConvertFloat4ToU32(WithAlpha(Secondary, 0.20f)), 4f);
-                dl.AddText(
-                    new Vector2(pillPos.X + sPadX, pillPos.Y),
-                    ImGui.ColorConvertFloat4ToU32(WithAlpha(Secondary, 0.95f)), sectionTitle);
-
-                ImGui.Dummy(new Vector2(pillW, titleSz.Y + 4));
-
-                var lineX      = pillPos.X + 3;
-                var lineStartY = ImGui.GetCursorScreenPos().Y;
-
-                ImGui.Indent(14f);
-                foreach (var e in sorted)
-                {
-                    DrawChangelogTag(e.Tag);
-                    ImGui.TextWrapped((lang == "DE" && e.TextDE != null) ? e.TextDE : e.Text);
-                }
-                var lineEndY = ImGui.GetCursorScreenPos().Y - 2;
-                ImGui.Unindent(14f);
-
-                if (lineEndY > lineStartY)
-                    dl.AddLine(
-                        new Vector2(lineX, lineStartY),
-                        new Vector2(lineX, lineEndY),
-                        ImGui.ColorConvertFloat4ToU32(WithAlpha(Secondary, 0.40f)), 2f);
-            }
-            else
-            {
-                foreach (var e in sorted)
-                {
-                    DrawChangelogTag(e.Tag);
-                    ImGui.TextWrapped((lang == "DE" && e.TextDE != null) ? e.TextDE : e.Text);
-                }
-            }
-        }
-    }
-
-    public static void DrawChangelogTag(string tag)
-    {
-        if (string.IsNullOrEmpty(tag)) return;
-
-        var (bg, fg) = tag switch
-        {
-            "ADDED"    => (new Vector4(0.20f, 0.65f, 0.35f, 0.20f), new Vector4(0.40f, 0.90f, 0.55f, 1f)),
-            "FIXED"    => (new Vector4(0.75f, 0.50f, 0.10f, 0.20f), new Vector4(0.98f, 0.75f, 0.20f, 1f)),
-            "CHANGED"  => (new Vector4(0.20f, 0.45f, 0.90f, 0.20f), new Vector4(0.45f, 0.70f, 1.00f, 1f)),
-            "IMPROVED" => (new Vector4(0.50f, 0.25f, 0.85f, 0.20f), new Vector4(0.70f, 0.50f, 1.00f, 1f)),
-            "REMOVED"  => (new Vector4(0.80f, 0.20f, 0.20f, 0.20f), new Vector4(1.00f, 0.45f, 0.45f, 1f)),
-            _          => (new Vector4(0.45f, 0.45f, 0.45f, 0.20f), new Vector4(0.70f, 0.70f, 0.70f, 1f)),
-        };
-
-        const float padX = 5f;
-        const float colW = 82f;
-
-        var textSize = ImGui.CalcTextSize(tag);
-        var tagW     = textSize.X + padX * 2;
-        var pos      = ImGui.GetCursorScreenPos();
-        var dl       = ImGui.GetWindowDrawList();
-
-        var xOff = MathF.Floor((colW - tagW) / 2f);
-
-        dl.AddRectFilled(
-            new Vector2(pos.X + xOff,        pos.Y + 1f),
-            new Vector2(pos.X + xOff + tagW,  pos.Y + textSize.Y + 1f),
-            ImGui.ColorConvertFloat4ToU32(bg), 3f);
-        dl.AddText(
-            new Vector2(pos.X + xOff + padX, pos.Y),
-            ImGui.ColorConvertFloat4ToU32(fg), tag);
-
-        ImGui.Dummy(new Vector2(colW, textSize.Y));
-        ImGui.SameLine(0, 6);
     }
 }

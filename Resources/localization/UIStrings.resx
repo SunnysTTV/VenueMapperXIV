@@ -61,7 +61,7 @@
   <data name="UpcomingEvents" xml:space="preserve"><value>UPCOMING EVENTS</value></data>
   <data name="Search" xml:space="preserve"><value>Search venues...</value></data>
   <data name="AllDc" xml:space="preserve"><value>All Datacenters</value></data>
-  <data name="Visit" xml:space="preserve"><value>Visit</value></data>
+  <data name="Visit" xml:space="preserve"><value>Teleport</value></data>
   <data name="Teleporting" xml:space="preserve"><value>Teleporting...</value></data>
   <data name="Copied" xml:space="preserve"><value>COPIED!</value></data>
   <data name="AddFavorite" xml:space="preserve"><value>Add Favorite</value></data>
@@ -77,7 +77,6 @@
   <!-- Status -->
   <data name="Active" xml:space="preserve"><value>ACTIVE</value></data>
   <data name="NotInstalled" xml:space="preserve"><value>NOT INSTALLED</value></data>
-  <data name="Here" xml:space="preserve"><value> HERE </value></data>
   <data name="Here2" xml:space="preserve"><value> HERE </value></data>
   <data name="NoVenues" xml:space="preserve"><value>No venue config. Use /vmapper settings.</value></data>
   <data name="NoEvents" xml:space="preserve"><value>No upcoming events</value></data>
@@ -89,13 +88,10 @@
   <data name="LangEnglish" xml:space="preserve"><value>English</value></data>
   <data name="LangGerman" xml:space="preserve"><value>German</value></data>
   <data name="About" xml:space="preserve"><value>About</value></data>
-  <data name="GithubConfig" xml:space="preserve"><value>Config Sync</value></data>
-  <data name="AutoPull" xml:space="preserve"><value>Auto-Pull on Startup</value></data>
-  <data name="LastUpdated" xml:space="preserve"><value>Last Updated:</value></data>
-  <data name="PullNow" xml:space="preserve"><value>PULL NOW</value></data>
-  <data name="ResetCache" xml:space="preserve"><value>RESET CACHE</value></data>
+  <data name="PullNow" xml:space="preserve"><value>Update now</value></data>
+  <data name="ResetCache" xml:space="preserve"><value>Clear cache</value></data>
   <data name="Notifications" xml:space="preserve"><value>Notifications</value></data>
-  <data name="TestNotification" xml:space="preserve"><value>TEST NOTIFICATION</value></data>
+  <data name="TestNotification" xml:space="preserve"><value>Test notifications</value></data>
   <data name="TestNotificationText" xml:space="preserve"><value>This is a test notification!</value></data>
   <data name="NotificationHistory" xml:space="preserve"><value>Notify History</value></data>
   <data name="NotificationHistoryDesc" xml:space="preserve"><value>Recent notifications from this session</value></data>
@@ -106,23 +102,7 @@
   <data name="ToastPositionChanged" xml:space="preserve"><value>Notifications now appear here</value></data>
   <data name="ToastMustBeInVenue" xml:space="preserve"><value>You need to be inside a venue for this</value></data>
   <data name="ToastQuickPopupDisabled" xml:space="preserve"><value>Enable "Quick popup on enter" in Settings first</value></data>
-  <data name="WhatsNewTitle" xml:space="preserve"><value>What's New in</value></data>
-  <data name="WhatsNewQuickPopup" xml:space="preserve"><value>Shows status when you enter a venue - or trigger it manually with "/vmapper quick"</value></data>
-  <data name="WhatsNewHistory" xml:space="preserve"><value>Notification History - click the bell icon up top</value></data>
-  <data name="WhatsNewWarningKind" xml:space="preserve"><value>Warning notifications for real failures</value></data>
-  <data name="WhatsNewWarningKindDesc" xml:space="preserve"><value>Failed teleports, config pulls and more now stand out in amber instead of looking like a normal status update</value></data>
-  <data name="WhatsNewQuickCommand" xml:space="preserve"><value>"/vmapper quick" opens the quick popup manually</value></data>
-  <data name="WhatsNewNewSettings" xml:space="preserve"><value>New settings</value></data>
-  <data name="WhatsNewAllFeatures" xml:space="preserve"><value>All features (recap)</value></data>
-  <data name="WhatsNewFeatures" xml:space="preserve"><value>New features</value></data>
-  <data name="WhatsNewVenueDetails" xml:space="preserve"><value>Venue Details window</value></data>
-  <data name="WhatsNewVenueDetailsDesc" xml:space="preserve"><value>Full info, Visit/Copy Address and Next Event in one place - click a venue's name or the info icon</value></data>
-  <data name="WhatsNewSmartNotify" xml:space="preserve"><value>Smarter notifications</value></data>
-  <data name="WhatsNewSmartNotifyDesc" xml:space="preserve"><value>New History log (bell icon up top) and a distinct Warning style for real failures</value></data>
-  <data name="WhatsNewCrownFilter" xml:space="preserve"><value>Crown filter</value></data>
-  <data name="WhatsNewCrownFilterDesc" xml:space="preserve"><value>Directory can show only venues you're a registered owner of</value></data>
   <data name="WhatsNewGotIt" xml:space="preserve"><value>Got it</value></data>
-  <data name="WhatsNewSeeMore" xml:space="preserve"><value>There's more to discover inside the plugin itself - browse Settings, or revisit the full changelog anytime from the document icon in the title bar.</value></data>
   <data name="NotificationPosition" xml:space="preserve"><value>Position:</value></data>
   <data name="PosTopRight" xml:space="preserve"><value>Top Right</value></data>
   <data name="PosTopLeft" xml:space="preserve"><value>Top Left</value></data>
@@ -133,26 +113,25 @@
   <data name="EventReminderMinutesLabel" xml:space="preserve"><value>Remind me (minutes before):</value></data>
   <data name="EnableNotifications" xml:space="preserve"><value>Notifications</value></data>
   <data name="MiscSettings" xml:space="preserve"><value>Misc</value></data>
-  <data name="ResetWindowPosition" xml:space="preserve"><value>RESET POSITION</value></data>
+  <data name="ResetWindowPosition" xml:space="preserve"><value>Reset window position</value></data>
   <data name="ResetWindowPositionTip" xml:space="preserve"><value>Reset the main window's position and size to default</value></data>
-  <data name="UnhideAllVenues" xml:space="preserve"><value>UNHIDE ALL</value></data>
+  <data name="UnhideAllVenues" xml:space="preserve"><value>Show all</value></data>
   <data name="UnhideAllVenuesTip" xml:space="preserve"><value>Unhide {0} hidden venues</value></data>
   <data name="ToastWindowReset" xml:space="preserve"><value>Window position reset</value></data>
   <data name="ToastAllVenuesUnhidden" xml:space="preserve"><value>{0} venues unhidden</value></data>
   <data name="MaxVisibleToasts" xml:space="preserve"><value>Max visible at once:</value></data>
   <data name="ToastDurationLabel" xml:space="preserve"><value>Popup duration:</value></data>
   <data name="SuppressInCombat" xml:space="preserve"><value>Mute during combat/duty</value></data>
-  <data name="DefaultTabLabel" xml:space="preserve"><value>Default tab:</value></data>
+  <data name="DefaultTabLabel" xml:space="preserve"><value>Start tab</value></data>
   <data name="DefaultTabRemember" xml:space="preserve"><value>Remember last used</value></data>
-  <data name="BoostOpenVenues" xml:space="preserve"><value>Boost open</value></data>
-  <data name="BoostOpenVenuesTip" xml:space="preserve"><value>Within your favorites and within the rest of the list, venues that are open right now move to the top</value></data>
+  <data name="BoostOpenVenues" xml:space="preserve"><value>Group by status</value></data>
+  <data name="BoostOpenVenuesTip" xml:space="preserve"><value>The Directory groups venues into Open now, Opening soon and the rest. Off shows one simple list</value></data>
   <data name="AutoOpenOnVenueEnter" xml:space="preserve"><value>Auto-open</value></data>
   <data name="AutoOpenOnVenueEnterTip" xml:space="preserve"><value>Automatically open the plugin window when you enter a tracked venue</value></data>
   <data name="AutoOpenOwnVenue" xml:space="preserve"><value>Own venue</value></data>
   <data name="AutoOpenOwnVenueTip" xml:space="preserve"><value>Turn this off to stop the window from auto-opening specifically when you enter your own venue (other venues are unaffected)</value></data>
   <data name="ShowQuickPopupOnEnter" xml:space="preserve"><value>Quick popup</value></data>
   <data name="ShowQuickPopupOnEnterTip" xml:space="preserve"><value>Shows a small popup with the venue's status, quick 3D marker and accessibility toggles, and teleport tools whenever you enter a venue</value></data>
-  <data name="QuickPopupTitle" xml:space="preserve"><value>Quick Info</value></data>
   <data name="QuickSettings" xml:space="preserve"><value>Quick Settings</value></data>
   <data name="AccessibilitySettings" xml:space="preserve"><value>Accessibility</value></data>
   <data name="MarkerSizeLabel" xml:space="preserve"><value>Marker size</value></data>
@@ -171,6 +150,11 @@
   <data name="ToastLifestreamMissing" xml:space="preserve"><value>Lifestream is not installed - teleport unavailable</value></data>
   <data name="ToastTeleportingTo" xml:space="preserve"><value>Teleporting to {0}</value></data>
   <data name="ToastTeleportFailed" xml:space="preserve"><value>Teleport failed</value></data>
+  <data name="ToastTeleportCancelled" xml:space="preserve"><value>Teleport cancelled</value></data>
+  <data name="ToastHouseEnterFailed" xml:space="preserve"><value>Could not enter the house, Lifestream stopped</value></data>
+  <data name="ToastShowOnMapFailed" xml:space="preserve"><value>Could not show this venue on the map</value></data>
+  <data name="ShowOnMap" xml:space="preserve"><value>Show on map</value></data>
+  <data name="TeleportCancelTip" xml:space="preserve"><value>Click to cancel the teleport</value></data>
   <data name="ToastFavoriteAdded" xml:space="preserve"><value>Added {0} to favorites</value></data>
   <data name="ToastFavoriteRemoved" xml:space="preserve"><value>Removed {0} from favorites</value></data>
   <data name="ToastAddressCopied" xml:space="preserve"><value>Address copied</value></data>
@@ -194,8 +178,6 @@
   <data name="CurrentFloor" xml:space="preserve"><value>Current Floor:</value></data>
 
   <!-- Markers -->
-  <data name="MarkersOn" xml:space="preserve"><value>Markers enabled</value></data>
-  <data name="MarkersOff" xml:space="preserve"><value>Markers disabled</value></data>
   <data name="Markers3D" xml:space="preserve"><value>3D World Markers</value></data>
   <data name="HideMarkersInOwnVenue" xml:space="preserve"><value>Hide 3D markers in my venue</value></data>
   <data name="HideMarkersInOwnVenueTip" xml:space="preserve"><value>Hides 3D markers specifically while you're inside your own venue, without affecting any other venue</value></data>
@@ -204,7 +186,6 @@
   <!-- Map -->
   <data name="MapUnavailable" xml:space="preserve"><value>MAP UNAVAILABLE</value></data>
   <data name="MapNotInVenue" xml:space="preserve"><value>Visit the housing venue to view the map and access services.</value></data>
-  <data name="ScrollZoom" xml:space="preserve"><value>scroll to zoom</value></data>
   <data name="TeleportVia" xml:space="preserve"><value>Teleport via Lifestream</value></data>
   <data name="ViewVenueDetails" xml:space="preserve"><value>View venue details</value></data>
   <data name="YouAreOwner" xml:space="preserve"><value>You're a registered owner of this venue</value></data>
@@ -216,7 +197,6 @@
 
   <!-- Links -->
   <data name="Links" xml:space="preserve"><value>LINKS</value></data>
-  <data name="NoLinks" xml:space="preserve"><value>No links configured</value></data>
   <data name="SubmitVenue" xml:space="preserve"><value>Submit your Venue</value></data>
 
   <!-- Events -->
@@ -225,11 +205,9 @@
   <data name="Loading" xml:space="preserve"><value>loading...</value></data>
 
   <!-- About -->
-  <data name="AutoPullCfg" xml:space="preserve"><value>Auto-Pull Config on Startup</value></data>
-  <data name="JoinSupport" xml:space="preserve"><value>JOIN &amp; SUPPORT</value></data>
+  <data name="AutoPullCfg" xml:space="preserve"><value>Update venue list on start</value></data>
   <data name="GotIdeas" xml:space="preserve"><value>Got ideas? Ping me on Discord!</value></data>
   <data name="CurRelease" xml:space="preserve"><value>Current Release</value></data>
-  <data name="OlderVer" xml:space="preserve"><value>View Older Versions</value></data>
   <data name="WantVenue" xml:space="preserve"><value>Want your venue in VenueMapper?</value></data>
   <data name="PluginDesc" xml:space="preserve"><value>Housing venue management &amp; discovery plugin for FFXIV.</value></data>
 
@@ -263,7 +241,6 @@
   <data name="OptDiscordDesc" xml:space="preserve"><value>Copies your venue data as JSON. Paste it in a Discord DM to sunnysofficial.</value></data>
   <data name="SendUpdate" xml:space="preserve"><value>SEND YOUR UPDATE</value></data>
   <data name="SendUpdateDesc" xml:space="preserve"><value>You're already verified, so just copy your updated venue data as JSON and paste it in a Discord DM to sunnysofficial.</value></data>
-  <data name="CopyJsonDm" xml:space="preserve"><value>Copy JSON &amp; Open Discord DM</value></data>
   <data name="Preview" xml:space="preserve"><value>PREVIEW</value></data>
   <data name="FillRequired" xml:space="preserve"><value>Fill required fields in Venue Info tab first.</value></data>
   <data name="Floor" xml:space="preserve"><value>Floor</value></data>
@@ -295,8 +272,6 @@
   <data name="ServiceNameHint" xml:space="preserve"><value>e.g. Main Bar</value></data>
   <data name="CopyJson" xml:space="preserve"><value>Copy JSON</value></data>
   <data name="FormOpened" xml:space="preserve"><value>Form opened</value></data>
-  <data name="CurrentTag" xml:space="preserve"><value>  current</value></data>
-  <data name="NoChangelog" xml:space="preserve"><value>No changelog.</value></data>
   <data name="AllServers" xml:space="preserve"><value>All Servers</value></data>
 
   <!-- Floor names -->
@@ -324,8 +299,8 @@
   <data name="StatusOpensInDays"  xml:space="preserve"><value>Opens in {0}d</value></data>
 
   <!-- Location plurals -->
-  <data name="LocationOne" xml:space="preserve"><value>  —  {0} location</value></data>
-  <data name="LocationMany" xml:space="preserve"><value>  —  {0} locations</value></data>
+  <data name="LocationOne" xml:space="preserve"><value> · {0} location</value></data>
+  <data name="LocationMany" xml:space="preserve"><value> · {0} locations</value></data>
 
   <!-- Easter Eggs -->
   <data name="EasterEggs" xml:space="preserve"><value>Easter Eggs</value></data>
@@ -335,10 +310,6 @@
   <data name="EggRgbHint" xml:space="preserve"><value>An old cheat code from console days...</value></data>
   <data name="EggHackerName" xml:space="preserve"><value>Hacker Mode</value></data>
   <data name="EggHackerHint" xml:space="preserve"><value>Some codes open more than one door...</value></data>
-  <data name="EggSunnyName" xml:space="preserve"><value>Sunny Detection</value></data>
-  <data name="EggSunnyHint" xml:space="preserve"><value>Some places recognize their visitors...</value></data>
-  <data name="EggWobbleName" xml:space="preserve"><value>Window Wobble</value></data>
-  <data name="EggWobbleHint" xml:space="preserve"><value>Not every start goes perfectly smoothly...</value></data>
   <data name="EggTitleName" xml:space="preserve"><value>Random Title</value></data>
   <data name="EggTitleHint" xml:space="preserve"><value>The name isn't always the same...</value></data>
 
@@ -383,4 +354,285 @@
   <data name="SetupBack" xml:space="preserve"><value>Back</value></data>
   <data name="SetupNext" xml:space="preserve"><value>Next</value></data>
   <data name="SetupDone" xml:space="preserve"><value>Got it!</value></data>
+  <data name="Festivals" xml:space="preserve"><value>Festivals</value></data>
+  <data name="FestivalsHeader" xml:space="preserve"><value>FESTIVALS</value></data>
+  <data name="FestivalCount" xml:space="preserve"><value> · {0} planned</value></data>
+  <data name="NoFestivals" xml:space="preserve"><value>No festivals planned right now.</value></data>
+  <data name="SubmitFestival" xml:space="preserve"><value>Submit a festival</value></data>
+  <data name="FestivalLive" xml:space="preserve"><value>LIVE</value></data>
+  <data name="FestivalUntil" xml:space="preserve"><value>until {0}</value></data>
+  <data name="FestivalBy" xml:space="preserve"><value>by {0}</value></data>
+  <data name="WardLabel" xml:space="preserve"><value>Ward</value></data>
+  <data name="FloorGarden" xml:space="preserve"><value>GARDEN</value></data>
+  <data name="SvcStall" xml:space="preserve"><value>Stall</value></data>
+  <data name="ToastWelcomeToFestival" xml:space="preserve"><value>Welcome to {0}!</value></data>
+  <data name="ToastFestivalStartsLater" xml:space="preserve"><value>{0} starts at {1}</value></data>
+  <data name="ToastFestivalSoon" xml:space="preserve"><value>{0} starts in {1} min</value></data>
+  <data name="GardenNoMap" xml:space="preserve"><value>No map available for this plot</value></data>
+  <data name="FestivalFormTitle" xml:space="preserve"><value>Festival Submission</value></data>
+  <data name="FestivalFormDesc" xml:space="preserve"><value>Organizers can submit a festival here. Stand at the festival area to set the location, then check it with the preview before you send it.</value></data>
+  <data name="FestivalInfoTab" xml:space="preserve"><value>Info</value></data>
+  <data name="FestivalStallsTab" xml:space="preserve"><value>Stalls</value></data>
+  <data name="FestivalName" xml:space="preserve"><value>Festival name *</value></data>
+  <data name="FestivalOrganizer" xml:space="preserve"><value>Organizer *</value></data>
+  <data name="FestivalNsfw" xml:space="preserve"><value>NSFW festival</value></data>
+  <data name="FestivalSetCenter" xml:space="preserve"><value>Use my position</value></data>
+  <data name="FestivalCenterInHouse" xml:space="preserve"><value>Could not read this house's address, try again from the garden</value></data>
+  <data name="FestivalNoLocation" xml:space="preserve"><value>No location yet. Stand in the middle of the festival area and press Use my position, or stand in a house that takes part and press Add this house.</value></data>
+  <data name="FestivalRadius" xml:space="preserve"><value>Area radius</value></data>
+  <data name="FestivalAetheryte" xml:space="preserve"><value>Nearest aetheryte</value></data>
+  <data name="FestivalDate" xml:space="preserve"><value>Date (YYYY-MM-DD)</value></data>
+  <data name="FestivalTimeInvalid" xml:space="preserve"><value>Please enter a valid date and times.</value></data>
+  <data name="FestivalAddStall" xml:space="preserve"><value>+ Add stall or stage</value></data>
+  <data name="FestivalStallsHint" xml:space="preserve"><value>Stand at a stall and press 'Use my pos'.</value></data>
+  <data name="FestivalStallOutside" xml:space="preserve"><value>This stall is outside the festival area</value></data>
+  <data name="FestivalExportDesc" xml:space="preserve"><value>Copy the JSON and send it to sunnysofficial on Discord.</value></data>
+  <data name="FloorWard" xml:space="preserve"><value>WARD</value></data>
+  <data name="BannerUrl" xml:space="preserve"><value>Banner image (link)</value></data>
+  <data name="BannerHint" xml:space="preserve"><value>Direct image link (PNG or JPG), wide format works best. Discord links expire, use Imgur or a similar host. Without a banner the plugin shows the district art.</value></data>
+  <data name="ToastFavoriteOpened" xml:space="preserve"><value>{0} just opened!</value></data>
+  <data name="FavoriteOpenNotify" xml:space="preserve"><value>Notify when a favorite opens</value></data>
+  <data name="FavoriteOpenNotifyTip" xml:space="preserve"><value>Shows a notification when one of your favorite venues opens</value></data>
+  <data name="VenueSigns" xml:space="preserve"><value>Venue names above plots</value></data>
+  <data name="VenueSignsTip" xml:space="preserve"><value>Shows floating venue names above the houses in a housing ward</value></data>
+  <data name="UpdateNotes" xml:space="preserve"><value>Update Notes</value></data>
+  <data name="UpdateTagline" xml:space="preserve"><value>Festivals, gardens, new 3D markers and a fresh look</value></data>
+  <data name="ChangelogTab" xml:space="preserve"><value>Changelog</value></data>
+  <data name="CreditsTab" xml:space="preserve"><value>Credits</value></data>
+  <data name="LatestBadge" xml:space="preserve"><value>Latest</value></data>
+  <data name="CreditsDeveloper" xml:space="preserve"><value>Developer</value></data>
+  <data name="CreditsLibraries" xml:space="preserve"><value>Built with</value></data>
+  <data name="CreditsData" xml:space="preserve"><value>Venue and event data</value></data>
+  <data name="CreditsCommunity" xml:space="preserve"><value>Community</value></data>
+  <data name="CreditsCommunityText" xml:space="preserve"><value>Thanks to every venue owner who submitted their venue, and to everyone who tested and sent feedback.</value></data>
+  <data name="CreditsDalamud" xml:space="preserve"><value>Plugin framework</value></data>
+  <data name="CreditsPictomancy" xml:space="preserve"><value>3D markers</value></data>
+  <data name="CreditsLifestream" xml:space="preserve"><value>Teleports (IPC)</value></data>
+  <data name="CreditsClientStructs" xml:space="preserve"><value>Game memory structures</value></data>
+  <data name="CreditsLumina" xml:space="preserve"><value>Game data</value></data>
+  <data name="CreditsPartake" xml:space="preserve"><value>Events</value></data>
+  <data name="CreditsXivVenues" xml:space="preserve"><value>Schedules and banners</value></data>
+  <data name="Close" xml:space="preserve"><value>Close</value></data>
+  <data name="DiscordServer" xml:space="preserve"><value>Discord server</value></data>
+  <data name="SupportKofi" xml:space="preserve"><value>Support on Ko-fi</value></data>
+  <data name="DirNoMatch" xml:space="preserve"><value>No venues match these filters</value></data>
+  <data name="DirGroupOpen" xml:space="preserve"><value>Open now</value></data>
+  <data name="DirGroupSoon" xml:space="preserve"><value>Opening soon</value></data>
+  <data name="DirGroupOther" xml:space="preserve"><value>Other venues</value></data>
+  <data name="DirGroupAll" xml:space="preserve"><value>All venues</value></data>
+  <data name="DirShowMore" xml:space="preserve"><value>Show {0} more venues</value></data>
+  <data name="StatOpenNow" xml:space="preserve"><value>open now</value></data>
+  <data name="StatOpenToday" xml:space="preserve"><value>open today</value></data>
+  <data name="StatFestivalsLive" xml:space="preserve"><value>festivals live</value></data>
+  <data name="ChipOpenNow" xml:space="preserve"><value>Open now</value></data>
+  <data name="ChipFavorites" xml:space="preserve"><value>Favorites</value></data>
+  <data name="ChipOpenToday" xml:space="preserve"><value>Open today</value></data>
+  <data name="ChipMyDatacenter" xml:space="preserve"><value>My data center</value></data>
+  <data name="MarkerNames" xml:space="preserve"><value>Marker names</value></data>
+  <data name="MarkerNamesAlways" xml:space="preserve"><value>Always</value></data>
+  <data name="MarkerNamesNear" xml:space="preserve"><value>Only nearby</value></data>
+  <data name="MarkerNamesOff" xml:space="preserve"><value>Off</value></data>
+  <data name="MarkerThroughWalls" xml:space="preserve"><value>Show through walls</value></data>
+  <data name="MarkerThroughWallsTip" xml:space="preserve"><value>On: markers behind walls stay faintly visible. Off: they are hidden completely</value></data>
+  <data name="MarkerVenueColors" xml:space="preserve"><value>Venue colors</value></data>
+  <data name="MarkerVenueColorsTip" xml:space="preserve"><value>All markers of a venue use the venue's own color instead of one color per service type</value></data>
+  <data name="VenueSignsAll" xml:space="preserve"><value>All venues</value></data>
+  <data name="VenueSignsOpen" xml:space="preserve"><value>Open venues only</value></data>
+  <data name="VenueSignsFavorites" xml:space="preserve"><value>Favorites only</value></data>
+  <data name="VenueSignsOff" xml:space="preserve"><value>Off</value></data>
+  <data name="VenueSignRange" xml:space="preserve"><value>Range</value></data>
+  <data name="SignOpenUntil" xml:space="preserve"><value>open · until {0}</value></data>
+  <data name="SignOpensAt" xml:space="preserve"><value>opens {0}</value></data>
+  <data name="GameMapNames" xml:space="preserve"><value>Venue names on the game map</value></data>
+  <data name="GameMapOff" xml:space="preserve"><value>Off</value></data>
+  <data name="GameMapNative" xml:space="preserve"><value>Game markers (test)</value></data>
+  <data name="GameMapOverlay" xml:space="preserve"><value>Drawn over the map (test)</value></data>
+  <data name="GameMapTip" xml:space="preserve"><value>Game markers use the game's own map icons on the map and the minimap, but they can remove markers of other plugins while you are in a housing ward. Drawn over the map shows icon and name on the big map without touching the game's markers. Both shows the icons on the minimap and icon and name drawn over the big map.</value></data>
+  <data name="TagNew" xml:space="preserve"><value>New</value></data>
+  <data name="TagBetter" xml:space="preserve"><value>Better</value></data>
+  <data name="TagChanged" xml:space="preserve"><value>Changed</value></data>
+  <data name="TagFixed" xml:space="preserve"><value>Fixed</value></data>
+  <data name="TagRemoved" xml:space="preserve"><value>Removed</value></data>
+  <data name="HotfixBadge" xml:space="preserve"><value>+ hotfix {0}</value></data>
+  <data name="HotfixHeader" xml:space="preserve"><value>Hotfix {0} · {1}</value></data>
+  <data name="MoreChanges" xml:space="preserve"><value>More changes</value></data>
+  <data name="MarkersAndMap" xml:space="preserve"><value>Markers &amp; map</value></data>
+  <data name="Minimize" xml:space="preserve"><value>Minimize</value></data>
+  <data name="Restore" xml:space="preserve"><value>Restore</value></data>
+  <data name="SetGeneral" xml:space="preserve"><value>General</value></data>
+  <data name="SetGeneralSub" xml:space="preserve"><value>Language, start tab and window</value></data>
+  <data name="SetDirectorySub" xml:space="preserve"><value>Grouping, auto open and quick popup</value></data>
+  <data name="SetMarkersSub" xml:space="preserve"><value>3D markers, names above houses and the game map</value></data>
+  <data name="SetNotificationsSub" xml:space="preserve"><value>Position, duration and reminders</value></data>
+  <data name="SetAccessibilitySub" xml:space="preserve"><value>Marker size, pulse and colors</value></data>
+  <data name="SetData" xml:space="preserve"><value>Data &amp; sync</value></data>
+  <data name="SetDataSub" xml:space="preserve"><value>Venue list download and cache</value></data>
+  <data name="Reset" xml:space="preserve"><value>Reset</value></data>
+  <data name="HiddenVenues" xml:space="preserve"><value>Hidden venues</value></data>
+  <data name="NoHiddenVenues" xml:space="preserve"><value>You have not hidden any venues</value></data>
+  <data name="Markers3DDesc" xml:space="preserve"><value>Badges for bars, stages, DJ booths and more inside venues</value></data>
+  <data name="GameMapDesc" xml:space="preserve"><value>Test option: show venues on the game's own map</value></data>
+  <data name="NotificationsDesc" xml:space="preserve"><value>Small messages about teleports, venues and events</value></data>
+  <data name="Test" xml:space="preserve"><value>Test</value></data>
+  <data name="TestNotificationDesc" xml:space="preserve"><value>Shows one notification of every kind</value></data>
+  <data name="MarkerColor" xml:space="preserve"><value>Marker color</value></data>
+  <data name="AutoPullDesc" xml:space="preserve"><value>Downloads the newest venue list when the plugin starts and checks for changes every hour</value></data>
+  <data name="PullNowLabel" xml:space="preserve"><value>Update venue list</value></data>
+  <data name="PullNowDesc" xml:space="preserve"><value>Downloads the newest venues and festivals now</value></data>
+  <data name="ResetCacheLabel" xml:space="preserve"><value>Saved venue list</value></data>
+  <data name="ResetCacheDesc" xml:space="preserve"><value>Deletes the saved list and goes back to the list that came with the plugin</value></data>
+  <data name="NotifyBanners" xml:space="preserve"><value>Big announcements</value></data>
+  <data name="NotifyBannersDesc" xml:space="preserve"><value>Arriving at a venue or festival and favorites opening show as a banner in the middle of the screen</value></data>
+  <data name="GameMapBoth" xml:space="preserve"><value>Both (test)</value></data>
+  <data name="FestivalFlagSet" xml:space="preserve"><value>Map flag set at the festival</value></data>
+  <data name="Share" xml:space="preserve"><value>Share</value></data>
+  <data name="ShareChat" xml:space="preserve"><value>Copy for chat</value></data>
+  <data name="ShareDiscord" xml:space="preserve"><value>Copy for Discord</value></data>
+  <data name="PlacardNames" xml:space="preserve"><value>Venue names on house placards</value></data>
+  <data name="PlacardNamesTip" xml:space="preserve"><value>Shows the venue name and when it opens on the placard in front of the house, instead of "Placard"</value></data>
+  <data name="PartyFinderAds" xml:space="preserve"><value>Party Finder ads</value></data>
+  <data name="PartyFinderAdsTip" xml:space="preserve"><value>Marks venues that advertise in the Party Finder while you browse it. Only the listing text is read, nothing is sent</value></data>
+  <data name="PartyFinderOpenTip" xml:space="preserve"><value>Click to open the listing in the Party Finder</value></data>
+  <data name="PartyFinderGone" xml:space="preserve"><value>This listing is no longer in the Party Finder</value></data>
+  <data name="PartyFinderSeen" xml:space="preserve"><value>Advertised in the Party Finder {0} min ago</value></data>
+  <data name="ShareWebLink" xml:space="preserve"><value>Copy web link</value></data>
+  <data name="OwnerGuide" xml:space="preserve"><value>Owner guide</value></data>
+  <data name="OwnerGuideTip" xml:space="preserve"><value>Step by step on the website</value></data>
+  <data name="ShareFlag" xml:space="preserve"><value>Set map flag</value></data>
+  <data name="ToastShareCopied" xml:space="preserve"><value>Copied, ready to paste</value></data>
+  <data name="ToastFlagSet" xml:space="preserve"><value>Map flag set, post it in chat with &lt;flag&gt;</value></data>
+  <data name="Website" xml:space="preserve"><value>Website</value></data>
+  <data name="Passport" xml:space="preserve"><value>Venue passport</value></data>
+  <data name="PassportCollect" xml:space="preserve"><value>Collect stamps</value></data>
+  <data name="PassportCollectTip" xml:space="preserve"><value>Every venue you go inside while it is open gets a stamp. Stored only on your PC, per character.</value></data>
+  <data name="PassportProgress" xml:space="preserve"><value>{0} of {1} visited</value></data>
+  <data name="PassportEmpty" xml:space="preserve"><value>Go inside an open venue to get your first stamp.</value></data>
+  <data name="PassportNotLoggedIn" xml:space="preserve"><value>Log in to see your passport.</value></data>
+  <data name="PassportStampNew" xml:space="preserve"><value>New stamp: {0}</value></data>
+  <data name="PassportFirstVisit" xml:space="preserve"><value>First visit: {0}</value></data>
+  <data name="PassportLastVisit" xml:space="preserve"><value>Last visit: {0}</value></data>
+  <data name="PassportVisits" xml:space="preserve"><value>{0} visits</value></data>
+  <data name="PassportOneVisit" xml:space="preserve"><value>1 visit</value></data>
+  <data name="PassportNotVisited" xml:space="preserve"><value>Not visited yet</value></data>
+  <data name="PassportRemoved" xml:space="preserve"><value>No longer in the venue list</value></data>
+  <data name="PassportClickDetails" xml:space="preserve"><value>Click for details</value></data>
+  <data name="PassportBadgeEarned" xml:space="preserve"><value>Badge earned: {0}</value></data>
+  <data name="BadgeFirst" xml:space="preserve"><value>First stamp</value></data>
+  <data name="BadgeFirstDesc" xml:space="preserve"><value>Go inside your first venue</value></data>
+  <data name="BadgeFive" xml:space="preserve"><value>5 venues</value></data>
+  <data name="BadgeFiveDesc" xml:space="preserve"><value>Visit 5 different venues</value></data>
+  <data name="BadgeTen" xml:space="preserve"><value>10 venues</value></data>
+  <data name="BadgeTenDesc" xml:space="preserve"><value>Visit 10 different venues</value></data>
+  <data name="BadgeRegular" xml:space="preserve"><value>Regular</value></data>
+  <data name="BadgeRegularDesc" xml:space="preserve"><value>Visit the same venue on 10 different nights</value></data>
+  <data name="BadgeDistricts" xml:space="preserve"><value>All 5 districts</value></data>
+  <data name="BadgeDistrictsDesc" xml:space="preserve"><value>Visit venues in all five housing districts</value></data>
+  <data name="BadgeNight" xml:space="preserve"><value>Night owl</value></data>
+  <data name="BadgeNightDesc" xml:space="preserve"><value>Arrive at a venue between midnight and 4 AM</value></data>
+  <data name="BadgeTraveler" xml:space="preserve"><value>Traveler</value></data>
+  <data name="BadgeTravelerDesc" xml:space="preserve"><value>Visit venues on 2 data centers</value></data>
+  <data name="BadgeComplete" xml:space="preserve"><value>Full passport</value></data>
+  <data name="BadgeCompleteDesc" xml:space="preserve"><value>Visit every venue in the list</value></data>
+  <data name="ChatLinks" xml:space="preserve"><value>Clickable venues in chat</value></data>
+  <data name="ChatLinksTip" xml:space="preserve"><value>Venue names and addresses like Goblet W29 P35 become links, click one to open the venue. Plain words like Tempest only count when the message also mentions a ward, server or words like venue or open.</value></data>
+  <data name="ChatLinkChannels" xml:space="preserve"><value>Chat channels</value></data>
+  <data name="ChatChannelsAll" xml:space="preserve"><value>All channels</value></data>
+  <data name="ChatChannelsNone" xml:space="preserve"><value>None</value></data>
+  <data name="ChatChannelsCount" xml:space="preserve"><value>{0} channels</value></data>
+  <data name="ChannelSay" xml:space="preserve"><value>Say</value></data>
+  <data name="ChannelShout" xml:space="preserve"><value>Shout and yell</value></data>
+  <data name="ChannelTell" xml:space="preserve"><value>Tells</value></data>
+  <data name="ChannelParty" xml:space="preserve"><value>Party and alliance</value></data>
+  <data name="ChannelFc" xml:space="preserve"><value>Free Company</value></data>
+  <data name="ChannelLs" xml:space="preserve"><value>Linkshells</value></data>
+  <data name="ChannelCwls" xml:space="preserve"><value>Cross-world linkshells</value></data>
+  <data name="ChannelNovice" xml:space="preserve"><value>Novice Network</value></data>
+  <data name="GuideStarted" xml:space="preserve"><value>Showing the way to {0}</value></data>
+  <data name="GuideStartedDetail" xml:space="preserve"><value>Follow the glowing path on the floor</value></data>
+  <data name="GuideStopped" xml:space="preserve"><value>Guide stopped</value></data>
+  <data name="GuideArrived" xml:space="preserve"><value>You reached {0}</value></data>
+  <data name="GuideFollow" xml:space="preserve"><value>Follow the path to {0}</value></data>
+  <data name="GuideLost" xml:space="preserve"><value>Head back to the venue to continue</value></data>
+  <data name="GuideHeadOutside" xml:space="preserve"><value>Head outside</value></data>
+  <data name="GuideGoInside" xml:space="preserve"><value>Go inside the house</value></data>
+  <data name="GuideStairsDown" xml:space="preserve"><value>Stairs down ({0})</value></data>
+  <data name="GuideStairsUp" xml:space="preserve"><value>Stairs up ({0})</value></data>
+  <data name="GuideClickHint" xml:space="preserve"><value>Click to show me the way</value></data>
+  <data name="GuideClickStop" xml:space="preserve"><value>Click to stop the guide</value></data>
+  <data name="GuideStop" xml:space="preserve"><value>Stop</value></data>
+  <data name="PlotLabel" xml:space="preserve"><value>Plot {0}</value></data>
+  <data name="FestivalDays" xml:space="preserve"><value>{0} days</value></data>
+  <data name="FestivalDayOf" xml:space="preserve"><value>Day {0} of {1}</value></data>
+  <data name="FestivalUntilDate" xml:space="preserve"><value>until {0}</value></data>
+  <data name="FestivalHouses" xml:space="preserve"><value>{0} houses</value></data>
+  <data name="FestivalSchedule" xml:space="preserve"><value>Schedule</value></data>
+  <data name="FestivalHousesTitle" xml:space="preserve"><value>Houses</value></data>
+  <data name="FestivalStallsTitle" xml:space="preserve"><value>Stalls</value></data>
+  <data name="FestivalWhereWhenTab" xml:space="preserve"><value>Where &amp; when</value></data>
+  <data name="FestivalSendTab" xml:space="preserve"><value>Send</value></data>
+  <data name="FestivalWhere" xml:space="preserve"><value>Where</value></data>
+  <data name="FestivalWhen" xml:space="preserve"><value>When</value></data>
+  <data name="FestivalAddHouse" xml:space="preserve"><value>Add this house</value></data>
+  <data name="FestivalAddHouseTip" xml:space="preserve"><value>Adds the plot you are standing on, in the garden or inside</value></data>
+  <data name="FestivalAddHouseNeedsPlot" xml:space="preserve"><value>Stand in the garden or inside a house to add it</value></data>
+  <data name="FestivalNoHouses" xml:space="preserve"><value>No houses yet. Optional: add the houses that take part, for example one per stage.</value></data>
+  <data name="FestivalHouseLabelHint" xml:space="preserve"><value>What happens here? (optional)</value></data>
+  <data name="FestivalHouseOtherWard" xml:space="preserve"><value>This house is in a different ward than the festival</value></data>
+  <data name="FestivalHouseAlready" xml:space="preserve"><value>Plot {0} is already added</value></data>
+  <data name="FestivalHouseAdded" xml:space="preserve"><value>Plot {0} added</value></data>
+  <data name="FestivalDaysHint" xml:space="preserve"><value>Server time (UTC). Add a row for every day of the festival.</value></data>
+  <data name="FestivalStartShort" xml:space="preserve"><value>Start</value></data>
+  <data name="FestivalEndShort" xml:space="preserve"><value>End</value></data>
+  <data name="FestivalAddDay" xml:space="preserve"><value>+ Add day</value></data>
+  <data name="FestivalPreviewTitle" xml:space="preserve"><value>Preview in game</value></data>
+  <data name="FestivalPreviewDesc" xml:space="preserve"><value>Shows your festival only on your PC, in the Festivals tab and with 3D markers, so you can check everything before you send it.</value></data>
+  <data name="FestivalPreviewButton" xml:space="preserve"><value>Show preview</value></data>
+  <data name="FestivalPreviewUpdate" xml:space="preserve"><value>Update preview</value></data>
+  <data name="FestivalPreviewRemove" xml:space="preserve"><value>Remove preview</value></data>
+  <data name="FestivalPreviewBadge" xml:space="preserve"><value>Preview</value></data>
+  <data name="FestivalSendTitle" xml:space="preserve"><value>Send</value></data>
+  <data name="ToastFestivalPreview" xml:space="preserve"><value>Preview is active on your PC</value></data>
+  <data name="ToastFestivalPreviewDetail" xml:space="preserve"><value>Open the Festivals tab or go to the area</value></data>
+  <data name="ToastFestivalPreviewFailed" xml:space="preserve"><value>Could not save the preview</value></data>
+  <data name="ToastFestivalPreviewRemoved" xml:space="preserve"><value>Preview removed</value></data>
+  <data name="PassportClosed" xml:space="preserve"><value>Closed for now, doesn't count</value></data>
+  <data name="PassportBadgeEarnedShort" xml:space="preserve"><value>Earned</value></data>
+  <data name="PassportBadgeLocked" xml:space="preserve"><value>Not yet</value></data>
+  <data name="HouseRulesTitle" xml:space="preserve"><value>{0} · House rules</value></data>
+  <data name="HouseRulesSub" xml:space="preserve"><value>Please keep these in mind</value></data>
+  <data name="HouseRulesGotIt" xml:space="preserve"><value>Got it</value></data>
+  <data name="HouseRulesMute" xml:space="preserve"><value>Don't show for this venue</value></data>
+  <data name="HouseRulesPill" xml:space="preserve"><value>Rules</value></data>
+  <data name="HouseRulesShow" xml:space="preserve"><value>Show the house rules</value></data>
+  <data name="HouseRulesSetting" xml:space="preserve"><value>House rules on arrival</value></data>
+  <data name="HouseRulesSettingTip" xml:space="preserve"><value>Shows a venue's house rules when you walk in. They are always in the map tab too.</value></data>
+  <data name="HouseRulesEvery" xml:space="preserve"><value>Every visit</value></data>
+  <data name="HouseRulesFirst" xml:space="preserve"><value>First visit</value></data>
+  <data name="HouseRulesOff" xml:space="preserve"><value>Off</value></data>
+  <data name="HouseRulesMutedTitle" xml:space="preserve"><value>Hidden house rules</value></data>
+  <data name="HouseRulesMutedDesc" xml:space="preserve"><value>{0} venues don't show their rules on arrival</value></data>
+  <data name="RulesTab" xml:space="preserve"><value>House rules</value></data>
+  <data name="RulesFormHint" xml:space="preserve"><value>Up to 6 short rules. Guests see them when they arrive, and in the map tab.</value></data>
+  <data name="RulesAdd" xml:space="preserve"><value>+ Add rule</value></data>
+  <data name="RuleTextHint" xml:space="preserve"><value>Be kind to staff and guests</value></data>
+  <data name="RulesGerman" xml:space="preserve"><value>German version (optional)</value></data>
+  <data name="RulesGermanHint" xml:space="preserve"><value>Shown when the plugin is set to German. Leave empty to use the English rules.</value></data>
+  <data name="RuleIconTip" xml:space="preserve"><value>Click for the next icon, right-click for the previous one</value></data>
+  <data name="GuideAnimLabel" xml:space="preserve"><value>Guide animation</value></data>
+  <data name="GuideAnimArrow" xml:space="preserve"><value>Arrow</value></data>
+  <data name="GuideAnimSparkles" xml:space="preserve"><value>Sparkles</value></data>
+  <data name="GuideAnimPulse" xml:space="preserve"><value>Pulse</value></data>
+  <data name="GuideAnimDots" xml:space="preserve"><value>Dots</value></data>
+  <data name="VenueSignRangeTip" xml:space="preserve"><value>Whole ward shows every venue in the part of the ward you are in (main area or subdivision)</value></data>
+  <data name="WholeWard" xml:space="preserve"><value>Whole ward</value></data>
+  <data name="GuideColorLabel" xml:space="preserve"><value>Guide color</value></data>
+  <data name="GuideColorTip" xml:space="preserve"><value>Venue colors switch smoothly between all colors of the venue</value></data>
+  <data name="GuideColorSingle" xml:space="preserve"><value>One color</value></data>
+  <data name="GuideColorVenue" xml:space="preserve"><value>Venue colors</value></data>
+  <data name="GuideColorPick" xml:space="preserve"><value>Color</value></data>
+  <data name="MarkersBehindUi" xml:space="preserve"><value>Behind game windows</value></data>
+  <data name="MarkersBehindUiTip" xml:space="preserve"><value>Markers are drawn as part of the game's interface, so menus and dialogs like Yes/No cover them</value></data>
+  <data name="FestivalOrganizerHint" xml:space="preserve"><value>Username or main host venue</value></data>
+  <data name="CreditsArtwork" xml:space="preserve"><value>Artwork</value></data>
+  <data name="CreditsLogo" xml:space="preserve"><value>Plugin logo</value></data>
 </root>

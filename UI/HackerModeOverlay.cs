@@ -24,8 +24,10 @@ public static class HackerModeOverlay
         "> access granted: root@venuemapper",
     ];
 
-    public static void Draw(ref double hackerModeStart, ref double hackerTitleLoopStart, string windowName)
+    public static void Draw(ref double hackerModeStart, ref double hackerTitleLoopStart, string windowName, float titleBarHeight = 0f,
+        float frameCut = 0f, float titleInsetX = 8f, float titleTop = 0f)
     {
+        var titleH = titleBarHeight > 0f ? titleBarHeight : ImGui.GetFrameHeight();
         if (UIConstants.OverrideMode != ColorOverrideMode.Hacker)
         {
             hackerModeStart = -1;
@@ -46,15 +48,15 @@ public static class HackerModeOverlay
         {
             var elapsed = ImGui.GetTime() - hackerModeStart;
 
-            dl.AddRectFilled(winMin, winMax, ImGui.ColorConvertFloat4ToU32(new Vector4(0f, 0.02f, 0f, 0.9f)));
-            DrawMatrixRain(dl, winMin, winMax, green, 0.16f);
-            DrawHackerTitle(dl, winMin, winSz.X, green, ref hackerTitleLoopStart, windowName);
+            FillFrame(dl, winMin, winMax, frameCut, ImGui.ColorConvertFloat4ToU32(new Vector4(0f, 0.02f, 0f, 0.9f)));
+            DrawMatrixRain(dl, winMin + new Vector2(frameCut * 0.5f, 2f), winMax - new Vector2(frameCut * 0.5f, 2f), green, 0.16f);
+            DrawHackerTitle(dl, winMin, winSz.X, green, ref hackerTitleLoopStart, windowName, titleH, titleInsetX, titleTop);
 
             var glitchOffset = Vector2.Zero;
             if (Rng.NextDouble() < 0.04)
                 glitchOffset = new Vector2(Rng.Next(-3, 4), 0);
 
-            var lineY = winMin.Y + ImGui.GetFrameHeight() + 10 + glitchOffset.Y;
+            var lineY = winMin.Y + titleTop + titleH + 10 + glitchOffset.Y;
             const double charsPerSecond = 70.0;
             var budget = elapsed * charsPerSecond;
 
@@ -74,17 +76,37 @@ public static class HackerModeOverlay
         }
         else
         {
-            DrawMatrixRain(dl, winMin, winMax, green, 0.18f);
-            DrawHackerTitle(dl, winMin, winSz.X, green, ref hackerTitleLoopStart, windowName);
+            DrawMatrixRain(dl, winMin + new Vector2(frameCut * 0.5f, 2f), winMax - new Vector2(frameCut * 0.5f, 2f), green, 0.18f);
+            DrawHackerTitle(dl, winMin, winSz.X, green, ref hackerTitleLoopStart, windowName, titleH, titleInsetX, titleTop);
             const float scanSpacing = 4f;
             var scanCol = ImGui.ColorConvertFloat4ToU32(UIConstants.WithAlpha(green, 0.035f));
             for (var y = winMin.Y; y < winMax.Y; y += scanSpacing)
                 dl.AddLine(new Vector2(winMin.X, y), new Vector2(winMax.X, y), scanCol, 1f);
 
-            dl.AddRect(winMin, winMax, ImGui.ColorConvertFloat4ToU32(UIConstants.WithAlpha(green, 0.5f)), 0f, ImDrawFlags.None, 1.5f);
+            var border = ImGui.ColorConvertFloat4ToU32(UIConstants.WithAlpha(green, 0.5f));
+            if (frameCut > 0f)
+            {
+                UIConstants.Chamfer(dl, winMin + new Vector2(0.75f), winMax - new Vector2(0.75f), frameCut);
+                dl.PathStroke(border, ImDrawFlags.Closed, 1.5f);
+            }
+            else
+            {
+                dl.AddRect(winMin, winMax, border, 0f, ImDrawFlags.None, 1.5f);
+            }
         }
 
         dl.PopClipRect();
+    }
+
+    private static void FillFrame(ImDrawListPtr dl, Vector2 min, Vector2 max, float cut, uint color)
+    {
+        if (cut <= 0f)
+        {
+            dl.AddRectFilled(min, max, color);
+            return;
+        }
+        UIConstants.Chamfer(dl, min, max, cut);
+        dl.PathFillConvex(color);
     }
 
     internal static void DrawMatrixRain(ImDrawListPtr dl, Vector2 winMin, Vector2 winMax, Vector4 green, float baseAlpha, int colCount = 20)
@@ -110,9 +132,9 @@ public static class HackerModeOverlay
         }
     }
 
-    private static void DrawHackerTitle(ImDrawListPtr dl, Vector2 winMin, float winWidth, Vector4 green, ref double hackerTitleLoopStart, string windowName)
+    private static void DrawHackerTitle(ImDrawListPtr dl, Vector2 winMin, float winWidth, Vector4 green, ref double hackerTitleLoopStart, string windowName,
+        float titleBarHeight, float insetX, float top)
     {
-        var titleBarHeight = ImGui.GetFrameHeight();
         var displayTitle = windowName.Split("##")[0];
 
         if (hackerTitleLoopStart < 0) hackerTitleLoopStart = ImGui.GetTime();
@@ -123,10 +145,11 @@ public static class HackerModeOverlay
         var take = Math.Clamp((int)(typeT * displayTitle.Length), 0, displayTitle.Length);
         var shown = displayTitle[..take];
 
-        dl.AddRectFilled(winMin, new Vector2(winMin.X + winWidth, winMin.Y + titleBarHeight),
-            ImGui.ColorConvertFloat4ToU32(UIConstants.WithAlpha(UIConstants.Primary, 0.25f)));
+        var bandMin = new Vector2(winMin.X + MathF.Max(0f, insetX - 6f), winMin.Y + top);
+        dl.AddRectFilled(bandMin, new Vector2(winMin.X + winWidth - 2f, bandMin.Y + titleBarHeight),
+            ImGui.ColorConvertFloat4ToU32(UIConstants.WithAlpha(UIConstants.Accent, 0.18f)));
 
-        var textPos = new Vector2(winMin.X + 8, winMin.Y + (titleBarHeight - ImGui.GetTextLineHeight()) * 0.5f);
+        var textPos = new Vector2(winMin.X + insetX, bandMin.Y + (titleBarHeight - ImGui.GetTextLineHeight()) * 0.5f);
         dl.AddText(textPos, ImGui.ColorConvertFloat4ToU32(green), shown);
         if (take < displayTitle.Length && (int)(phase * 3) % 2 == 0)
             dl.AddText(new Vector2(textPos.X + ImGui.CalcTextSize(shown).X, textPos.Y),

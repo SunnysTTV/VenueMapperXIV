@@ -26,9 +26,6 @@ public class VenueEvent
     [JsonProperty("description")]
     public string Description { get; set; } = string.Empty;
 
-    [JsonProperty("eventType")]
-    public string EventType { get; set; } = string.Empty;
-
     [JsonProperty("host")]
     public string Host { get; set; } = string.Empty;
 

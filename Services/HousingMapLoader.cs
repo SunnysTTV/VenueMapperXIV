@@ -162,12 +162,6 @@ public class HousingMapLoader : IDisposable
                 var bg = row.Value.Bg.ToString();
                 log.Information($"[MapLoader] Empty Map.Id - trying Bg-based lookup. Bg='{bg}'");
 
-                if (map.RowId > 0)
-                {
-                    var mapRowPath = $"ui/map/{map.RowId:D4}/{map.RowId:D4}_00_m.tex";
-                    log.Information($"[MapLoader] Trying RowId-based path: {mapRowPath}");
-                }
-
                 if (!string.IsNullOrEmpty(bg))
                 {
                     var parts = bg.Split('/');
@@ -208,7 +202,7 @@ public class HousingMapLoader : IDisposable
 
     public static float WorldToUV(float world, short offset, ushort sizeFactor)
     {
-        var pixel = world * (sizeFactor / 100f) + 1024f + offset;
+        var pixel = (world + offset) * (sizeFactor / 100f) + 1024f;
         return pixel / 2048f;
     }
 

@@ -2,6 +2,7 @@ using System;
 using System.Linq;
 using System.Numerics;
 using Dalamud.Interface;
+using Dalamud.Interface.Utility.Raii;
 using Dalamud.Interface.Windowing;
 using Dalamud.Bindings.ImGui;
 using VenueMapper.Models;
@@ -259,15 +260,16 @@ public class OwnerVerifyWindow : Window, IDisposable
         var iconSize = 26f;
         var scale = iconSize / iconFont.FontSize;
 
-        ImGui.PushFont(iconFont);
         Vector2 glyphMin, glyphMax;
-        unsafe
+        using (ImRaii.PushFont(iconFont))
         {
-            var glyph = iconFont.FindGlyph(iconStr[0]);
-            glyphMin = new Vector2(glyph->X0, glyph->Y0) * scale;
-            glyphMax = new Vector2(glyph->X1, glyph->Y1) * scale;
+            unsafe
+            {
+                var glyph = iconFont.FindGlyph(iconStr[0]);
+                glyphMin = new Vector2(glyph->X0, glyph->Y0) * scale;
+                glyphMax = new Vector2(glyph->X1, glyph->Y1) * scale;
+            }
         }
-        ImGui.PopFont();
 
         var glyphInkCenter = (glyphMin + glyphMax) / 2f;
         var glyphPos = center - glyphInkCenter;
