@@ -133,6 +133,50 @@
       ],
       "ownerIdHashes": [
         "01769c659a164a227675c9cc10df98d934dd555ce7c99f83ec2b76d3e10f2021"
+      ],
+      "rules": [
+        {
+          "icon": "info",
+          "text": "No entry to the private NeonRooms without a booking. Please respect their privacy."
+        },
+        {
+          "icon": "no",
+          "text": "“Looking to Meld” & “Looking for Party” tags are reserved for staff!"
+        },
+        {
+          "icon": "shield",
+          "text": "Leave weapons and minions at the door. Some events allow weapons, see the event info."
+        },
+        {
+          "icon": "shirt",
+          "text": "Outfits and animations inside the club must stay SFW."
+        },
+        {
+          "icon": "camera",
+          "text": "Our photographers may take pictures of you and post them on our socials."
+        }
+      ],
+      "rulesDe": [
+        {
+          "icon": "info",
+          "text": "Die privaten NeonRooms nur mit Buchung betreten. Bitte respektiert die Privatsphäre."
+        },
+        {
+          "icon": "no",
+          "text": "“Looking to Meld” & “Looking for Party” Tags sind nur für Staff."
+        },
+        {
+          "icon": "shield",
+          "text": "Waffen und Minions bleiben an der Tür. Manche Events erlauben Waffen, siehe Eventinfo."
+        },
+        {
+          "icon": "shirt",
+          "text": "Outfits und Animationen im Club bleiben SFW."
+        },
+        {
+          "icon": "camera",
+          "text": "Unsere Fotografen dürfen Bilder von dir machen und auf unseren Socials posten."
+        }
       ]
     },
     {
