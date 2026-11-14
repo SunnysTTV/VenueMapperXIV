@@ -1497,6 +1497,121 @@
         "6ef87dab3246d24cb70efae5dd999a9b295ec098c93919310c343fdb77c7589c"
       ],
       "description": "We are not just a venue but a community, a safe place to come and relax"
+    },
+    {
+      "venueId": "electropegym",
+      "name": "Electrope Gym LGBTQ+",
+      "address": "Light - Phoenix - Empyreum - Ward 13 - Plot 7",
+      "datacenter": "Light",
+      "server": "Phoenix",
+      "houseSize": "M",
+      "nsfw": true,
+      "ward": 13,
+      "plot": 7,
+      "teamId": 1580,
+      "availableFloors": [
+        "ground",
+        "cellar"
+      ],
+      "colors": {
+        "primary": "#8f0a8f",
+        "accent": "#ea66ff",
+        "secondary": "#0162cc"
+      },
+      "links": {
+        "discord": "https://discord.gg/yPHqCNkeY",
+        "partake": "https://www.partake.gg/teams/1580",
+        "ffxivvenues": "https://ffxivvenues.com/venue/C0XlmrBXsk3W",
+        "website": "https://electropeffxiv.carrd.co/"
+      },
+      "floors": [
+        {
+          "floor": "ground",
+          "yMin": -3.5,
+          "yMax": 6.5,
+          "mapId": 0,
+          "services": [
+            {
+              "type": "entrance",
+              "label": "Entrance",
+              "icon": "",
+              "x": 0.5,
+              "y": 6.2,
+              "z": 0,
+              "description": ""
+            }
+          ]
+        },
+        {
+          "floor": "cellar",
+          "yMin": -10,
+          "yMax": -3.5,
+          "mapId": 0,
+          "services": [
+            {
+              "type": "bar",
+              "label": "Bar",
+              "icon": "",
+              "x": 9.6,
+              "y": -1.4,
+              "z": -6.9,
+              "description": ""
+            },
+            {
+              "type": "dj_booth",
+              "label": "DJ Deck",
+              "icon": "",
+              "x": 0.4,
+              "y": 5.8,
+              "z": -5.8,
+              "description": ""
+            }
+          ]
+        }
+      ],
+      "ownerIdHashes": [
+        "8e968c66e069a711df6c014757b5ddeb4d2be184b189dac26ff41199a88936be"
+      ],
+      "description": "Welcome to Electrope! Whether you’re here to train, compete, dance, or unwind, there’s something for everyone. From the training floor to the dance floor, Electrope is where champions recharge and the energy never fades."
+    },
+    {
+      "venueId": "lagarconniere",
+      "name": "La Garçonnière",
+      "address": "Light - Phoenix - Mist - Ward 11 - Plot 7",
+      "datacenter": "Light",
+      "server": "Phoenix",
+      "houseSize": "M",
+      "nsfw": true,
+      "ward": 11,
+      "plot": 7,
+      "teamId": 1731,
+      "availableFloors": [
+        "ground"
+      ],
+      "colors": {
+        "primary": "#00e8ff",
+        "accent": "#e059fa",
+        "secondary": "#9d4edd"
+      },
+      "links": {
+        "discord": "https://discord.gg/PvBba6NMWz",
+        "partake": "https://www.partake.gg/teams/1731",
+        "ffxivvenues": "https://ffxivvenues.com/venue/MLl6FSw0jz3G",
+        "website": ""
+      },
+      "floors": [
+        {
+          "floor": "ground",
+          "yMin": -3.5,
+          "yMax": 6.5,
+          "mapId": 0,
+          "services": []
+        }
+      ],
+      "ownerIdHashes": [
+        "16c7a126a5f2e19c04c8021153ac44cea44f6d620b4e96dfc2dd16b1d4997d23"
+      ],
+      "description": "Welcome to La Garçonnière, where unforgettable experiences, elegant surroundings, and a vibrant atmosphere come together. We’re delighted to have you here!"
     }
   ]
 }
