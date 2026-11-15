@@ -1621,13 +1621,13 @@
     {
       "venueId": "lagarconniere",
       "name": "La Garçonnière",
-      "address": "Light - Phoenix - Mist - Ward 11 - Plot 7",
+      "address": "Light - Phoenix - Mist - Ward 11 - Plot 6",
       "datacenter": "Light",
       "server": "Phoenix",
       "houseSize": "M",
       "nsfw": true,
       "ward": 11,
-      "plot": 7,
+      "plot": 6,
       "teamId": 1731,
       "availableFloors": [
         "ground"
