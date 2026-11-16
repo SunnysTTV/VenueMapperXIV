@@ -10,6 +10,7 @@ Find housing venues, see who is open right now, follow a line to the bar, the st
 and add your own venue or festival without leaving the game.
 
 [![Release](https://img.shields.io/github/v/release/SunnysTTV/VenueMapperXIV?style=for-the-badge&color=E2C27E&labelColor=1b1f24&label=Release)](https://github.com/SunnysTTV/VenueMapperXIV/releases)
+[![Testing](https://img.shields.io/badge/dynamic/json?url=https%3A%2F%2Fraw.githubusercontent.com%2FSunnysTTV%2Fsunnysrepo%2Fmain%2Fpluginmaster.json&query=%24%5B0%5D.TestingAssemblyVersion&prefix=v&style=for-the-badge&color=F2B35B&labelColor=1b1f24&label=Testing)](https://github.com/SunnysTTV/VenueMapperXIV/releases)
 [![Downloads](https://img.shields.io/github/downloads/SunnysTTV/VenueMapperXIV/total?style=for-the-badge&color=56D6EE&labelColor=1b1f24&label=Downloads)](https://github.com/SunnysTTV/VenueMapperXIV/releases)
 [![Dalamud API](https://img.shields.io/badge/Dalamud%20API-15-56D6EE?style=for-the-badge&labelColor=1b1f24)](https://github.com/goatcorp/Dalamud)
 [![License](https://img.shields.io/badge/License-MIT-B08D57?style=for-the-badge&labelColor=1b1f24)](#license)
