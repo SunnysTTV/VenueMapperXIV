@@ -1,0 +1,91 @@
+{
+  "version": 1,
+  "seasons": [
+    {
+      "id": "newyear",
+      "name": { "en": "New Year", "de": "Neujahr" },
+      "from": "12-31",
+      "to": "01-02",
+      "priority": 40,
+      "effect": "sparks",
+      "colors": ["#FFD27A", "#FF8A5C", "#7AA7FF"]
+    },
+    {
+      "id": "valentine",
+      "name": { "en": "Valentine's Day", "de": "Valentinstag" },
+      "from": "02-07",
+      "to": "02-15",
+      "priority": 20,
+      "effect": "hearts",
+      "colors": ["#FF6B9A", "#FFB3C8", "#E8456F"]
+    },
+    {
+      "id": "littleladies",
+      "name": { "en": "Little Ladies' Day", "de": "Mädchenfest" },
+      "from": "03-01",
+      "to": "03-04",
+      "priority": 20,
+      "effect": "petals",
+      "colors": ["#FFC4DD", "#FFE3EE", "#F59AC0"]
+    },
+    {
+      "id": "easter",
+      "name": { "en": "Easter", "de": "Ostern" },
+      "dates": {
+        "2027": { "from": "03-26", "to": "03-29" },
+        "2028": { "from": "04-14", "to": "04-17" },
+        "2029": { "from": "03-30", "to": "04-02" },
+        "2030": { "from": "04-19", "to": "04-22" }
+      },
+      "priority": 20,
+      "effect": "eggs",
+      "colors": ["#B8E3A1", "#FFE38A", "#B9C8FF", "#FFC2D9"]
+    },
+    {
+      "id": "pride",
+      "name": { "en": "Pride Month", "de": "Pride-Monat" },
+      "from": "06-01",
+      "to": "06-30",
+      "priority": 10,
+      "effect": "rainbow",
+      "colors": ["#E40303", "#FF8C00", "#FFED00", "#008026", "#004DFF", "#750787"]
+    },
+    {
+      "id": "birthday",
+      "name": { "en": "VenueMapper's birthday", "de": "VenueMapper-Geburtstag" },
+      "from": "06-21",
+      "to": "06-23",
+      "priority": 50,
+      "effect": "confetti",
+      "colors": ["#FFD27A", "#56D6EE", "#B49CFF", "#FF6B9A"],
+      "since": 2026
+    },
+    {
+      "id": "moonfire",
+      "name": { "en": "Summer Festival", "de": "Sommerfest" },
+      "from": "08-10",
+      "to": "08-24",
+      "priority": 20,
+      "effect": "fireflies",
+      "colors": ["#FFE9A3", "#FFC861", "#9BE7FF"]
+    },
+    {
+      "id": "halloween",
+      "name": { "en": "Halloween", "de": "Halloween" },
+      "from": "10-24",
+      "to": "11-01",
+      "priority": 30,
+      "effect": "bats",
+      "colors": ["#FF8A2B", "#8E5CFF", "#2B1A3A"]
+    },
+    {
+      "id": "winter",
+      "name": { "en": "Winter Holidays", "de": "Winterfest" },
+      "from": "12-01",
+      "to": "12-31",
+      "priority": 30,
+      "effect": "snow",
+      "colors": ["#FFFFFF", "#CFE8FF", "#E8F5FF"]
+    }
+  ]
+}
