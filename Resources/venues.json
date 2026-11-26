@@ -1669,7 +1669,8 @@
       "plot": 28,
       "teamId": 1660,
       "availableFloors": [
-        "ground"
+        "ground",
+        "garden"
       ],
       "colors": {
         "primary": "#FF69AC",
@@ -1733,6 +1734,29 @@
               "y": -5.2,
               "z": 4.2,
               "description": ""
+            },
+            {
+              "type": "event",
+              "label": "Backstage Cabines",
+              "icon": "",
+              "x": -11.31,
+              "y": -0.04,
+              "z": 2.93,
+              "description": ""
+            }
+          ]
+        },
+        {
+          "floor": "garden",
+          "services": [
+            {
+              "type": "vip",
+              "label": "Get In - Get Off",
+              "icon": "",
+              "x": -115.03,
+              "y": -106.56,
+              "z": 27.5,
+              "description": ""
             }
           ]
         }
@@ -1742,21 +1766,21 @@
       ],
       "rules": [
         {
-          "icon": "info",
+          "icon": "chat",
           "text": "Don't be a Dick."
         },
         {
-          "icon": "info",
+          "icon": "no",
           "text": "No Childcoded Characters!"
         }
       ],
       "rulesDe": [
         {
-          "icon": "info",
+          "icon": "chat",
           "text": "Sei kein Arsch."
         },
         {
-          "icon": "info",
+          "icon": "no",
           "text": "Keine kindlich wirkenden Charaktere!"
         }
       ],
