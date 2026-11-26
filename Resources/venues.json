@@ -1656,6 +1656,112 @@
         "16c7a126a5f2e19c04c8021153ac44cea44f6d620b4e96dfc2dd16b1d4997d23"
       ],
       "description": "Welcome to La Garçonnière, where unforgettable experiences, elegant surroundings, and a vibrant atmosphere come together. We’re delighted to have you here!"
+    },
+    {
+      "venueId": "virtue",
+      "name": "Virtue",
+      "address": "Light - Lich - Lavender Beds - Ward 20 - Plot 28",
+      "datacenter": "Light",
+      "server": "Lich",
+      "houseSize": "L",
+      "nsfw": true,
+      "ward": 20,
+      "plot": 28,
+      "teamId": 1660,
+      "availableFloors": [
+        "ground"
+      ],
+      "colors": {
+        "primary": "#FF69AC",
+        "accent": "#97EFFF",
+        "secondary": "#00C8FF"
+      },
+      "links": {
+        "discord": "https://discord.gg/xivvirtue",
+        "partake": "https://www.partake.gg/teams/1660",
+        "ffxivvenues": "https://ffxivvenues.com/venue/BzkljrtVsVgZ",
+        "website": "https://virtue-xiv.club/"
+      },
+      "floors": [
+        {
+          "floor": "ground",
+          "yMin": -3.5,
+          "yMax": 6.5,
+          "mapId": 0,
+          "services": [
+            {
+              "type": "entrance",
+              "label": "Pull Out",
+              "icon": "",
+              "x": 0,
+              "y": 11,
+              "z": 0,
+              "description": ""
+            },
+            {
+              "type": "bar",
+              "label": "Suck It & Sip It",
+              "icon": "",
+              "x": 0,
+              "y": -5.4,
+              "z": 5.2,
+              "description": ""
+            },
+            {
+              "type": "dj_booth",
+              "label": "DJ Cockpit",
+              "icon": "",
+              "x": 0,
+              "y": -3,
+              "z": 2.1,
+              "description": ""
+            },
+            {
+              "type": "event",
+              "label": "FuckPit",
+              "icon": "",
+              "x": 7.8,
+              "y": 0,
+              "z": 2.9,
+              "description": ""
+            },
+            {
+              "type": "vip",
+              "label": "Tugans Wife",
+              "icon": "",
+              "x": 5.3,
+              "y": -5.2,
+              "z": 4.2,
+              "description": ""
+            }
+          ]
+        }
+      ],
+      "ownerIdHashes": [
+        "9de797b5f8a085aed0de27cac5f063145776b6a4736847ce5690cc6f6e896fe2"
+      ],
+      "rules": [
+        {
+          "icon": "info",
+          "text": "Don't be a Dick."
+        },
+        {
+          "icon": "info",
+          "text": "No Childcoded Characters!"
+        }
+      ],
+      "rulesDe": [
+        {
+          "icon": "info",
+          "text": "Sei kein Arsch."
+        },
+        {
+          "icon": "info",
+          "text": "Keine kindlich wirkenden Charaktere!"
+        }
+      ],
+      "description": "A mature safe space for the LGBTQ+ community where every shade of queer has room to shine.",
+      "banner": "https://i87.servimg.com/u/f87/18/48/13/72/banner10.png"
     }
   ]
 }
